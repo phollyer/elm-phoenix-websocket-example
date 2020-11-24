@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="description" content="">
+    <meta name="author" content="Paul Hollyer, paul@hollyer.me.uk">
+    <link href="https://fonts.googleapis.com/css2?family=Piedra&family=Roboto+Mono:wght@100;400&family=Varela+Round&family=Oswald&display=swap" rel="stylesheet">
+
+    <title></title>
+  </head>
+
+
+  <body id="body"
+        data-vsn="<%= Application.spec(:elm_phoenix_web_socket_example, :vsn) |> to_string() %>"
+        style="height: 100vh; width: 100vw;">
+    <script type="text/javascript" src='<%= Routes.static_path(@conn, "/js/app.js") %>'></script>
+  </body>
+</html>
