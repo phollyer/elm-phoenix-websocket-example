@@ -10,8 +10,12 @@ use Mix.Config
 # which you should run after static files are built and
 # before starting your production server.
 config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
-  url: [host: "elm-phoenix-websocket-example.hollyer.me.uk", port: 4001],
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  cache_static_manifest: "priv/static/cache_manifest.json",
+  server: true,
+  http: [
+    transport_options: [socket_opts: [:inet6]]
+  ],
+  secret_key_base: secret_key_base
 
 # Do not print debug messages in production
 config :logger, level: :info
@@ -51,7 +55,3 @@ config :elm_phoenix_web_socket_example, :gzip, true
 #       force_ssl: [hsts: true]
 #
 # Check `Plug.SSL` for all available options in `force_ssl`.
-
-# Finally import the config/prod.secret.exs which loads secrets
-# and configuration from environment variables.
-import_config "prod.secret.exs"

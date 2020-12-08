@@ -7,7 +7,6 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
-  http: [port: 4001],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
@@ -19,6 +18,16 @@ config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
       "development",
       "--watch-stdin",
       cd: Path.expand("../assets", __DIR__)
+    ]
+  ],
+
+  # Watch static and templates for browser reloading.
+  live_reload: [
+    patterns: [
+      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$",
+      ~r"lib/elm_phoenix_web_socket_example_web/(live|views)/.*(ex)$",
+      ~r"lib/elm_phoenix_web_socket_example_web/templates/.*(eex)$"
     ]
   ]
 
@@ -46,16 +55,6 @@ config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
-# Watch static and templates for browser reloading.
-config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
-  live_reload: [
-    patterns: [
-      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"priv/gettext/.*(po)$",
-      ~r"lib/elm_phoenix_web_socket_example_web/(live|views)/.*(ex)$",
-      ~r"lib/elm_phoenix_web_socket_example_web/templates/.*(eex)$"
-    ]
-  ]
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"

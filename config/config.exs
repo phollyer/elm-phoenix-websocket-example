@@ -7,9 +7,35 @@
 # General application configuration
 use Mix.Config
 
+secret_key_base =
+  System.get_env("EPW_SECRET_KEY_BASE") ||
+    raise """
+    environment variable EPW_SECRET_KEY_BASE is missing.
+    You can generate one by calling: mix phx.gen.secret
+    """
+
+host =
+  System.get_env("EPW_HOST") ||
+    raise """
+    environment variable EPW_HOST is missing.
+    """
+
+port =
+  System.get_env("EPW_PORT") ||
+    raise """
+    environment variable EPW_PORT is missing.
+    """
+
+
 # Configures the endpoint
 config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: host, port: port],
+  http:
+    [
+      port: port,
+      transport_options: [socket_opts: [:inet6]]
+    ],
+  secret_key_base: secret_key_base,
   render_errors: [view: ElmPhoenixWebSocketExampleWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: ElmPhoenixWebSocketExample.PubSub,
   live_view: [signing_salt: "8wzo7xWf"]
