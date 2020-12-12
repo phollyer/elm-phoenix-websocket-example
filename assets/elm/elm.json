@@ -1,7 +1,8 @@
 {
     "type": "application",
     "source-directories": [
-        "src"
+        "src",
+        "../../../../Lib/elm/packages/elm-phoenix-websocket/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
@@ -15,7 +16,6 @@
             "elm-community/json-extra": "4.3.0",
             "elm-community/list-extra": "8.2.4",
             "mdgriffith/elm-ui": "1.1.7",
-            "phollyer/elm-phoenix-websocket": "3.0.0",
             "phollyer/elm-ui-colors": "3.0.0"
         },
         "indirect": {
