@@ -8,9 +8,9 @@ module Example.SimpleConnect exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Phoenix
+import Utils exposing (updatePhoenixWith)
 import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions

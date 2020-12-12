@@ -1,4 +1,4 @@
-module Example.Utils exposing
+module Utils exposing
     ( batch
     , updatePhoenixWith
     )

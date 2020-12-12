@@ -9,10 +9,10 @@ module Example.PushMultipleEvents exposing
 
 import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Example.Utils exposing (updatePhoenixWith)
 import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
+import Utils exposing (updatePhoenixWith)
 import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions

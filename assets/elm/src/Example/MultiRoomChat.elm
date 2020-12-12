@@ -13,13 +13,13 @@ import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig, pushConfig)
 import Element exposing (Device, Element)
-import Example.Utils exposing (updatePhoenixWith)
 import Json.Decode as JD
 import Json.Encode as JE
-import Phoenix
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
 import Task
-import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
+import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initUser)
+import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as Lobby
 import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
 import View.MultiRoomChat.Room as Room
@@ -40,8 +40,6 @@ init phoenix =
     , rooms = []
     , membersTyping = []
     , layoutHeight = 0
-    , headerHeight = 0
-    , introductionHeight = 0
     }
 
 
@@ -59,15 +57,13 @@ type alias Model =
     , rooms : List Room
     , membersTyping : List String
     , layoutHeight : Float
-    , headerHeight : Float
-    , introductionHeight : Float
     }
 
 
 type State
     = Unregistered
     | InLobby User
-    | InRoom Room User
+    | InRoom User Room
 
 
 
@@ -94,9 +90,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         OnResize _ _ ->
-            ( model
-            , getLayoutHeight
-            )
+            ( model, getLayoutHeight )
 
         LayoutHeight result ->
             case result of
@@ -109,43 +103,112 @@ update msg model =
         GotUsernameChange name ->
             ( { model | username = name }, Cmd.none )
 
-        GotJoinLobby ->
-            joinLobby model.username model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
-
-        GotCreateRoom ->
-            createRoom model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
-
-        GotDeleteRoom room ->
-            deleteRoom room model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
-
-        GotEnterRoom room ->
-            joinRoom room model.state model.phoenix
-                |> updatePhoenixWith PhoenixMsg (gotoRoom room model)
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , getLayoutHeight
-                            ]
-                    )
-
         GotMessageChange message ->
             ( { model | message = message }, Cmd.none )
 
+        GotJoinLobby ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.join "example:lobby" <|
+                    Phoenix.setJoinConfig
+                        { joinConfig
+                            | topic = "example:lobby"
+                            , events = [ "room_list" ]
+                            , payload =
+                                JE.object
+                                    [ ( "username", JE.string (String.trim model.username) ) ]
+                        }
+                        model.phoenix
+
+        GotCreateRoom ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "create_room"
+                    }
+                    model.phoenix
+
+        GotDeleteRoom room ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "delete_room"
+                        , payload =
+                            JE.object
+                                [ ( "room_id", JE.string room.id ) ]
+                    }
+                    model.phoenix
+
+        GotEnterRoom room ->
+            case model.state of
+                InLobby user ->
+                    let
+                        topic =
+                            "example:room:" ++ room.id
+                    in
+                    Phoenix.setJoinConfig
+                        { joinConfig
+                            | topic = topic
+                            , events =
+                                [ "message_list"
+                                , "member_started_typing"
+                                , "member_stopped_typing"
+                                , "room_closed"
+                                , "room_deleted"
+                                ]
+                            , payload =
+                                JE.object
+                                    [ ( "id", JE.string (String.trim user.id) ) ]
+                        }
+                        model.phoenix
+                        |> Phoenix.join topic
+                        |> updatePhoenixWith PhoenixMsg model
+                        |> Utils.batch [ getLayoutHeight ]
+
+                _ ->
+                    ( model, Cmd.none )
+
         GotSendMessage ->
-            sendMessage model.message (toRoom model) model.phoenix
-                |> updatePhoenixWith PhoenixMsg { model | message = "" }
+            case model.state of
+                InRoom _ room ->
+                    updatePhoenixWith PhoenixMsg { model | message = "" } <|
+                        Phoenix.push
+                            { pushConfig
+                                | topic = "example:room:" ++ room.id
+                                , event = "new_message"
+                                , payload =
+                                    JE.object
+                                        [ ( "message", JE.string model.message ) ]
+                            }
+                            model.phoenix
+
+                _ ->
+                    ( model, Cmd.none )
 
         GotMemberStartedTyping user room ->
-            memberStartedTyping user room model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:room:" ++ room.id
+                        , event = "member_started_typing"
+                        , payload =
+                            JE.object
+                                [ ( "username", JE.string user.username ) ]
+                    }
+                    model.phoenix
 
         GotMemberStoppedTyping user room ->
-            memberStoppedTyping user room model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:room:" ++ room.id
+                        , event = "member_stopped_typing"
+                        , payload =
+                            JE.object
+                                [ ( "username", JE.string user.username ) ]
+                    }
+                    model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -154,7 +217,7 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.ChannelResponse (Phoenix.JoinOk "example:lobby" payload) ->
+                ChannelResponse (JoinOk "example:lobby" payload) ->
                     case decodeUser payload of
                         Ok user ->
                             ( { newModel | state = InLobby user }, cmd )
@@ -162,15 +225,20 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelResponse (Phoenix.JoinOk _ payload) ->
+                ChannelResponse (JoinOk _ payload) ->
                     case decodeRoom payload of
                         Ok room ->
-                            ( updateRoom room newModel, cmd )
+                            case model.state of
+                                InLobby user ->
+                                    ( { newModel | state = InRoom user room }, cmd )
+
+                                _ ->
+                                    ( newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent "example:lobby" "room_list" payload ->
+                ChannelEvent "example:lobby" "room_list" payload ->
                     case decodeRooms payload of
                         Ok rooms ->
                             ( { newModel | rooms = rooms }, cmd )
@@ -178,23 +246,32 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent _ "member_started_typing" payload ->
+                ChannelEvent _ "member_started_typing" payload ->
                     case JD.decodeValue (JD.field "username" JD.string) payload of
                         Ok username ->
-                            ( addMemberTyping username newModel, cmd )
+                            if username /= (toUser newModel).username && (not <| List.member username newModel.membersTyping) then
+                                ( { newModel | membersTyping = username :: newModel.membersTyping }, cmd )
+
+                            else
+                                ( newModel, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent _ "member_stopped_typing" payload ->
+                ChannelEvent _ "member_stopped_typing" payload ->
                     case JD.decodeValue (JD.field "username" JD.string) payload of
                         Ok username ->
-                            ( dropMemberTyping username newModel, cmd )
+                            ( { newModel
+                                | membersTyping =
+                                    List.filter (\name -> name /= username) newModel.membersTyping
+                              }
+                            , cmd
+                            )
 
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent _ "message_list" payload ->
+                ChannelEvent _ "message_list" payload ->
                     case decodeMessages payload of
                         Ok messages_ ->
                             ( { newModel | messages = messages_ }
@@ -208,7 +285,7 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent _ "room_closed" payload ->
+                ChannelEvent _ "room_closed" payload ->
                     case decodeRoom payload of
                         Ok room ->
                             ( maybeLeaveRoom room newModel, cmd )
@@ -216,7 +293,7 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.ChannelEvent _ "room_deleted" payload ->
+                ChannelEvent _ "room_deleted" payload ->
                     case decodeRoom payload of
                         Ok room ->
                             ( maybeLeaveRoom room newModel, cmd )
@@ -224,7 +301,7 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                Phoenix.PresenceEvent (Phoenix.State "example:lobby" state) ->
+                PresenceEvent (Phoenix.State "example:lobby" state) ->
                     ( { newModel | presences = toPresences state }, cmd )
 
                 _ ->
@@ -246,145 +323,10 @@ scrollToBottom id =
         |> Task.attempt (\_ -> NoOp)
 
 
-joinLobby : String -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-joinLobby username phoenix =
-    phoenix
-        |> Phoenix.setJoinConfig
-            { joinConfig
-                | topic = "example:lobby"
-                , events = [ "room_list" ]
-                , payload =
-                    JE.object
-                        [ ( "username", JE.string (String.trim username) ) ]
-            }
-        |> Phoenix.join "example:lobby"
-
-
-leaveLobby : Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-leaveLobby phoenix =
-    Phoenix.leave "example:lobby" phoenix
-
-
-createRoom : Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-createRoom phoenix =
-    Phoenix.push
-        { pushConfig
-            | topic = "example:lobby"
-            , event = "create_room"
-        }
-        phoenix
-
-
-deleteRoom : Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-deleteRoom room phoenix =
-    Phoenix.push
-        { pushConfig
-            | topic = "example:lobby"
-            , event = "delete_room"
-            , payload =
-                JE.object
-                    [ ( "room_id", JE.string room.id ) ]
-        }
-        phoenix
-
-
-joinRoom : Room -> State -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-joinRoom room state phoenix =
-    case state of
-        InLobby user ->
-            let
-                topic =
-                    "example:room:" ++ room.id
-            in
-            phoenix
-                |> Phoenix.setJoinConfig
-                    { joinConfig
-                        | topic = topic
-                        , events =
-                            [ "message_list"
-                            , "member_started_typing"
-                            , "member_stopped_typing"
-                            , "room_closed"
-                            , "room_deleted"
-                            ]
-                        , payload =
-                            JE.object
-                                [ ( "id", JE.string (String.trim user.id) ) ]
-                    }
-                |> Phoenix.join topic
-
-        _ ->
-            ( phoenix, Cmd.none )
-
-
-leaveRoom : Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-leaveRoom room phoenix =
-    Phoenix.leave ("example:room:" ++ room.id) phoenix
-
-
-memberStartedTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-memberStartedTyping user room phoenix =
-    Phoenix.push
-        { pushConfig
-            | topic = "example:room:" ++ room.id
-            , event = "member_started_typing"
-            , payload =
-                JE.object
-                    [ ( "username", JE.string user.username ) ]
-        }
-        phoenix
-
-
-memberStoppedTyping : User -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-memberStoppedTyping user room phoenix =
-    Phoenix.push
-        { pushConfig
-            | topic = "example:room:" ++ room.id
-            , event = "member_stopped_typing"
-            , payload =
-                JE.object
-                    [ ( "username", JE.string user.username ) ]
-        }
-        phoenix
-
-
-sendMessage : String -> Room -> Phoenix.Model -> ( Phoenix.Model, Cmd Phoenix.Msg )
-sendMessage message room phoenix =
-    Phoenix.push
-        { pushConfig
-            | topic = "example:room:" ++ room.id
-            , event = "new_message"
-            , payload =
-                JE.object
-                    [ ( "message", JE.string message ) ]
-        }
-        phoenix
-
-
-gotoRoom : Room -> Model -> Model
-gotoRoom room model =
-    case model.state of
-        InLobby user ->
-            { model | state = InRoom room user }
-
-        _ ->
-            model
-
-
-updateRoom : Room -> Model -> Model
-updateRoom room model =
-    case model.state of
-        InRoom _ user ->
-            { model | state = InRoom room user }
-
-        _ ->
-            model
-
-
 maybeLeaveRoom : Room -> Model -> Model
 maybeLeaveRoom room model =
     case model.state of
-        InRoom room_ user ->
+        InRoom user room_ ->
             if room_.id == room.id then
                 { model | state = InLobby user }
 
@@ -393,27 +335,6 @@ maybeLeaveRoom room model =
 
         _ ->
             model
-
-
-addMemberTyping : String -> Model -> Model
-addMemberTyping username model =
-    let
-        user =
-            toUser model
-    in
-    if username /= user.username && (not <| List.member username model.membersTyping) then
-        { model | membersTyping = username :: model.membersTyping }
-
-    else
-        model
-
-
-dropMemberTyping : String -> Model -> Model
-dropMemberTyping username model =
-    { model
-        | membersTyping =
-            List.filter (\username_ -> username_ /= username) model.membersTyping
-    }
 
 
 toPresences : List Phoenix.Presence -> List Presence
@@ -432,16 +353,6 @@ toPresences presences =
         presences
 
 
-toRoom : Model -> Room
-toRoom model =
-    case model.state of
-        InRoom room _ ->
-            room
-
-        _ ->
-            initRoom
-
-
 toUser : Model -> User
 toUser model =
     case model.state of
@@ -451,7 +362,7 @@ toUser model =
         InLobby user ->
             user
 
-        InRoom _ user ->
+        InRoom user _ ->
             user
 
 
@@ -462,13 +373,13 @@ toUser model =
 back : Nav.Key -> Model -> ( Model, Cmd Msg )
 back key model =
     case model.state of
-        InRoom room user ->
-            leaveRoom room model.phoenix
+        InRoom user room ->
+            Phoenix.leave ("example:room:" ++ room.id) model.phoenix
                 |> updatePhoenixWith PhoenixMsg
                     { model | state = InLobby user }
 
         InLobby _ ->
-            leaveLobby model.phoenix
+            Phoenix.leave "example:lobby" model.phoenix
                 |> updatePhoenixWith PhoenixMsg
                     { model | state = Unregistered }
 
@@ -513,7 +424,7 @@ view device model =
                 |> Lobby.rooms model.rooms
                 |> Lobby.view device
 
-        InRoom room user ->
+        InRoom user room ->
             Room.init
                 |> Room.user user
                 |> Room.room room

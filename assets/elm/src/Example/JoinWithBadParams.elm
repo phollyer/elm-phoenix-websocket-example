@@ -9,10 +9,10 @@ module Example.JoinWithBadParams exposing
 
 import Configs exposing (joinConfig)
 import Element as El exposing (Device, Element)
-import Example.Utils exposing (batch, updatePhoenixWith)
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix
+import Utils exposing (batch, updatePhoenixWith)
 import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
