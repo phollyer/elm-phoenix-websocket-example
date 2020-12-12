@@ -58,10 +58,13 @@ onClick maybeMsg (Config config) =
 
 view : Device -> Config msg -> Element msg
 view device (Config config) =
-    panel config.onClick
-        [ header device config.title
-        , content device config.description
-        ]
+    El.el
+        [ El.width El.fill ]
+    <|
+        panel config.onClick
+            [ header device config.title
+            , content device config.description
+            ]
 
 
 
