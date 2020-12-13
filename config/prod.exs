@@ -14,8 +14,7 @@ config :elm_phoenix_web_socket_example, ElmPhoenixWebSocketExampleWeb.Endpoint,
   server: true,
   http: [
     transport_options: [socket_opts: [:inet6]]
-  ],
-  secret_key_base: secret_key_base
+  ]
 
 # Do not print debug messages in production
 config :logger, level: :info
