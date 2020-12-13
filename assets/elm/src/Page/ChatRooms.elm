@@ -11,6 +11,7 @@ module Page.ChatRooms exposing
 
 import Element as El exposing (Device, Element)
 import Example.MultiRoomChat as MultiRoomChat
+import Phoenix
 import Session exposing (Session)
 import View.Example.Page as ExamplePage
 import View.Layout as Layout
@@ -67,9 +68,12 @@ update msg model =
                 |> updateWith MultiRoom GotMultiRoomMsg model
 
 
-updateWith : (subModel -> Example) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith : ({ a | phoenix : Phoenix.Model } -> Example) -> (subMsg -> Msg) -> Model -> ( { a | phoenix : Phoenix.Model }, Cmd subMsg ) -> ( Model, Cmd Msg )
 updateWith toExample toMsg model ( subModel, cmd ) =
-    ( { model | example = toExample subModel }
+    ( { model
+        | example = toExample subModel
+        , session = Session.updatePhoenix subModel.phoenix model.session
+      }
     , Cmd.map toMsg cmd
     )
 

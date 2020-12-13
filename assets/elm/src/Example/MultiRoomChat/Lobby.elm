@@ -4,6 +4,7 @@ module Example.MultiRoomChat.Lobby exposing
     , enter
     , init
     , subscriptions
+    , toPhoenix
     , update
     , view
     )
@@ -48,6 +49,11 @@ enter user phoenix =
         , presences = []
         , rooms = []
         }
+
+
+toPhoenix : Model -> Phoenix.Model
+toPhoenix (Model model) =
+    model.phoenix
 
 
 

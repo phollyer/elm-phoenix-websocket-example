@@ -81,7 +81,12 @@ update msg model =
                 ( lobby, lobbyCmd ) =
                     Lobby.update subMsg model.lobby
             in
-            ( { model | lobby = lobby }, Cmd.map LobbyMsg lobbyCmd )
+            ( { model
+                | lobby = lobby
+                , phoenix = Lobby.toPhoenix lobby
+              }
+            , Cmd.map LobbyMsg lobbyCmd
+            )
 
         RoomMsg subMsg ->
             let
@@ -90,7 +95,12 @@ update msg model =
             in
             case roomMsg of
                 Empty ->
-                    ( { model | room = room }, Cmd.map RoomMsg roomCmd )
+                    ( { model
+                        | room = room
+                        , phoenix = Room.toPhoenix room
+                      }
+                    , Cmd.map RoomMsg roomCmd
+                    )
 
                 LeaveRoom ->
                     ( { model
