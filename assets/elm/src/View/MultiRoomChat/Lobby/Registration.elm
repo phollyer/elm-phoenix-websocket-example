@@ -7,7 +7,7 @@ module View.MultiRoomChat.Lobby.Registration exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Device, Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import View.MultiRoomChat.Lobby.Form as Form
@@ -56,7 +56,8 @@ onSubmit msg (Config config) =
 view : Device -> Config msg -> Element msg
 view device config =
     El.column
-        [ El.width El.fill
+        [ width device
+        , El.centerX
         , El.spacing 10
         ]
         [ introduction
@@ -93,3 +94,21 @@ form device (Config config) =
             |> Form.onSubmit config.onSubmit
             |> Form.view device
         )
+
+
+
+{- Attributes -}
+
+
+width : Device -> Attribute msg
+width { class, orientation } =
+    El.width <|
+        case ( class, orientation ) of
+            ( Phone, Portrait ) ->
+                El.fill
+
+            ( Phone, Landscape ) ->
+                El.maximum 400 El.fill
+
+            _ ->
+                El.maximum 500 El.fill
