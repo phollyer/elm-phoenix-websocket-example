@@ -68,7 +68,7 @@ container : Device -> String -> List (Element msg) -> Element msg
 container device title panels =
     El.column
         [ El.spacing 10
-        , El.width El.fill
+        , El.centerX
         ]
         [ El.el
             [ fontSize device
@@ -89,10 +89,16 @@ panelsContainer { class, orientation } =
                 , El.width El.fill
                 ]
 
-        _ ->
+        ( Phone, Landscape ) ->
             El.wrappedRow
                 [ El.spacing 10
                 , El.width El.fill
+                ]
+
+        _ ->
+            El.wrappedRow
+                [ El.spacing 10
+                , El.centerX
                 ]
 
 
