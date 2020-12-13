@@ -48,19 +48,19 @@ view _ (Config config) =
         [ El.width El.fill
         , El.spacing 10
         ]
-        [ El.row
-            [ El.centerX
+        [ El.paragraph
+            [ Font.center
             , El.spacing 10
             ]
             [ El.el
                 [ Font.bold ]
-                (El.text "Username:")
+                (El.text "Username: ")
             , El.el
                 []
                 (El.text config.username)
             ]
-        , El.row
-            [ El.centerX
+        , El.paragraph
+            [ Font.center
             , El.spacing 10
             ]
             [ El.el

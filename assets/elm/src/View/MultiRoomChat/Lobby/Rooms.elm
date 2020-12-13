@@ -85,6 +85,13 @@ view device (Config config) =
                 [ El.text "A Room can only be joined after it has been opened. "
                 , El.text "A Room is opened when the owner of the Room enters it."
                 ]
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "When the owner leaves a room it will close and all occupants will return to the lobby. "
+                , El.text "Messages will be retained until the room is deleted by the owner, or the owner leaves this example."
+                ]
             ]
             (orderRooms config.user config.rooms
                 |> List.map (toRoom device (Config config))

@@ -10,7 +10,7 @@ module View.MultiRoomChat.Lobby exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Device, Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -88,20 +88,36 @@ view device (Config config) =
         [ El.width El.fill
         , El.spacing 15
         ]
-        [ El.column
-            [ Border.rounded 10
-            , Background.color Color.steelblue
-            , El.padding 20
-            , El.spacing 20
-            , El.width El.fill
-            , Font.color Color.skyblue
+        [ container
+            device
+            [ El.width El.fill
+            , El.spacing 15
             ]
-            [ userView device config.user
-            , createRoomBtn device config.onCreateRoom
+            [ El.column
+                [ Border.rounded 10
+                , Background.color Color.steelblue
+                , El.padding 20
+                , El.spacing 20
+                , El.width El.fill
+                , Font.color Color.skyblue
+                ]
+                [ userView device config.user
+                , createRoomBtn device config.onCreateRoom
+                ]
+            , membersView device config.user config.members
             ]
-        , membersView device config.user config.members
         , roomsView device (Config config)
         ]
+
+
+container : Device -> List (Attribute msg) -> List (Element msg) -> Element msg
+container { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+
+        _ ->
+            El.wrappedRow
 
 
 
@@ -110,10 +126,15 @@ view device (Config config) =
 
 userView : Device -> User -> Element msg
 userView device { username, id } =
-    User.init
-        |> User.username username
-        |> User.userId id
-        |> User.view device
+    El.el
+        [ El.alignTop
+        , El.width El.fill
+        ]
+        (User.init
+            |> User.username username
+            |> User.userId id
+            |> User.view device
+        )
 
 
 
@@ -134,10 +155,15 @@ createRoomBtn device maybeMsg =
 
 membersView : Device -> User -> List Presence -> Element msg
 membersView device currentUser presences =
-    LobbyMembers.init
-        |> LobbyMembers.members (toUsers presences)
-        |> LobbyMembers.user currentUser
-        |> LobbyMembers.view device
+    El.el
+        [ El.alignTop
+        , El.width El.fill
+        ]
+        (LobbyMembers.init
+            |> LobbyMembers.members (toUsers presences)
+            |> LobbyMembers.user currentUser
+            |> LobbyMembers.view device
+        )
 
 
 toUsers : List Presence -> List User
@@ -152,9 +178,14 @@ toUsers presences =
 
 roomsView : Device -> Config msg -> Element msg
 roomsView device (Config config) =
-    LobbyRooms.init
-        |> LobbyRooms.rooms config.rooms
-        |> LobbyRooms.user config.user
-        |> LobbyRooms.onClick config.onEnterRoom
-        |> LobbyRooms.onDelete config.onDeleteRoom
-        |> LobbyRooms.view device
+    El.el
+        [ El.alignTop
+        , El.width El.fill
+        ]
+        (LobbyRooms.init
+            |> LobbyRooms.rooms config.rooms
+            |> LobbyRooms.user config.user
+            |> LobbyRooms.onClick config.onEnterRoom
+            |> LobbyRooms.onDelete config.onDeleteRoom
+            |> LobbyRooms.view device
+        )

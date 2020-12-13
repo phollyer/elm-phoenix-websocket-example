@@ -1,6 +1,5 @@
 module View.MultiRoomChat.Room exposing
     ( init
-    , introduction
     , membersTyping
     , messages
     , messagesContainerMaxHeight
@@ -117,68 +116,14 @@ onSubmit msg (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.height El.fill
+        [ El.height <|
+            El.px config.messagesContainerMaxHeight
         , El.width El.fill
         ]
-        [ introduction config.user config.room
-        , El.column
-            [ El.height <|
-                El.px config.messagesContainerMaxHeight
-            , El.width El.fill
-            ]
-            [ messagesView device (Config config)
-            , membersTypingView config.membersTyping
-            , form device (Config config)
-            ]
+        [ messagesView device (Config config)
+        , membersTypingView config.membersTyping
+        , form device (Config config)
         ]
-
-
-introduction : User -> Room -> Element msg
-introduction currentUser currentRoom =
-    let
-        paragraphs =
-            if currentUser.id == currentRoom.owner.id then
-                [ El.paragraph
-                    [ El.width El.fill ]
-                    [ El.text "Welcome to your room." ]
-                , El.paragraph
-                    [ El.width El.fill ]
-                    [ El.text "When you leave the room it will close and all members will return to the lobby. "
-                    , El.text "Messages will be retained until you delete the room or leave the lobby."
-                    ]
-                ]
-
-            else
-                [ El.paragraph
-                    [ El.width El.fill ]
-                    [ El.text "Welcome to "
-                    , El.text currentRoom.owner.username
-                    , El.text "'s room."
-                    ]
-                , El.paragraph
-                    [ El.width El.fill ]
-                    [ El.text "When "
-                    , El.text currentRoom.owner.username
-                    , El.text " leaves the room it will close and you will return to the lobby. "
-                    , El.text "Messages will be retained until "
-                    , El.text currentRoom.owner.username
-                    , El.text " deletes the room or leaves the lobby."
-                    ]
-                ]
-    in
-    El.column
-        [ El.htmlAttribute <|
-            Attr.id "introduction"
-        , El.width El.fill
-        , El.spacing 10
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
-        ]
-        paragraphs
 
 
 membersTypingView : List String -> Element msg
