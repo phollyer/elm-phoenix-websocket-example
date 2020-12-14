@@ -12,6 +12,10 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Font as Font
 import Element.Input as Input
 import Html.Attributes as Attr
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
+import UI.Padding as Padding
 
 
 
@@ -59,11 +63,14 @@ view device (Config config) =
     El.column
         [ El.htmlAttribute <|
             Attr.id "layout"
+        , El.clip
+        , El.scrollbars
         , El.inFront (homeButton device config.homeMsg)
         , El.height El.fill
         , El.width El.fill
-        , El.clip
-        , El.scrollbars
+        , FontColor.heading
+        , FontFamily.heading
+        , FontSize.heading device
         ]
         [ header device config.title
         , config.body
@@ -73,30 +80,16 @@ view device (Config config) =
 header : Device -> String -> Element msg
 header device text =
     El.row
-        [ fontSize device
-        , El.htmlAttribute <|
+        [ El.htmlAttribute <|
             Attr.id "header"
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
         , El.width El.fill
         , Font.bold
         , Font.underline
-        , Font.color Color.darkslateblue
-        , Font.family
-            [ Font.typeface "Oswald" ]
+        , Padding.bottom 10
         ]
         [ El.el
-            [ padding device
+            [ paddingY device
             , El.centerX
-            , Font.bold
-            , Font.underline
-            , Font.color Color.darkslateblue
-            , Font.family
-                [ Font.typeface "Oswald" ]
             ]
             (El.text text)
         ]
@@ -110,15 +103,13 @@ homeButton device maybeMsg =
 
         Just msg ->
             El.el
-                [ padding device ]
+                [ paddingY device
+                , FontFamily.backButton
+                ]
             <|
                 Input.button
-                    [ fontSize device
-                    , El.mouseOver
-                        [ Font.color Color.aliceblue ]
-                    , Font.color Color.darkslateblue
-                    , Font.family
-                        [ Font.typeface "Piedra" ]
+                    [ El.mouseOver
+                        [ FontColor.mouseOverBackButton ]
                     ]
                     { label = El.text "<="
                     , onPress = Just msg
@@ -129,21 +120,12 @@ homeButton device maybeMsg =
 {- Attributes -}
 
 
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 20
+paddingY : Device -> Attribute msg
+paddingY { class } =
+    Padding.y <|
+        case class of
+            Phone ->
+                5
 
-        _ ->
-            Font.size 40
-
-
-padding : Device -> Attribute msg
-padding { class } =
-    case class of
-        Phone ->
-            El.paddingXY 0 5
-
-        _ ->
-            El.paddingXY 0 10
+            _ ->
+                10

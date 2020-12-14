@@ -142,8 +142,8 @@ controls device =
 join : Device -> Element Msg
 join device =
     Button.init
-        |> Button.label "Join"
-        |> Button.onPress (Just GotControlClick)
+        |> Button.setLabel "Join"
+        |> Button.setOnPress (Just GotControlClick)
         |> Button.view device
 
 

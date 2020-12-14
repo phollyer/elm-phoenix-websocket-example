@@ -9,6 +9,7 @@ module View.MultiRoomChat.Room.Form exposing
     )
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import UI.Padding as Padding
 import View.Button as Button
 import View.InputField as InputField
 
@@ -88,13 +89,8 @@ container { class, orientation } =
     in
     container_
         [ El.spacing 10
-        , El.paddingEach
-            { left = 0
-            , top = 10
-            , right = 0
-            , bottom = 0
-            }
         , El.width El.fill
+        , Padding.top 10
         ]
 
 
@@ -117,8 +113,8 @@ submitButton device (Config config) =
         , El.centerX
         ]
         (Button.init
-            |> Button.label "Send Message"
-            |> Button.onPress config.onSubmit
-            |> Button.enabled (String.trim config.text /= "")
+            |> Button.setLabel "Send Message"
+            |> Button.setOnPress config.onSubmit
+            |> Button.setEnabled (String.trim config.text /= "")
             |> Button.view device
         )

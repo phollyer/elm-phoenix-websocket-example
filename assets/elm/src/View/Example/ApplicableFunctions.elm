@@ -5,7 +5,7 @@ module View.Example.ApplicableFunctions exposing
     )
 
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
-import UI
+import UI.Link as Link
 
 
 
@@ -36,7 +36,7 @@ view { class } (Config functions_) =
         [ spacing class
         , El.width El.fill
         ]
-        (List.map UI.functionLink functions_)
+        (List.map Link.function functions_)
 
 
 

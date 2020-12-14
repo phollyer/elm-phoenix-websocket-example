@@ -13,6 +13,9 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Element.Border as Border
 import Element.Font as Font
 import List.Extra as List
+import UI.BorderColor as BorderColor
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
 import View.Group as Group
 
 
@@ -103,13 +106,8 @@ view device (Config config) =
 column : List (Element msg) -> Element msg
 column =
     El.column
-        [ Border.color Color.aliceblue
-        , Border.widthEach
-            { left = 0
-            , top = 1
-            , right = 0
-            , bottom = 1
-            }
+        [ Border.widthXY 0 1
+        , BorderColor.seperatorLight
         , El.paddingXY 0 10
         , El.scrollbarY
         , El.spacing 10
@@ -125,14 +123,12 @@ maybeUserId maybeId_ =
 
         Just id ->
             El.paragraph
-                [ Font.family
-                    [ Font.typeface "Varela Round" ]
-                ]
+                [ FontFamily.default ]
                 [ El.el
-                    [ Font.color Color.lavender ]
+                    [ FontColor.label ]
                     (El.text "User ID: ")
                 , El.el
-                    [ Font.color Color.powderblue ]
+                    [ FontColor.value ]
                     (El.text id)
                 ]
 

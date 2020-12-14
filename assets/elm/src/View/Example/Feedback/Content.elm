@@ -10,6 +10,7 @@ module View.Example.Feedback.Content exposing
 import Colors.Opaque as Color
 import Element as El exposing (Device, Element)
 import Element.Font as Font
+import UI.FontFamily as FontFamily
 
 
 
@@ -57,7 +58,7 @@ view _ (Config config) =
     El.column
         [ El.width El.fill
         , El.spacing 10
-        , Font.family [ Font.typeface "Oswald" ]
+        , FontFamily.code
         ]
         [ titleView config.title
         , labelView config.label

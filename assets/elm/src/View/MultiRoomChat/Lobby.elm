@@ -15,9 +15,12 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Presence, Room, User, initUser)
+import UI.Align as Align
+import UI.BackgroundColor as BackgroundColor
+import UI.FontColor as FontColor
 import View.Button as Button
-import View.MultiRoomChat.Lobby.Members as LobbyMembers
-import View.MultiRoomChat.Lobby.Rooms as LobbyRooms
+import View.MultiRoomChat.Lobby.Occupants as Occupants
+import View.MultiRoomChat.Lobby.Rooms as Rooms
 import View.MultiRoomChat.User as User
 
 
@@ -94,18 +97,18 @@ view device (Config config) =
             , El.spacing 15
             ]
             [ El.column
-                [ Border.rounded 10
-                , Background.color Color.steelblue
+                [ BackgroundColor.panel
+                , Border.rounded 10
                 , El.padding 20
                 , El.spacing 20
                 , El.width El.fill
-                , Font.color Color.skyblue
+                , FontColor.panel
                 ]
                 [ userView device config.user
                 , createRoomBtn device config.onCreateRoom
                 ]
-            , membersView device config.user config.members
             ]
+        , occupantsView device config.user config.members
         , roomsView device (Config config)
         ]
 
@@ -126,15 +129,53 @@ container { class, orientation } =
 
 userView : Device -> User -> Element msg
 userView device { username, id } =
-    El.el
-        [ El.alignTop
+    El.column
+        [ alignFont device
+        , El.alignTop
+        , El.spacing 20
         , El.width El.fill
         ]
-        (User.init
+        [ User.init
             |> User.username username
             |> User.userId id
             |> User.view device
-        )
+        , El.column
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            [ El.el
+                [ El.width El.fill
+                , Font.bold
+                , FontColor.subTitle
+                ]
+                (El.text "Rooms")
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "- A Room is opened when the owner of the Room enters it." ]
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "- A Room can only be entered by a guest after it has been opened by the owner." ]
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "- When the owner leaves a room it will close and all occupants will return to the lobby. " ]
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "- When a room closes, the messages will be retained until the room is deleted by the owner." ]
+            , El.paragraph
+                [ El.spacing 5
+                , El.width El.fill
+                ]
+                [ El.text "- A room is deleted when it's owner leaves this Example, or when the Delete button is clicked." ]
+            ]
+        ]
 
 
 
@@ -142,10 +183,21 @@ userView device { username, id } =
 
 
 createRoomBtn : Device -> Maybe msg -> Element msg
-createRoomBtn device maybeMsg =
+createRoomBtn ({ class, orientation } as device) maybeMsg =
     Button.init
-        |> Button.label "Create A Room"
-        |> Button.onPress maybeMsg
+        |> Button.setLabel "Create A Room"
+        |> Button.setOnPress maybeMsg
+        |> Button.setAlignX
+            (case ( class, orientation ) of
+                ( Phone, Portrait ) ->
+                    Align.Center
+
+                ( Phone, Landscape ) ->
+                    Align.Left
+
+                _ ->
+                    Align.Center
+            )
         |> Button.view device
 
 
@@ -153,16 +205,16 @@ createRoomBtn device maybeMsg =
 {- Lobby Members -}
 
 
-membersView : Device -> User -> List Presence -> Element msg
-membersView device currentUser presences =
+occupantsView : Device -> User -> List Presence -> Element msg
+occupantsView device currentUser presences =
     El.el
         [ El.alignTop
         , El.width El.fill
         ]
-        (LobbyMembers.init
-            |> LobbyMembers.members (toUsers presences)
-            |> LobbyMembers.user currentUser
-            |> LobbyMembers.view device
+        (Occupants.init
+            |> Occupants.all (toUsers presences)
+            |> Occupants.currentUser currentUser
+            |> Occupants.view device
         )
 
 
@@ -178,14 +230,32 @@ toUsers presences =
 
 roomsView : Device -> Config msg -> Element msg
 roomsView device (Config config) =
-    El.el
-        [ El.alignTop
-        , El.width El.fill
-        ]
-        (LobbyRooms.init
-            |> LobbyRooms.rooms config.rooms
-            |> LobbyRooms.user config.user
-            |> LobbyRooms.onClick config.onEnterRoom
-            |> LobbyRooms.onDelete config.onDeleteRoom
-            |> LobbyRooms.view device
-        )
+    if List.isEmpty config.rooms then
+        El.none
+
+    else
+        El.el
+            [ El.alignTop
+            , El.width El.fill
+            ]
+            (Rooms.init
+                |> Rooms.rooms config.rooms
+                |> Rooms.user config.user
+                |> Rooms.onClick config.onEnterRoom
+                |> Rooms.onDelete config.onDeleteRoom
+                |> Rooms.view device
+            )
+
+
+
+{- Attributes -}
+
+
+alignFont : Device -> Attribute msg
+alignFont { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            Font.center
+
+        _ ->
+            Font.alignLeft

@@ -7,9 +7,9 @@ module View.Home exposing
     , view
     )
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Font as Font
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import UI.FontColor as FontColor
+import UI.FontSize as FontSize
 
 
 
@@ -67,13 +67,13 @@ view device (Config config) =
 container : Device -> String -> List (Element msg) -> Element msg
 container device title panels =
     El.column
-        [ El.spacing 10
-        , El.centerX
+        [ El.centerX
+        , El.spacing 10
         ]
         [ El.el
-            [ fontSize device
-            , Font.color Color.slateblue
-            , El.centerX
+            [ El.centerX
+            , FontColor.title
+            , FontSize.title device
             ]
             (El.text title)
         , panelsContainer device panels
@@ -97,20 +97,6 @@ panelsContainer { class, orientation } =
 
         _ ->
             El.wrappedRow
-                [ El.spacing 10
-                , El.centerX
+                [ El.centerX
+                , El.spacing 10
                 ]
-
-
-
-{- Attributes -}
-
-
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 18
-
-        _ ->
-            Font.size 30

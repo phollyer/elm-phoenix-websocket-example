@@ -11,6 +11,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Message, User, initUser)
+import UI.FontColor as FontColor
 
 
 
@@ -123,7 +124,7 @@ username : Attribute msg -> String -> Element msg
 username alignment name =
     El.el
         [ alignment
-        , Font.color Color.darkslateblue
+        , FontColor.default
         ]
         (El.text name)
 

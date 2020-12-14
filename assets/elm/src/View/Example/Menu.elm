@@ -15,6 +15,10 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import List.Extra as List
+import UI.BorderColor as BorderColor
+import UI.BorderWidth as BorderWidth
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
 import View exposing (andMaybeEventWithArg)
 import View.Group as Group
 
@@ -83,12 +87,7 @@ view ({ class, orientation } as device) (Config config) =
             case Group.layoutForDevice device config.group of
                 Nothing ->
                     El.row
-                        (El.paddingEach
-                            { left = 5
-                            , top = 0
-                            , right = 5
-                            , bottom = 0
-                            }
+                        (El.paddingXY 5 0
                             :: containerAttrs device
                         )
                     <|
@@ -125,13 +124,7 @@ stackItem selected_ maybeOnClick item =
     El.el
         (List.append
             (itemAttrs selected_ item maybeOnClick)
-            [ Border.widthEach
-                { left = 0
-                , top = 0
-                , right = 0
-                , bottom = 4
-                }
-            ]
+            [ BorderWidth.bottom 4 ]
         )
         (El.text item)
 
@@ -141,12 +134,7 @@ rowItem selected_ maybeOnClick item =
     El.el
         (List.append
             (itemAttrs selected_ item maybeOnClick)
-            [ Border.widthEach
-                { left = 0
-                , top = 4
-                , right = 0
-                , bottom = 4
-                }
+            [ Border.widthXY 0 4
             , El.paddingXY 0 5
             ]
         )
@@ -160,33 +148,27 @@ rowItem selected_ maybeOnClick item =
 containerAttrs : Device -> List (Attribute msg)
 containerAttrs device =
     [ spacing device
-    , Border.color Color.aliceblue
-    , Border.widthEach
-        { left = 0
-        , top = 1
-        , right = 0
-        , bottom = 1
-        }
+    , Border.widthXY 0 1
+    , BorderColor.seperatorLight
     , El.width El.fill
-    , Font.color Color.darkslateblue
-    , Font.family
-        [ Font.typeface "Varela Round" ]
+    , FontColor.default
+    , FontFamily.default
     ]
 
 
 itemAttrs : String -> String -> Maybe (String -> msg) -> List (Attribute msg)
 itemAttrs selected_ item maybeOnClick =
     if selected_ == item then
-        [ Border.color Color.aliceblue
+        [ BorderColor.seperatorLight
         , El.centerX
         ]
 
     else
-        [ Border.color (Alpha.darkslateblue 0)
+        [ BorderColor.none
         , El.centerX
         , El.pointer
         , El.mouseOver
-            [ Border.color Color.lavender ]
+            [ BorderColor.mouseOverMenuItem ]
         ]
             |> andMaybeEventWithArg maybeOnClick item Event.onClick
 

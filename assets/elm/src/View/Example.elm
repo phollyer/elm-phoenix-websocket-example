@@ -11,6 +11,10 @@ module View.Example exposing
 import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
+import UI.Padding as Padding
 
 
 
@@ -63,20 +67,19 @@ id maybeId_ (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ fontSize device
+        [ El.spacing 10
         , El.height El.fill
         , El.width El.fill
-        , El.spacing 10
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
+        , FontColor.default
+        , FontFamily.default
+        , FontSize.default device
+        , Padding.bottom 10
         ]
         [ descriptionView config.description
         , maybeId config.id
-        , controlsView config.controls
+        , El.el
+            [ El.width El.fill ]
+            config.controls
         , config.feedback
         ]
 
@@ -86,14 +89,10 @@ view device (Config config) =
 
 
 descriptionView : List (List (Element msg)) -> Element msg
-descriptionView content =
+descriptionView paragraphs =
     El.column
-        [ El.spacing 12
-        , Font.color Color.darkslateblue
+        [ El.width El.fill
         , Font.justify
-        , Font.family
-            [ Font.typeface "Varela Round" ]
-        , El.width El.fill
         ]
     <|
         List.map
@@ -102,7 +101,7 @@ descriptionView content =
                     [ El.width El.fill ]
                     paragraph
             )
-            content
+            paragraphs
 
 
 
@@ -117,35 +116,7 @@ maybeId maybeId_ =
 
         Just id_ ->
             El.paragraph
-                [ Font.center
-                , Font.family
-                    [ Font.typeface "Varela Round" ]
+                [ Font.center ]
+                [ El.el [ FontColor.label ] (El.text "Example ID: ")
+                , El.el [ FontColor.value ] (El.text id_)
                 ]
-                [ El.el [ Font.color Color.lavender ] (El.text "Example ID: ")
-                , El.el [ Font.color Color.powderblue ] (El.text id_)
-                ]
-
-
-
-{- Controls -}
-
-
-controlsView : Element msg -> Element msg
-controlsView controls_ =
-    El.el
-        [ El.width El.fill ]
-        controls_
-
-
-
-{- Attributes -}
-
-
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 14
-
-        _ ->
-            Font.size 18

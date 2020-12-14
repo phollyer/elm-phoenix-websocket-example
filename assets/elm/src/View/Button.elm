@@ -1,9 +1,11 @@
 module View.Button exposing
     ( Config
-    , enabled
     , init
-    , label
-    , onPress
+    , setAlignX
+    , setAlignY
+    , setEnabled
+    , setLabel
+    , setOnPress
     , view
     )
 
@@ -13,6 +15,10 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import UI.Align as Align exposing (X(..), Y(..))
+import UI.BackgroundColor as BackgroundColor
+import UI.FontColor as FontColor
+import UI.Shadow as Shadow
 
 
 
@@ -24,6 +30,8 @@ type Config msg
         { enabled : Bool
         , label : String
         , onPress : Maybe msg
+        , alignX : X
+        , alignY : Y
         }
 
 
@@ -33,22 +41,34 @@ init =
         { enabled = True
         , label = ""
         , onPress = Nothing
+        , alignX = Center
+        , alignY = Middle
         }
 
 
-enabled : Bool -> Config msg -> Config msg
-enabled enabled_ (Config config) =
-    Config { config | enabled = enabled_ }
+setEnabled : Bool -> Config msg -> Config msg
+setEnabled enabled (Config config) =
+    Config { config | enabled = enabled }
 
 
-label : String -> Config msg -> Config msg
-label label_ (Config config) =
+setLabel : String -> Config msg -> Config msg
+setLabel label_ (Config config) =
     Config { config | label = label_ }
 
 
-onPress : Maybe msg -> Config msg -> Config msg
-onPress maybe (Config config) =
+setOnPress : Maybe msg -> Config msg -> Config msg
+setOnPress maybe (Config config) =
     Config { config | onPress = maybe }
+
+
+setAlignX : X -> Config msg -> Config msg
+setAlignX alignX (Config config) =
+    Config { config | alignX = alignX }
+
+
+setAlignY : Y -> Config msg -> Config msg
+setAlignY alignY (Config config) =
+    Config { config | alignY = alignY }
 
 
 
@@ -59,8 +79,12 @@ view : Device -> Config msg -> Element msg
 view _ (Config config) =
     Input.button
         (List.append
-            defaultAttrs
             (attrs config.enabled)
+            [ Align.x config.alignX
+            , Align.y config.alignY
+            , Border.rounded 10
+            , El.padding 10
+            ]
         )
         { label = El.text config.label
         , onPress =
@@ -73,30 +97,15 @@ view _ (Config config) =
 
 
 attrs : Bool -> List (Attribute msg)
-attrs enabled_ =
-    if enabled_ then
-        [ Background.color Color.darkseagreen
-        , Font.color Color.darkolivegreen
+attrs enabled =
+    if enabled then
+        [ BackgroundColor.button
         , El.mouseOver <|
-            [ Border.shadow
-                { size = 1
-                , blur = 2
-                , color = Color.seagreen
-                , offset = ( 0, 0 )
-                }
-            ]
+            [ Shadow.button ]
+        , FontColor.button
         ]
 
     else
-        [ Background.color Color.grey
-        , Font.color Color.darkgrey
+        [ BackgroundColor.buttonDisabled
+        , FontColor.buttonDisabled
         ]
-
-
-defaultAttrs : List (Attribute msg)
-defaultAttrs =
-    [ Border.rounded 10
-    , El.padding 10
-    , El.centerY
-    , El.centerX
-    ]

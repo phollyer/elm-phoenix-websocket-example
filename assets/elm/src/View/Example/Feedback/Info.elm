@@ -13,6 +13,9 @@ import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Json.Encode as JE exposing (Value)
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
+import UI.Padding as Padding
 
 
 
@@ -80,16 +83,11 @@ ref ref_ (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.width El.fill
-        , El.alignLeft
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
+        [ El.alignLeft
         , El.spacing 10
-        , Font.family [ Font.typeface "Roboto Mono" ]
+        , El.width El.fill
+        , FontFamily.code
+        , Padding.bottom 10
         ]
         [ field device "Topic: " config.topic
         , maybe (field device) "Event: " config.event
@@ -108,11 +106,11 @@ field device label topic_ =
         ]
         [ El.el
             [ El.alignTop
-            , Font.color Color.darkslateblue
+            , FontColor.default
             ]
             (El.text label)
         , El.el
-            [ Font.color Color.black ]
+            [ FontColor.value ]
             (El.text topic_)
         ]
 

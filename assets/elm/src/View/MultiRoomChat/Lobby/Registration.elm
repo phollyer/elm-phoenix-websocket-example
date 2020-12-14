@@ -10,6 +10,8 @@ import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
+import UI.BackgroundColor as BackgroundColor
+import UI.FontFamily as FontFamily
 import View.MultiRoomChat.Lobby.Form as Form
 
 
@@ -70,6 +72,7 @@ introduction =
     El.column
         [ El.width El.fill
         , El.spacing 10
+        , FontFamily.default
         ]
         [ El.paragraph
             [ El.width El.fill ]
@@ -83,8 +86,8 @@ introduction =
 form : Device -> Config msg -> Element msg
 form device (Config config) =
     El.el
-        [ Border.rounded 10
-        , Background.color Color.steelblue
+        [ BackgroundColor.panel
+        , Border.rounded 10
         , El.padding 20
         , El.width El.fill
         ]

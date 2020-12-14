@@ -13,6 +13,10 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Room, User, initUser)
+import UI.BackgroundColor as BackgroundColor
+import UI.BorderColor as BorderColor
+import UI.FontColor as FontColor
+import UI.Shadow as Shadow
 import View.Button as Button
 
 
@@ -66,32 +70,20 @@ onDelete toMsg (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ Border.rounded 10
-        , Background.color Color.steelblue
+        [ BackgroundColor.panel
+        , Border.rounded 10
         , El.padding 10
         , El.spacing 10
         , El.width El.fill
-        , Font.color Color.skyblue
+        , FontColor.panel
         ]
     <|
         List.append
             [ El.el
-                [ El.centerX ]
-                (El.text "Rooms")
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
+                [ El.centerX
+                , FontColor.subTitle
                 ]
-                [ El.text "A Room can only be joined after it has been opened. "
-                , El.text "A Room is opened when the owner of the Room enters it."
-                ]
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
-                [ El.text "When the owner leaves a room it will close and all occupants will return to the lobby. "
-                , El.text "Messages will be retained until the room is deleted by the owner, or the owner leaves this example."
-                ]
+                (El.text "Room List")
             ]
             (orderRooms config.user config.rooms
                 |> List.map (toRoom device (Config config))
@@ -123,13 +115,15 @@ orderRooms currentUser roomList =
 toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
-        (roomAttrs config.user room)
+        (List.append defaultAttrs <|
+            roomAttrs config.user room
+        )
         [ El.column
             [ El.width El.fill
             , El.clipX
             ]
             [ owner config.user room
-            , members config.user room
+            , occupantsList config.user room
             ]
         , El.row
             [ El.spacing 10 ]
@@ -148,8 +142,8 @@ maybeDeleteBtn device maybeToOnDelete currentUser room =
 
             Just onDelete_ ->
                 Button.init
-                    |> Button.label "Delete"
-                    |> Button.onPress (Just (onDelete_ room))
+                    |> Button.setLabel "Delete"
+                    |> Button.setOnPress (Just (onDelete_ room))
                     |> Button.view device
 
     else
@@ -165,39 +159,12 @@ maybeEnterBtn device maybeToOnClick currentUser room =
 
             Just onClick_ ->
                 Button.init
-                    |> Button.label "Enter"
-                    |> Button.onPress (Just (onClick_ room))
+                    |> Button.setLabel "Enter"
+                    |> Button.setOnPress (Just (onClick_ room))
                     |> Button.view device
 
     else
         El.none
-
-
-roomAttrs : User -> Room -> List (Attribute msg)
-roomAttrs currentUser room =
-    if currentUser == room.owner || List.member room.owner room.members then
-        [ Background.color Color.mediumseagreen
-        , Border.rounded 10
-        , Border.color Color.seagreen
-        , Border.width 1
-        , El.padding 10
-        , El.spacing 10
-        , El.width El.fill
-        , Font.color Color.lightgreen
-        , El.mouseOver
-            [ Border.color Color.lawngreen ]
-        ]
-
-    else
-        [ Background.color Color.lightcoral
-        , Border.rounded 10
-        , Border.color Color.firebrick
-        , Border.width 1
-        , El.padding 10
-        , El.spacing 10
-        , El.width El.fill
-        , Font.color Color.firebrick
-        ]
 
 
 owner : User -> Room -> Element msg
@@ -220,8 +187,8 @@ owner currentUser room =
         ]
 
 
-members : User -> Room -> Element msg
-members currentUser room =
+occupantsList : User -> Room -> Element msg
+occupantsList currentUser room =
     if currentUser == room.owner then
         El.none
 
@@ -236,3 +203,46 @@ members currentUser room =
                 |> String.concat
                 |> El.text
             ]
+
+
+
+{- Attributes -}
+
+
+defaultAttrs : List (Attribute msg)
+defaultAttrs =
+    [ Border.rounded 10
+    , Border.width 1
+    , El.padding 10
+    , El.spacing 10
+    , El.width El.fill
+    ]
+
+
+roomAttrs : User -> Room -> List (Attribute msg)
+roomAttrs currentUser room =
+    if currentUser == room.owner then
+        [ BackgroundColor.ownRoom
+        , BorderColor.ownRoom
+        , El.mouseOver
+            [ BorderColor.mouseOverOwnRoom
+            , Shadow.ownRoom
+            ]
+        , FontColor.ownRoom
+        ]
+
+    else if List.member room.owner room.members then
+        [ BackgroundColor.openRoom
+        , BorderColor.openRoom
+        , El.mouseOver
+            [ BorderColor.mouseOverOpenRoom
+            , Shadow.openRoom
+            ]
+        , FontColor.openRoom
+        ]
+
+    else
+        [ BackgroundColor.closedRoom
+        , BorderColor.closedRoom
+        , FontColor.closedRoom
+        ]

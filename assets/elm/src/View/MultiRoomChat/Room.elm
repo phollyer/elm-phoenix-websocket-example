@@ -20,6 +20,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
 import Types exposing (Message, Room, User, initRoom, initUser)
+import UI.BackgroundColor as BackgroundColor
+import UI.FontColor as FontColor
+import UI.Padding as Padding
 import View.MultiRoomChat.Room.Form as MessageForm
 import View.MultiRoomChat.Room.Messages as Messages
 
@@ -133,17 +136,14 @@ membersTypingView membersTyping_ =
 
     else
         El.paragraph
-            [ El.paddingEach
-                { left = 0
-                , top = 10
-                , right = 0
-                , bottom = 0
-                }
-            , El.width El.fill
+            [ El.width El.fill
             , Font.alignLeft
+            , Padding.top 10
             ]
             [ El.el
-                [ Font.bold ]
+                [ Font.bold
+                , FontColor.label
+                ]
                 (El.text "Members Typing: ")
             , List.intersperse ", " membersTyping_
                 |> String.concat
@@ -158,14 +158,14 @@ membersTypingView membersTyping_ =
 messagesView : Device -> Config msg -> Element msg
 messagesView device (Config config) =
     El.el
-        [ Background.color Color.white
+        [ BackgroundColor.messages
         , Border.rounded 10
         , El.htmlAttribute <|
             Attr.id "message-list"
-        , El.height El.fill
-        , El.width El.fill
         , El.clipY
         , El.scrollbarY
+        , El.height El.fill
+        , El.width El.fill
         ]
         (Messages.init
             |> Messages.user config.user

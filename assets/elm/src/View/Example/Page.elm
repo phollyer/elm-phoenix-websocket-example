@@ -7,9 +7,10 @@ module View.Example.Page exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
 
 
 
@@ -85,10 +86,9 @@ introductionView device intro =
             El.column
                 [ fontSize device
                 , spacing device
-                , Font.color Color.darkslateblue
-                , Font.family
-                    [ Font.typeface "Piedra" ]
                 , Font.justify
+                , FontColor.default
+                , FontFamily.exampleIntro
                 ]
             <|
                 List.map
@@ -128,10 +128,7 @@ exampleView device content =
     El.el
         [ fontSize device
         , El.spacing 12
-        , Font.color Color.darkslateblue
         , Font.justify
-        , Font.family
-            [ Font.typeface "Varela Round" ]
         , El.height El.fill
         , El.width El.fill
         ]

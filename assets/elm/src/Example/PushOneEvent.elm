@@ -168,17 +168,17 @@ buttons device phoenix =
 push : Device -> Element Msg
 push device =
     Button.init
-        |> Button.label "Push Event"
-        |> Button.onPress (Just (GotControlClick Push))
+        |> Button.setLabel "Push Event"
+        |> Button.setOnPress (Just (GotControlClick Push))
         |> Button.view device
 
 
 leave : Device -> Bool -> Element Msg
 leave device enabled =
     Button.init
-        |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick Leave))
-        |> Button.enabled enabled
+        |> Button.setLabel "Leave"
+        |> Button.setOnPress (Just (GotControlClick Leave))
+        |> Button.setEnabled enabled
         |> Button.view device
 
 

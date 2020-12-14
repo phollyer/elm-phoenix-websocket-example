@@ -145,18 +145,18 @@ controls device { phoenix } =
 join : Device -> Phoenix.Model -> Element Msg
 join device phoenix =
     Button.init
-        |> Button.label "Join"
-        |> Button.onPress (Just (GotControlClick Join))
-        |> Button.enabled ((Phoenix.joinedChannels phoenix |> List.length) == 0)
+        |> Button.setLabel "Join"
+        |> Button.setOnPress (Just (GotControlClick Join))
+        |> Button.setEnabled ((Phoenix.joinedChannels phoenix |> List.length) == 0)
         |> Button.view device
 
 
 leave : Device -> Phoenix.Model -> Element Msg
 leave device phoenix =
     Button.init
-        |> Button.label "Leave"
-        |> Button.onPress (Just (GotControlClick Leave))
-        |> Button.enabled ((Phoenix.joinedChannels phoenix |> List.length) > 0)
+        |> Button.setLabel "Leave"
+        |> Button.setOnPress (Just (GotControlClick Leave))
+        |> Button.setEnabled ((Phoenix.joinedChannels phoenix |> List.length) > 0)
         |> Button.view device
 
 

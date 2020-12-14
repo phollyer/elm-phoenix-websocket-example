@@ -12,6 +12,10 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import UI.BackgroundColor as BackgroundColor
+import UI.BorderColor as BorderColor
+import UI.BorderWidth as BorderWidth
+import UI.FontColor as FontColor
 
 
 
@@ -57,9 +61,9 @@ static static_ (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ Background.color Color.white
-        , Border.color Color.black
+        [ BackgroundColor.examplePanel
         , Border.width 1
+        , BorderColor.examplePanel
         , El.centerX
         , El.padding 10
         , El.height <|
@@ -79,7 +83,7 @@ titleView device title_ =
         [ fontSize device
         , El.centerX
         , Font.bold
-        , Font.color Color.darkslateblue
+        , FontColor.title
         ]
         (El.text title_)
 
@@ -94,13 +98,7 @@ staticView elements =
             El.column
                 (List.append
                     contentAttrs
-                    [ Border.widthEach
-                        { left = 0
-                        , top = 2
-                        , right = 0
-                        , bottom = 0
-                        }
-                    ]
+                    [ BorderWidth.top 2 ]
                 )
                 elements
 
@@ -115,15 +113,10 @@ scrollableView elements =
             El.column
                 (List.append
                     contentAttrs
-                    [ El.clipY
+                    [ Border.widthXY 0 2
+                    , El.clipY
                     , El.scrollbarY
                     , El.height El.fill
-                    , Border.widthEach
-                        { left = 0
-                        , top = 2
-                        , right = 0
-                        , bottom = 2
-                        }
                     ]
                 )
                 (elements
@@ -134,13 +127,8 @@ scrollableView elements =
 seperator : Element msg
 seperator =
     El.el
-        [ Border.widthEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 1
-            }
-        , Border.color Color.skyblue
+        [ BorderColor.seperatorDark
+        , BorderWidth.bottom 1
         , El.width El.fill
         ]
         El.none
@@ -152,7 +140,7 @@ seperator =
 
 contentAttrs : List (Attribute msg)
 contentAttrs =
-    [ Border.color Color.skyblue
+    [ BorderColor.seperatorDark
     , El.spacing 15
     , El.paddingXY 0 10
     , El.width El.fill

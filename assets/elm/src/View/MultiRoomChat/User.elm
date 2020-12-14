@@ -5,8 +5,10 @@ module View.MultiRoomChat.User exposing
     , view
     )
 
+import Colors.Opaque as Color
 import Element as El exposing (Device, Element)
 import Element.Font as Font
+import UI.FontColor as FontColor
 
 
 
@@ -49,25 +51,25 @@ view _ (Config config) =
         , El.spacing 10
         ]
         [ El.paragraph
-            [ Font.center
-            , El.spacing 10
-            ]
+            [ El.spacing 10 ]
             [ El.el
-                [ Font.bold ]
+                [ Font.bold
+                , FontColor.label
+                ]
                 (El.text "Username: ")
             , El.el
-                []
+                [ FontColor.value ]
                 (El.text config.username)
             ]
         , El.paragraph
-            [ Font.center
-            , El.spacing 10
-            ]
+            [ El.spacing 10 ]
             [ El.el
-                [ Font.bold ]
-                (El.text "User ID:")
+                [ Font.bold
+                , FontColor.label
+                ]
+                (El.text "User ID: ")
             , El.el
-                []
+                [ FontColor.value ]
                 (El.text config.userId)
             ]
         ]

@@ -12,6 +12,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
+import UI.FontColor as FontColor
 import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
@@ -20,7 +21,6 @@ import View.Example.Feedback as Feedback
 import View.Example.Feedback.Content as FeedbackContent
 import View.Example.Feedback.Info as FeedbackInfo
 import View.Example.Feedback.Panel as FeedbackPanel
-import View.Example.LabelAndValue as LabelAndValue
 import View.Example.UsefulFunctions as UsefulFunctions
 import View.Group as Group
 import View.RadioSelection as RadioSelection
@@ -234,27 +234,27 @@ controls device { phoenix, retryStrategy, pushSent } =
 push : Device -> Bool -> Element Msg
 push device enabled =
     Button.init
-        |> Button.enabled enabled
-        |> Button.label "Push Event"
-        |> Button.onPress (Just (GotControlClick Push))
+        |> Button.setEnabled enabled
+        |> Button.setLabel "Push Event"
+        |> Button.setOnPress (Just (GotControlClick Push))
         |> Button.view device
 
 
 cancelRetry : Device -> Bool -> Element Msg
 cancelRetry device enabled =
     Button.init
-        |> Button.enabled enabled
-        |> Button.label "Cancel Retry"
-        |> Button.onPress (Just (GotControlClick CancelRetry))
+        |> Button.setEnabled enabled
+        |> Button.setLabel "Cancel Retry"
+        |> Button.setOnPress (Just (GotControlClick CancelRetry))
         |> Button.view device
 
 
 cancelPush : Device -> Bool -> Element Msg
 cancelPush device enabled =
     Button.init
-        |> Button.enabled enabled
-        |> Button.label "Cancel Push"
-        |> Button.onPress (Just (GotControlClick CancelPush))
+        |> Button.setEnabled enabled
+        |> Button.setLabel "Cancel Push"
+        |> Button.setOnPress (Just (GotControlClick CancelPush))
         |> Button.view device
 
 
@@ -304,10 +304,17 @@ timeoutCountdown device phoenix pushSent =
                         , String.fromInt count ++ " s"
                         )
         in
-        [ LabelAndValue.init
-            |> LabelAndValue.label label
-            |> LabelAndValue.value countdown
-            |> LabelAndValue.view device
+        [ El.row
+            [ El.width El.fill
+            , El.spacing 20
+            ]
+            [ El.el
+                [ FontColor.default ]
+                (El.text label)
+            , El.el
+                [ FontColor.value ]
+                (El.text countdown)
+            ]
         ]
 
 

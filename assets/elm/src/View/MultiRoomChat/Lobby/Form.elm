@@ -74,7 +74,7 @@ inputField device (Config config) =
 submitButton : Device -> Config msg -> Element msg
 submitButton device (Config config) =
     Button.init
-        |> Button.label "Join Lobby"
-        |> Button.onPress config.onSubmit
-        |> Button.enabled (String.trim config.text /= "")
+        |> Button.setLabel "Join Lobby"
+        |> Button.setOnPress config.onSubmit
+        |> Button.setEnabled (String.trim config.text /= "")
         |> Button.view device

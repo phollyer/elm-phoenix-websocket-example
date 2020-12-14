@@ -4,10 +4,10 @@ module View.Example.UsefulFunctions exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
-import UI
+import UI.FontColor as FontColor
+import UI.Link as Link
 
 
 
@@ -42,7 +42,7 @@ view device (Config functions_) =
         El.wrappedRow
             [ El.width El.fill
             , Font.bold
-            , Font.color Color.darkslateblue
+            , FontColor.default
             ]
             [ El.el
                 []
@@ -81,7 +81,7 @@ toRow device ( function, currentValue ) =
         , El.scrollbarX
         , spacing device
         ]
-        [ El.el [ El.alignTop ] (UI.functionLink function)
+        [ El.el [ El.alignTop ] (Link.function function)
         , El.el [ El.alignRight ] (El.text currentValue)
         ]
 
