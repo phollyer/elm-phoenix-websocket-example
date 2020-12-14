@@ -13,9 +13,7 @@ module View.MultiRoomChat.Room exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr

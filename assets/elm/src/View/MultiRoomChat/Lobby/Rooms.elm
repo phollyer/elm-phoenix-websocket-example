@@ -7,9 +7,7 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, Element)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Room, User, initUser)

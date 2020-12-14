@@ -1,11 +1,8 @@
 module Page exposing (view)
 
 import Browser exposing (Document)
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.FontSize as FontSize

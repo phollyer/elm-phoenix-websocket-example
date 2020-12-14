@@ -7,9 +7,7 @@ module View.Example.Feedback.Panel exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import UI.BackgroundColor as BackgroundColor

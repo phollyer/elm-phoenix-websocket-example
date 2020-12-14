@@ -18,7 +18,7 @@ module UI.FontColor exposing
     )
 
 import Colors.Opaque as Color
-import Element exposing (Attribute, Color, Decoration)
+import Element exposing (Attribute, Decoration)
 import Element.Font as Font
 
 

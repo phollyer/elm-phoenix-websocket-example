@@ -14,7 +14,6 @@ import Element exposing (Device, Element)
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Types exposing (Presence, Room, User, decodeMetas, decodeRooms, decodeUser, initUser)
-import Utils
 import View.MultiRoomChat.Lobby as Lobby
 
 

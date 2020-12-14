@@ -8,8 +8,7 @@ module View.Example exposing
     , view
     )
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily

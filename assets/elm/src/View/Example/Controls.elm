@@ -8,10 +8,8 @@ module View.Example.Controls exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
-import Element.Font as Font
 import List.Extra as List
 import UI.BorderColor as BorderColor
 import UI.FontColor as FontColor

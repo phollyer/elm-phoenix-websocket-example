@@ -9,11 +9,8 @@ module View.Button exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, Element)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Element.Input as Input
 import UI.Align as Align exposing (X(..), Y(..))
 import UI.BackgroundColor as BackgroundColor

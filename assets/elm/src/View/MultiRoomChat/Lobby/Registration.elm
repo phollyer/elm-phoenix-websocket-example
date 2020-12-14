@@ -6,9 +6,7 @@ module View.MultiRoomChat.Lobby.Registration exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
 import Element.Border as Border
 import UI.BackgroundColor as BackgroundColor
 import UI.FontFamily as FontFamily

@@ -8,12 +8,9 @@ module View.Example.Menu exposing
     , view
     )
 
-import Colors.Alpha as Alpha
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
 import Element.Events as Event
-import Element.Font as Font
 import List.Extra as List
 import UI.BorderColor as BorderColor
 import UI.BorderWidth as BorderWidth

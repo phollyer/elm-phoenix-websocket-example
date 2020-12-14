@@ -18,10 +18,8 @@ import Element exposing (Device, Element)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
-import Session exposing (phoenix)
 import Task
 import Types exposing (Message, Room, User, decodeMessages, decodeRoom, initRoom, initUser)
-import Utils
 import View.MultiRoomChat.Room as Room
 
 

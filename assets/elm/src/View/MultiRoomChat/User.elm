@@ -5,7 +5,6 @@ module View.MultiRoomChat.User exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Device, Element)
 import Element.Font as Font
 import UI.FontColor as FontColor

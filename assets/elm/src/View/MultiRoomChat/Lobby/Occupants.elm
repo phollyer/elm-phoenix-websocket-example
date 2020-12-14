@@ -5,11 +5,8 @@ module View.MultiRoomChat.Lobby.Occupants exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Device, Element)
-import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
 import Types exposing (User, initUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor

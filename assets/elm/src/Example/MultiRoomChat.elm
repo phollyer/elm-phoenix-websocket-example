@@ -8,19 +8,15 @@ module Example.MultiRoomChat exposing
     , view
     )
 
-import Browser.Dom as Dom
-import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import Configs exposing (joinConfig, pushConfig)
+import Configs exposing (joinConfig)
 import Element exposing (Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
 import Example.MultiRoomChat.Room as Room exposing (OutMsg(..))
-import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
-import Task
-import Types exposing (Message, Presence, Room, User, decodeMessages, decodeMetas, decodeRoom, decodeRooms, decodeUser, initRoom, initUser)
+import Types exposing (Room, User, decodeRoom, decodeUser)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
 

@@ -268,7 +268,7 @@ feedback device { phoenix, info, pushSent } =
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.static (timeoutCountdown device phoenix pushSent)
+                |> FeedbackPanel.static (timeoutCountdown phoenix pushSent)
                 |> FeedbackPanel.scrollable (infoView device info)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
@@ -287,8 +287,8 @@ feedback device { phoenix, info, pushSent } =
         |> Feedback.view device
 
 
-timeoutCountdown : Device -> Phoenix.Model -> Bool -> List (Element Msg)
-timeoutCountdown device phoenix pushSent =
+timeoutCountdown : Phoenix.Model -> Bool -> List (Element Msg)
+timeoutCountdown phoenix pushSent =
     if not pushSent then
         []
 
