@@ -1,17 +1,17 @@
 module Page.NotFound exposing (view)
 
-import Element as El exposing (Element)
-import Element.Font as Font
+import Element as El exposing (Device, Element)
+import UI.FontSize as FontSize
 
 
-view : { title : String, content : Element msg }
-view =
+view : Device -> { title : String, content : Element msg }
+view device =
     { title = "Not Found"
     , content =
         El.el
             [ El.centerX
             , El.centerY
-            , Font.size 40
+            , FontSize.pageNotFound device
             ]
             (El.text " Page Not Found")
     }

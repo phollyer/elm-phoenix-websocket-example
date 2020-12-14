@@ -14,6 +14,7 @@ module UI.FontColor exposing
     , subTitle
     , title
     , value
+    , vsn
     )
 
 import Colors.Opaque as Color
@@ -47,6 +48,15 @@ subTitle =
     Font.color Color.lavender
 
 
+vsn : Attribute msg
+vsn =
+    Font.color Color.deepskyblue
+
+
+
+{- Button -}
+
+
 button : Attribute msg
 button =
     Font.color Color.darkolivegreen
@@ -55,6 +65,10 @@ button =
 buttonDisabled : Attribute msg
 buttonDisabled =
     Font.color Color.darkgrey
+
+
+
+{- Examples -}
 
 
 mouseOverBackButton : Decoration

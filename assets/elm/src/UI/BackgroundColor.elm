@@ -2,10 +2,12 @@ module UI.BackgroundColor exposing
     ( button
     , buttonDisabled
     , closedRoom
+    , content
     , examplePanel
     , messages
     , openRoom
     , ownRoom
+    , page
     , panel
     )
 
@@ -13,6 +15,16 @@ import Colors.Alpha as Alpha
 import Colors.Opaque as Color
 import Element exposing (Attribute)
 import Element.Background as Background
+
+
+page : Attribute msg
+page =
+    Background.color Color.aliceblue
+
+
+content : Attribute msg
+content =
+    Background.color Color.skyblue
 
 
 button : Attribute msg

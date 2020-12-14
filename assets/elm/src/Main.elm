@@ -304,7 +304,7 @@ view model =
             Page.view vsn device Blank.view
 
         NotFound _ ->
-            Page.view vsn device NotFound.view
+            Page.view vsn device (NotFound.view device)
 
         Home _ ->
             viewPage vsn device GotHomeMsg (Home.view device)

@@ -1,12 +1,43 @@
 module UI.Shadow exposing
     ( button
+    , content
     , openRoom
     , ownRoom
     )
 
 import Colors.Opaque as Color
-import Element exposing (Decoration)
+import Element exposing (Attribute, Decoration, Device, DeviceClass(..), Orientation(..))
 import Element.Border as Border
+
+
+
+{- Page -}
+
+
+content : Device -> Attribute msg
+content { class } =
+    Border.shadow <|
+        case class of
+            Phone ->
+                { size = 2
+                , blur = 5
+                , color = Color.lightblue
+                , offset = ( 0, 0 )
+                }
+
+            Tablet ->
+                { size = 3
+                , blur = 10
+                , color = Color.lightblue
+                , offset = ( 0, 0 )
+                }
+
+            _ ->
+                { size = 5
+                , blur = 20
+                , color = Color.lightblue
+                , offset = ( 0, 0 )
+                }
 
 
 button : Decoration

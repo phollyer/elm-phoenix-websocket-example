@@ -6,6 +6,11 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import UI.BackgroundColor as BackgroundColor
+import UI.FontColor as FontColor
+import UI.FontSize as FontSize
+import UI.Padding as Padding
+import UI.Shadow as Shadow
 
 
 
@@ -18,27 +23,27 @@ view vsn device { title, content } =
     , body =
         [ El.layout
             [ padding device
-            , Background.color Color.aliceblue
+            , BackgroundColor.page
             , El.height El.fill
             , El.width El.fill
             , El.inFront <|
                 El.el
-                    [ fontSize device
-                    , El.alignBottom
+                    [ El.alignBottom
                     , El.alignRight
-                    , Font.color Color.deepskyblue
+                    , FontColor.vsn
+                    , FontSize.vsn device
                     ]
                     (El.text ("v" ++ vsn))
             ]
           <|
             El.el
-                [ roundedBorder device
-                , shadow device
-                , paddingXY device
-                , Background.color Color.skyblue
+                [ paddingX device
+                , roundedBorder device
+                , BackgroundColor.content
+                , El.clip
                 , El.height El.fill
                 , El.width El.fill
-                , El.clip
+                , Shadow.content device
                 ]
                 content
         ]
@@ -49,81 +54,43 @@ view vsn device { title, content } =
 {- Attributes -}
 
 
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 8
-
-        Tablet ->
-            Font.size 10
-
-        _ ->
-            Font.size 12
-
-
 padding : Device -> Attribute msg
 padding { class } =
-    case class of
-        Phone ->
-            El.padding 10
+    El.padding <|
+        case class of
+            Phone ->
+                10
 
-        Tablet ->
-            El.padding 20
+            Tablet ->
+                20
 
-        _ ->
-            El.padding 30
+            _ ->
+                30
 
 
-paddingXY : Device -> Attribute msg
-paddingXY { class } =
-    case class of
-        Phone ->
-            El.paddingXY 10 0
+paddingX : Device -> Attribute msg
+paddingX { class } =
+    Padding.x <|
+        case class of
+            Phone ->
+                10
 
-        Tablet ->
-            El.paddingXY 20 0
+            Tablet ->
+                20
 
-        _ ->
-            El.paddingXY 30 0
+            _ ->
+                30
 
 
 roundedBorder : Device -> Attribute msg
 roundedBorder { class } =
-    case class of
-        Phone ->
-            Border.rounded 10
+    Border.rounded <|
+        case class of
+            Phone ->
+                10
 
-        Tablet ->
-            Border.rounded 20
+            Tablet ->
+                20
 
-        _ ->
-            Border.rounded 30
-
-
-shadow : Device -> Attribute msg
-shadow { class } =
-    case class of
-        Phone ->
-            Border.shadow
-                { size = 2
-                , blur = 5
-                , color = Color.lightblue
-                , offset = ( 0, 0 )
-                }
-
-        Tablet ->
-            Border.shadow
-                { size = 3
-                , blur = 10
-                , color = Color.lightblue
-                , offset = ( 0, 0 )
-                }
-
-        _ ->
-            Border.shadow
-                { size = 5
-                , blur = 20
-                , color = Color.lightblue
-                , offset = ( 0, 0 )
-                }
+            _ ->
+                30

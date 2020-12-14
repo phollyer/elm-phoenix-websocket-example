@@ -1,7 +1,9 @@
 module UI.FontSize exposing
     ( default
     , heading
+    , pageNotFound
     , title
+    , vsn
     )
 
 import Element exposing (Attribute, Device, DeviceClass(..), Orientation(..))
@@ -51,3 +53,31 @@ title { class } =
 
             _ ->
                 30
+
+
+pageNotFound : Device -> Attribute msg
+pageNotFound { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                30
+
+            Tablet ->
+                36
+
+            _ ->
+                40
+
+
+vsn : Device -> Attribute msg
+vsn { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                8
+
+            Tablet ->
+                10
+
+            _ ->
+                12
