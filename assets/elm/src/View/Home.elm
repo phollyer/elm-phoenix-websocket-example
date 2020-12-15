@@ -2,14 +2,18 @@ module View.Home exposing
     ( Config
     , channels
     , init
+    , introduction
     , presence
     , socket
     , view
     )
 
-import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
+import Element.Font as Font
 import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
+import UI.Padding as Padding
 
 
 
@@ -18,7 +22,8 @@ import UI.FontSize as FontSize
 
 type Config msg
     = Config
-        { channels : List (Element msg)
+        { introduction : List (List (Element msg))
+        , channels : List (Element msg)
         , presence : List (Element msg)
         , socket : List (Element msg)
         }
@@ -27,10 +32,16 @@ type Config msg
 init : Config msg
 init =
     Config
-        { channels = []
+        { introduction = []
+        , channels = []
         , presence = []
         , socket = []
         }
+
+
+introduction : List (List (Element msg)) -> Config msg -> Config msg
+introduction intro (Config config) =
+    Config { config | introduction = intro }
 
 
 channels : List (Element msg) -> Config msg -> Config msg
@@ -58,16 +69,76 @@ view device (Config config) =
         [ El.spacing 20
         , El.width El.fill
         ]
-        [ container device "Socket Examples" config.socket
-        , container device "Channels Examples" config.channels
-        , container device "Presence Examples" config.presence
+        [ introductionView device config.introduction
+        , container device
+            [ exampleContainer device "Socket Examples" config.socket
+            , exampleContainer device "Channels Examples" config.channels
+            , exampleContainer device "Presence Example" config.presence
+            ]
         ]
 
 
-container : Device -> String -> List (Element msg) -> Element msg
-container device title panels =
+introductionView : Device -> List (List (Element msg)) -> Element msg
+introductionView device paragraphs =
     El.column
-        [ El.centerX
+        [ width device
+        , El.centerX
+        , El.spacing 10
+        , Font.center
+        , FontFamily.default
+        , FontSize.default device
+        ]
+    <|
+        List.map (toParagraph device) paragraphs
+
+
+toParagraph : Device -> List (Element msg) -> Element msg
+toParagraph device paragragh =
+    El.paragraph
+        [ El.width El.fill ]
+        paragragh
+
+
+container : Device -> List (Element msg) -> Element msg
+container { class, orientation } examples =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 20
+                , Padding.bottom 10
+                ]
+                examples
+
+        ( Phone, Landscape ) ->
+            El.column
+                [ El.centerX
+                , El.spacing 20
+                , Padding.bottom 10
+                ]
+                examples
+
+        ( Tablet, _ ) ->
+            El.column
+                [ El.centerX
+                , El.spacing 30
+                , Padding.bottom 20
+                ]
+                examples
+
+        _ ->
+            El.row
+                [ El.centerX
+                , El.spacing 40
+                ]
+                examples
+
+
+exampleContainer : Device -> String -> List (Element msg) -> Element msg
+exampleContainer device title panels =
+    El.column
+        [ El.alignTop
+        , El.centerX
         , El.spacing 10
         ]
         [ El.el
@@ -100,3 +171,21 @@ panelsContainer { class, orientation } =
                 [ El.centerX
                 , El.spacing 10
                 ]
+
+
+
+{- Attributes -}
+
+
+width : Device -> Attribute msg
+width { class, orientation } =
+    El.width <|
+        case ( class, orientation ) of
+            ( Phone, Portrait ) ->
+                El.fill
+
+            ( Phone, Landscape ) ->
+                El.maximum 400 El.fill
+
+            _ ->
+                El.maximum 800 El.fill

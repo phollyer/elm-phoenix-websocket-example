@@ -16,7 +16,7 @@ import UI.BorderColor as BorderColor
 import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
-import View exposing (andMaybeEventWithArg)
+import Utils exposing (andMaybeEventWithArg)
 import View.Group as Group
 
 

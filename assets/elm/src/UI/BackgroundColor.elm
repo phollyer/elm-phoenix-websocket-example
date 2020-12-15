@@ -9,6 +9,7 @@ module UI.BackgroundColor exposing
     , ownRoom
     , page
     , panel
+    , panelContent
     )
 
 import Colors.Alpha as Alpha
@@ -45,6 +46,11 @@ messages =
 panel : Attribute msg
 panel =
     Background.color Color.steelblue
+
+
+panelContent : Attribute msg
+panelContent =
+    Background.color Color.lightskyblue
 
 
 

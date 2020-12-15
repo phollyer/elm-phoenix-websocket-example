@@ -11,6 +11,7 @@ module View.RadioSelection exposing
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Font as Font
 import Element.Input as Input
+import UI.Padding as Padding
 
 
 
@@ -101,7 +102,7 @@ radio { class, orientation } =
 toLabel : Device -> String -> Input.Label msg
 toLabel device text =
     Input.labelAbove
-        [ paddingEach device
+        [ paddingBottom device
         , El.centerX
         ]
         (El.text text)
@@ -129,21 +130,12 @@ toOption { class, orientation } ( value, text ) =
 {- Attributes -}
 
 
-paddingEach : Device -> Attribute msg
-paddingEach { class, orientation } =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            El.paddingEach
-                { left = 0
-                , top = 0
-                , right = 0
-                , bottom = 5
-                }
+paddingBottom : Device -> Attribute msg
+paddingBottom { class, orientation } =
+    Padding.bottom <|
+        case ( class, orientation ) of
+            ( Phone, Portrait ) ->
+                5
 
-        _ ->
-            El.paddingEach
-                { left = 0
-                , top = 0
-                , right = 0
-                , bottom = 10
-                }
+            _ ->
+                10

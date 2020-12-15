@@ -9,7 +9,7 @@ module Page.Home exposing
     , view
     )
 
-import Element exposing (Device, Element)
+import Element as El exposing (Device, Element)
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
@@ -83,6 +83,7 @@ view device =
             |> Layout.title "Elm-Phoenix-WebSocket Examples"
             |> Layout.body
                 (Home.init
+                    |> Home.introduction introduction
                     |> Home.socket (socketExamples device)
                     |> Home.channels (channelsExamples device)
                     |> Home.presence (presenceExamples device)
@@ -92,12 +93,22 @@ view device =
     }
 
 
+introduction : List (List (Element Msg))
+introduction =
+    [ [ El.text "Welcome, please try the examples below. " ]
+    , [ El.text "The Socket and Channels examples provide details of the functions used, useful functions and links to docs."
+      ]
+    ]
+
+
 socketExamples : Device -> List (Element Msg)
 socketExamples device =
     [ Panel.init
-        |> Panel.title "Control the Connection"
+        |> Panel.title "Control the Connection (3)"
         |> Panel.description
-            [ "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
+            [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
+            , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be deined." ]
+            ]
         |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
         |> Panel.view device
     ]
@@ -106,15 +117,19 @@ socketExamples device =
 channelsExamples : Device -> List (Element Msg)
 channelsExamples device =
     [ Panel.init
-        |> Panel.title "Joining and Leaving"
+        |> Panel.title "Joining and Leaving (4)"
         |> Panel.description
-            [ "Manually join and leave one or more Channels." ]
+            [ [ El.text "Manually join and leave a Channel." ]
+            , [ El.text "Join with good and bad params, and multiple Channels at once." ]
+            ]
         |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
         |> Panel.view device
     , Panel.init
-        |> Panel.title "Sending and Receiving"
+        |> Panel.title "Sending and Receiving (4)"
         |> Panel.description
-            [ "Send and receive events to and from one or more Channels." ]
+            [ [ El.text "Send and receive events." ]
+            , [ El.text "Handle a Push that results in a timeout. Choose the retry strategy and see the countdown until the next attempt." ]
+            ]
         |> Panel.onClick (Just (NavigateTo SendAndReceive))
         |> Panel.view device
     ]
@@ -123,9 +138,9 @@ channelsExamples device =
 presenceExamples : Device -> List (Element Msg)
 presenceExamples device =
     [ Panel.init
-        |> Panel.title "Multi-room Chat"
+        |> Panel.title "Multi-Room Chat"
         |> Panel.description
-            [ "Join multiple rooms at the same time and chat in each of them." ]
+            [ [ El.text "Create, delete and enter multiple rooms. Chat in each of them." ] ]
         |> Panel.onClick (Just (NavigateTo ChatRooms))
         |> Panel.view device
     ]

@@ -2,6 +2,8 @@ module UI.FontSize exposing
     ( default
     , heading
     , pageNotFound
+    , panelContent
+    , panelHeader
     , title
     , vsn
     )
@@ -32,11 +34,14 @@ default { class, orientation } =
 {-| Page headings
 -}
 heading : Device -> Attribute msg
-heading { class } =
+heading { class, orientation } =
     Font.size <|
-        case class of
-            Phone ->
+        case ( class, orientation ) of
+            ( Phone, Portrait ) ->
                 20
+
+            ( Phone, Landscape ) ->
+                24
 
             _ ->
                 40
@@ -81,3 +86,29 @@ vsn { class } =
 
             _ ->
                 12
+
+
+
+{- Panels -}
+
+
+panelHeader : Device -> Attribute msg
+panelHeader { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                16
+
+            _ ->
+                20
+
+
+panelContent : Device -> Attribute msg
+panelContent { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                12
+
+            _ ->
+                18

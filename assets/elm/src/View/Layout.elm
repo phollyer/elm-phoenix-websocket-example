@@ -86,11 +86,11 @@ header device text =
         , Font.underline
         , Padding.bottom 10
         ]
-        [ El.el
+        [ El.paragraph
             [ paddingY device
-            , El.centerX
+            , Font.center
             ]
-            (El.text text)
+            [ El.text text ]
         ]
 
 

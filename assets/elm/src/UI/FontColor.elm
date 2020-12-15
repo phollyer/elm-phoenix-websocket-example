@@ -11,6 +11,7 @@ module UI.FontColor exposing
     , openRoom
     , ownRoom
     , panel
+    , panelHeader
     , subTitle
     , title
     , value
@@ -51,6 +52,11 @@ subTitle =
 vsn : Attribute msg
 vsn =
     Font.color Color.deepskyblue
+
+
+panelHeader : Attribute msg
+panelHeader =
+    Font.color Color.aliceblue
 
 
 

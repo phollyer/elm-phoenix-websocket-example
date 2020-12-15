@@ -12,7 +12,6 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
-import UI
 import Utils exposing (updatePhoenixWith)
 import View.Button as Button
 import View.Example as Example
@@ -139,23 +138,11 @@ subscriptions model =
 view : Device -> Model -> Element Msg
 view device model =
     Example.init
-        |> Example.description description
+        |> Example.description
+            [ [ El.text "Receive two events from the Channel after a push." ] ]
         |> Example.controls (controls device model)
         |> Example.feedback (feedback device model)
         |> Example.view device
-
-
-
-{- Description -}
-
-
-description : List (List (Element msg))
-description =
-    [ [ El.text "Receive two events from the Channel after a "
-      , UI.code "push"
-      , El.text "."
-      ]
-    ]
 
 
 

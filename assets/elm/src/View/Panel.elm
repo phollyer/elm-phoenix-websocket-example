@@ -13,7 +13,13 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import View exposing (andMaybeEventWith)
+import UI.BackgroundColor as BackgroundColor
+import UI.BorderColor as BorderColor
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
+import UI.Shadow as Shadow
+import Utils exposing (andMaybeEventWith)
 
 
 
@@ -23,7 +29,7 @@ import View exposing (andMaybeEventWith)
 type Config msg
     = Config
         { title : String
-        , description : List String
+        , description : List (List (Element msg))
         , onClick : Maybe msg
         }
 
@@ -42,7 +48,7 @@ title text (Config config) =
     Config { config | title = text }
 
 
-description : List String -> Config msg -> Config msg
+description : List (List (Element msg)) -> Config msg -> Config msg
 description desc (Config config) =
     Config { config | description = desc }
 
@@ -59,9 +65,13 @@ onClick maybeMsg (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.el
-        [ El.width El.fill ]
+        [ El.alignTop
+        , El.height El.fill
+        , El.width El.fill
+        ]
     <|
-        panel config.onClick
+        panel device
+            config.onClick
             [ header device config.title
             , content device config.description
             ]
@@ -71,34 +81,31 @@ view device (Config config) =
 {- Panel -}
 
 
-panel : Maybe msg -> List (Element msg) -> Element msg
-panel maybeMsg =
+panel : Device -> Maybe msg -> List (Element msg) -> Element msg
+panel device maybeMsg =
     El.column
-        (panelAttrs
+        (panelAttrs device
             |> andMaybeEventWith maybeMsg Event.onClick
         )
 
 
-panelAttrs : List (Attribute msg)
-panelAttrs =
-    [ Background.color Color.steelblue
-    , Border.rounded 20
+panelAttrs : Device -> List (Attribute msg)
+panelAttrs device =
+    [ roundedBorder device
+    , BackgroundColor.panel
     , Border.width 1
-    , Border.color Color.steelblue
+    , BorderColor.panel
+    , El.centerX
     , El.clip
     , El.pointer
+    , El.mouseDown
+        [ Shadow.panel device ]
     , El.mouseOver
-        [ Border.shadow
-            { size = 2
-            , blur = 3
-            , color = Color.steelblue
-            , offset = ( 0, 0 )
-            }
-        ]
+        [ Shadow.panel device ]
     , El.height <|
         El.maximum 300 El.fill
-    , El.width <| El.maximum 250 El.fill
-    , El.centerX
+    , El.width <|
+        El.maximum 250 El.fill
     ]
 
 
@@ -109,7 +116,11 @@ panelAttrs =
 header : Device -> String -> Element msg
 header device text =
     El.el
-        (headerAttrs device)
+        [ El.paddingXY 5 10
+        , El.width El.fill
+        , FontColor.panelHeader
+        , FontSize.panelHeader device
+        ]
         (El.paragraph
             [ El.width El.fill
             , Font.center
@@ -118,60 +129,45 @@ header device text =
         )
 
 
-headerAttrs : Device -> List (Attribute msg)
-headerAttrs { class } =
-    [ Background.color Color.steelblue
-    , Border.roundEach
-        { topLeft = 20
-        , topRight = 20
-        , bottomRight = 0
-        , bottomLeft = 0
-        }
-    , El.paddingXY 5 10
-    , El.width El.fill
-    , Font.color Color.aliceblue
-    , Font.size <|
-        case class of
-            Phone ->
-                16
-
-            _ ->
-                20
-    ]
-
-
 
 {- Content -}
 
 
-content : Device -> List String -> Element msg
+content : Device -> List (List (Element msg)) -> Element msg
 content device paragraphs =
     El.column
-        [ Background.color Color.lightskyblue
+        [ BackgroundColor.panelContent
         , El.padding 10
         , El.spacing 10
         , El.height El.fill
         , El.width El.fill
+        , Font.justify
+        , FontFamily.default
+        , FontSize.panelContent device
         ]
         (List.map (toParagraph device) paragraphs)
 
 
-toParagraph : Device -> String -> Element msg
+toParagraph : Device -> List (Element msg) -> Element msg
 toParagraph device paragraph =
     El.paragraph
-        (paragraphAttrs device)
-        [ El.text paragraph ]
+        [ El.width El.fill ]
+        paragraph
 
 
-paragraphAttrs : Device -> List (Attribute msg)
-paragraphAttrs { class } =
-    [ El.width El.fill
-    , Font.justify
-    , Font.size <|
+
+{- Attributes -}
+
+
+roundedBorder : Device -> Attribute msg
+roundedBorder { class } =
+    Border.rounded <|
         case class of
             Phone ->
-                12
+                10
+
+            Tablet ->
+                14
 
             _ ->
-                18
-    ]
+                20

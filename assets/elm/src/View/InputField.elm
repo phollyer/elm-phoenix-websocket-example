@@ -13,7 +13,7 @@ import Element as El exposing (Attribute, Device, Element)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Input as Input
-import View exposing (andMaybeEventWith)
+import Utils exposing (andMaybeEventWith)
 
 
 

@@ -7,6 +7,7 @@ module UI.BorderColor exposing
     , none
     , openRoom
     , ownRoom
+    , panel
     , seperatorDark
     , seperatorLight
     )
@@ -30,6 +31,11 @@ seperatorLight =
 seperatorDark : Attribute msg
 seperatorDark =
     Border.color Color.lightsteelblue
+
+
+panel : Attribute msg
+panel =
+    Border.color Color.steelblue
 
 
 
