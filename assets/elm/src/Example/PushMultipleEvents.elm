@@ -13,7 +13,6 @@ import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
 import Utils exposing (updatePhoenixWith)
-import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
@@ -164,32 +163,11 @@ description =
 controls : Device -> Model -> Element Msg
 controls device { phoenix } =
     Controls.init
-        |> Controls.elements (buttons device phoenix)
+        |> Controls.controls
+            [ Controls.Push (GotControlClick Push) True
+            , Controls.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            ]
         |> Controls.view device
-
-
-buttons : Device -> Phoenix.Model -> List (Element Msg)
-buttons device phoenix =
-    [ push device
-    , leave device (Phoenix.channelJoined "example:send_and_receive" phoenix)
-    ]
-
-
-push : Device -> Element Msg
-push device =
-    Button.init
-        |> Button.setLabel "Push Event"
-        |> Button.setOnPress (Just (GotControlClick Push))
-        |> Button.view device
-
-
-leave : Device -> Bool -> Element Msg
-leave device enabled =
-    Button.init
-        |> Button.setLabel "Leave"
-        |> Button.setOnPress (Just (GotControlClick Leave))
-        |> Button.setEnabled enabled
-        |> Button.view device
 
 
 

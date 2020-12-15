@@ -13,7 +13,6 @@ import Extra.String as String
 import Json.Encode exposing (Value)
 import Phoenix
 import UI.FontColor as FontColor
-import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
@@ -207,10 +206,10 @@ description =
 controls : Device -> Model -> Element Msg
 controls device { phoenix, retryStrategy, pushSent } =
     Controls.init
-        |> Controls.elements
-            [ push device (not <| pushSent)
-            , cancelRetry device (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
-            , cancelPush device pushSent
+        |> Controls.controls
+            [ Controls.Push (GotControlClick Push) (not <| pushSent)
+            , Controls.CancelRetry (GotControlClick CancelRetry) (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
+            , Controls.CancelPush (GotControlClick CancelPush) True
             ]
         |> Controls.options
             (RadioSelection.init
@@ -229,33 +228,6 @@ controls device { phoenix, retryStrategy, pushSent } =
                 |> Group.layouts [ ( Phone, Portrait, [ 1, 2 ] ) ]
             )
         |> Controls.view device
-
-
-push : Device -> Bool -> Element Msg
-push device enabled =
-    Button.init
-        |> Button.setEnabled enabled
-        |> Button.setLabel "Push Event"
-        |> Button.setOnPress (Just (GotControlClick Push))
-        |> Button.view device
-
-
-cancelRetry : Device -> Bool -> Element Msg
-cancelRetry device enabled =
-    Button.init
-        |> Button.setEnabled enabled
-        |> Button.setLabel "Cancel Retry"
-        |> Button.setOnPress (Just (GotControlClick CancelRetry))
-        |> Button.view device
-
-
-cancelPush : Device -> Bool -> Element Msg
-cancelPush device enabled =
-    Button.init
-        |> Button.setEnabled enabled
-        |> Button.setLabel "Cancel Push"
-        |> Button.setOnPress (Just (GotControlClick CancelPush))
-        |> Button.view device
 
 
 

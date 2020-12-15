@@ -13,7 +13,6 @@ import Extra.String as String
 import Json.Encode as JE
 import Phoenix
 import Utils exposing (batch, updatePhoenixWith)
-import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
@@ -134,17 +133,9 @@ description =
 controls : Device -> Element Msg
 controls device =
     Controls.init
-        |> Controls.elements
-            [ join device ]
+        |> Controls.controls
+            [ Controls.Join GotControlClick True ]
         |> Controls.view device
-
-
-join : Device -> Element Msg
-join device =
-    Button.init
-        |> Button.setLabel "Join"
-        |> Button.setOnPress (Just GotControlClick)
-        |> Button.view device
 
 
 

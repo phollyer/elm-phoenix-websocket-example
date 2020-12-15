@@ -12,7 +12,6 @@ import Extra.String as String
 import Json.Encode as JE
 import Phoenix
 import Utils exposing (updatePhoenixWith)
-import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
@@ -129,9 +128,9 @@ description =
 controls : Device -> Model -> Element Msg
 controls device { phoenix } =
     Controls.init
-        |> Controls.elements
-            [ connect device phoenix
-            , disconnect device phoenix
+        |> Controls.controls
+            [ Controls.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
+            , Controls.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
             ]
         |> Controls.group
             (Group.init
@@ -139,31 +138,6 @@ controls device { phoenix } =
                     [ ( Phone, Portrait, [ 2 ] ) ]
             )
         |> Controls.view device
-
-
-connect : Device -> Phoenix.Model -> Element Msg
-connect device phoenix =
-    Button.init
-        |> Button.setLabel "Connect"
-        |> Button.setOnPress (Just (GotControlClick Connect))
-        |> Button.setEnabled
-            (case Phoenix.socketState phoenix of
-                Phoenix.Disconnected _ ->
-                    True
-
-                _ ->
-                    False
-            )
-        |> Button.view device
-
-
-disconnect : Device -> Phoenix.Model -> Element Msg
-disconnect device phoenix =
-    Button.init
-        |> Button.setLabel "Disconnect"
-        |> Button.setOnPress (Just (GotControlClick Disconnect))
-        |> Button.setEnabled (Phoenix.socketState phoenix == Phoenix.Connected)
-        |> Button.view device
 
 
 

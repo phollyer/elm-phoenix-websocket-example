@@ -11,7 +11,6 @@ import Element as El exposing (Device, Element)
 import Extra.String as String
 import Phoenix
 import Utils exposing (updatePhoenixWith)
-import View.Button as Button
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
 import View.Example.Controls as Controls
@@ -135,29 +134,11 @@ description =
 controls : Device -> Model -> Element Msg
 controls device { phoenix } =
     Controls.init
-        |> Controls.elements
-            [ join device phoenix
-            , leave device phoenix
+        |> Controls.controls
+            [ Controls.Join (GotControlClick Join) ((Phoenix.joinedChannels phoenix |> List.length) == 0)
+            , Controls.Leave (GotControlClick Leave) ((Phoenix.joinedChannels phoenix |> List.length) > 0)
             ]
         |> Controls.view device
-
-
-join : Device -> Phoenix.Model -> Element Msg
-join device phoenix =
-    Button.init
-        |> Button.setLabel "Join"
-        |> Button.setOnPress (Just (GotControlClick Join))
-        |> Button.setEnabled ((Phoenix.joinedChannels phoenix |> List.length) == 0)
-        |> Button.view device
-
-
-leave : Device -> Phoenix.Model -> Element Msg
-leave device phoenix =
-    Button.init
-        |> Button.setLabel "Leave"
-        |> Button.setOnPress (Just (GotControlClick Leave))
-        |> Button.setEnabled ((Phoenix.joinedChannels phoenix |> List.length) > 0)
-        |> Button.view device
 
 
 

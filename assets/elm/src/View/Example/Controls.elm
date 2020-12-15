@@ -1,6 +1,7 @@
 module View.Example.Controls exposing
     ( Config
-    , elements
+    , Control(..)
+    , controls
     , group
     , init
     , options
@@ -14,6 +15,7 @@ import List.Extra as List
 import UI.BorderColor as BorderColor
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
+import View.Button as Button
 import View.Group as Group
 
 
@@ -24,18 +26,28 @@ import View.Group as Group
 type Config msg
     = Config
         { userId : Maybe String
-        , elements : List (Element msg)
+        , controls : List (Control msg)
         , layout : Maybe (List Int)
         , options : Element msg
         , group : Group.Config
         }
 
 
+type Control msg
+    = Connect msg Bool
+    | Disconnect msg Bool
+    | Join msg Bool
+    | Leave msg Bool
+    | Push msg Bool
+    | CancelRetry msg Bool
+    | CancelPush msg Bool
+
+
 init : Config msg
 init =
     Config
         { userId = Nothing
-        , elements = []
+        , controls = []
         , layout = Nothing
         , options = El.none
         , group = Group.init
@@ -47,9 +59,9 @@ userId maybeUserId_ (Config config) =
     Config { config | userId = maybeUserId_ }
 
 
-elements : List (Element msg) -> Config msg -> Config msg
-elements list (Config config) =
-    Config { config | elements = list }
+controls : List (Control msg) -> Config msg -> Config msg
+controls list (Config config) =
+    Config { config | controls = list }
 
 
 options : Element msg -> Config msg -> Config msg
@@ -68,6 +80,10 @@ group group_ (Config config) =
 
 view : Device -> Config msg -> Element msg
 view device (Config config) =
+    let
+        elements =
+            List.map (toElement device) config.controls
+    in
     case Group.layoutForDevice device config.group of
         Nothing ->
             column
@@ -78,7 +94,7 @@ view device (Config config) =
                     ]
                     [ config.options
                     , toRow <|
-                        Group.orderForDevice device config.elements config.group
+                        Group.orderForDevice device elements config.group
                     ]
                 ]
 
@@ -96,9 +112,62 @@ view device (Config config) =
                         ]
                       <|
                         toRows layout <|
-                            Group.orderForDevice device config.elements config.group
+                            Group.orderForDevice device elements config.group
                     ]
                 ]
+
+
+toElement : Device -> Control msg -> Element msg
+toElement device control =
+    case control of
+        Connect msg enabled ->
+            Button.init
+                |> Button.setLabel "Connect"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        Disconnect msg enabled ->
+            Button.init
+                |> Button.setLabel "Disconnect"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        Join msg enabled ->
+            Button.init
+                |> Button.setLabel "Join"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        Leave msg enabled ->
+            Button.init
+                |> Button.setLabel "Leave"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        Push msg enabled ->
+            Button.init
+                |> Button.setLabel "Push"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        CancelRetry msg enabled ->
+            Button.init
+                |> Button.setLabel "Cancel Retry"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
+
+        CancelPush msg enabled ->
+            Button.init
+                |> Button.setLabel "Cancel Push"
+                |> Button.setOnPress (Just msg)
+                |> Button.setEnabled enabled
+                |> Button.view device
 
 
 column : List (Element msg) -> Element msg
