@@ -89,11 +89,11 @@ introductionView device paragraphs =
         , FontSize.default device
         ]
     <|
-        List.map (toParagraph device) paragraphs
+        List.map toParagraph paragraphs
 
 
-toParagraph : Device -> List (Element msg) -> Element msg
-toParagraph device paragragh =
+toParagraph : List (Element msg) -> Element msg
+toParagraph paragragh =
     El.paragraph
         [ El.width El.fill ]
         paragragh

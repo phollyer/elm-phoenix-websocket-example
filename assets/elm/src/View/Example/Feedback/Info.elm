@@ -10,7 +10,6 @@ module View.Example.Feedback.Info exposing
     )
 
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily

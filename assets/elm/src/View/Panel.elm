@@ -7,9 +7,7 @@ module View.Panel exposing
     , view
     )
 
-import Colors.Opaque as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
@@ -145,11 +143,11 @@ content device paragraphs =
         , FontFamily.default
         , FontSize.panelContent device
         ]
-        (List.map (toParagraph device) paragraphs)
+        (List.map toParagraph paragraphs)
 
 
-toParagraph : Device -> List (Element msg) -> Element msg
-toParagraph device paragraph =
+toParagraph : List (Element msg) -> Element msg
+toParagraph paragraph =
     El.paragraph
         [ El.width El.fill ]
         paragraph

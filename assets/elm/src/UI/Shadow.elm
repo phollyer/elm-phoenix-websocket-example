@@ -9,7 +9,6 @@ module UI.Shadow exposing
 import Colors.Opaque as Color
 import Element exposing (Attribute, Decoration, Device, DeviceClass(..), Orientation(..))
 import Element.Border as Border
-import Html.Attributes exposing (class)
 
 
 
@@ -44,10 +43,6 @@ content { class } =
 
 panel : Device -> Decoration
 panel { class } =
-    let
-        _ =
-            Debug.log "" class
-    in
     Border.shadow <|
         case class of
             Phone ->
