@@ -76,9 +76,7 @@ view device (Config config) =
         ]
         [ descriptionView config.description
         , maybeId config.id
-        , El.el
-            [ El.width El.fill ]
-            config.controls
+        , config.controls
         , config.feedback
         ]
 

@@ -14,6 +14,7 @@ import UI.BackgroundColor as BackgroundColor
 import UI.BorderColor as BorderColor
 import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
+import UI.FontSize as FontSize
 
 
 
@@ -78,7 +79,7 @@ view device (Config config) =
 titleView : Device -> String -> Element msg
 titleView device title_ =
     El.el
-        [ fontSize device
+        [ FontSize.panelHeader device
         , El.centerX
         , Font.bold
         , FontColor.title
@@ -143,16 +144,3 @@ contentAttrs =
     , El.paddingXY 0 10
     , El.width El.fill
     ]
-
-
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 16
-
-        Tablet ->
-            Font.size 20
-
-        _ ->
-            Font.size 22

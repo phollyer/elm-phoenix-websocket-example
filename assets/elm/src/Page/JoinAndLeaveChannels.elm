@@ -14,10 +14,10 @@ import Example.JoinMultipleChannels as JoinMultipleChannels
 import Example.JoinWithBadParams as JoinWithBadParams
 import Example.JoinWithGoodParams as JoinWithGoodParams
 import Example.SimpleJoinAndLeave as SimpleJoinAndLeave
-import Page.Utils exposing (updatePhoenixSessionWith)
 import Phoenix
 import Route
 import Session exposing (Session)
+import Utils exposing (updatePhoenixSessionWith)
 import View.Example.Menu as Menu
 import View.Example.Page as ExamplePage
 import View.Group as Group

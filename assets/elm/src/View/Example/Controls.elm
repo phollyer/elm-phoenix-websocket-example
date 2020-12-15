@@ -107,7 +107,6 @@ column =
         [ Border.widthXY 0 1
         , BorderColor.seperatorLight
         , El.paddingXY 0 10
-        , El.scrollbarY
         , El.spacing 10
         , El.width El.fill
         ]

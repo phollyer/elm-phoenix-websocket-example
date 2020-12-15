@@ -14,10 +14,10 @@ import Example.PushMultipleEvents as PushMultipleEvents
 import Example.PushOneEvent as PushOneEvent
 import Example.PushWithTimeout as PushWithTimeout
 import Example.ReceiveEvents as ReceiveEvents
-import Page.Utils exposing (updatePhoenixSessionWith)
 import Phoenix
 import Route
 import Session exposing (Session)
+import Utils exposing (updatePhoenixSessionWith)
 import View.Example.Menu as Menu
 import View.Example.Page as ExamplePage
 import View.Group as Group

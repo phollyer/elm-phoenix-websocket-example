@@ -11,6 +11,8 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Font as Font
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
+import UI.Padding as Padding
 
 
 
@@ -59,16 +61,13 @@ view device (Config config) =
         [ El.height El.fill
         , El.width El.fill
         , El.spacing 10
-        , El.paddingEach
-            { left = 0
-            , top = 0
-            , right = 0
-            , bottom = 10
-            }
+        , FontColor.default
+        , FontSize.default device
+        , Padding.bottom 10
         ]
         [ introductionView device config.introduction
-        , menuView device config.menu
-        , exampleView device config.example
+        , config.menu
+        , config.example
         ]
 
 
@@ -84,69 +83,22 @@ introductionView device intro =
 
         _ ->
             El.column
-                [ fontSize device
-                , spacing device
+                [ spacing device
                 , Font.justify
-                , FontColor.default
                 , FontFamily.exampleIntro
                 ]
             <|
                 List.map
                     (\paragraph ->
                         El.paragraph
-                            [ El.width El.fill
-                            , El.spacing 10
-                            ]
+                            [ El.width El.fill ]
                             paragraph
                     )
                     intro
 
 
 
-{- Menu -}
-
-
-menuView : Device -> Element msg -> Element msg
-menuView device element =
-    if element == El.none then
-        El.none
-
-    else
-        El.el
-            [ fontSize device
-            , El.width El.fill
-            ]
-            element
-
-
-
-{- Example -}
-
-
-exampleView : Device -> Element msg -> Element msg
-exampleView device content =
-    El.el
-        [ fontSize device
-        , El.spacing 12
-        , Font.justify
-        , El.height El.fill
-        , El.width El.fill
-        ]
-        content
-
-
-
 {- Attributes -}
-
-
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 14
-
-        _ ->
-            Font.size 18
 
 
 spacing : Device -> Attribute msg

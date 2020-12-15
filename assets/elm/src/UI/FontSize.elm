@@ -99,8 +99,11 @@ panelHeader { class } =
             Phone ->
                 16
 
-            _ ->
+            Tablet ->
                 20
+
+            _ ->
+                22
 
 
 panelContent : Device -> Attribute msg
@@ -109,6 +112,9 @@ panelContent { class } =
         case class of
             Phone ->
                 12
+
+            Tablet ->
+                16
 
             _ ->
                 18

@@ -89,8 +89,7 @@ view device (Config config) =
         [ El.width El.fill
         , El.spacing 15
         ]
-        [ container
-            device
+        [ container device
             [ El.width El.fill
             , El.spacing 15
             ]
@@ -138,8 +137,8 @@ userView device { username, id } =
             |> User.userId id
             |> User.view device
         , El.column
-            [ El.width El.fill
-            , El.spacing 10
+            [ El.spacing 10
+            , El.width El.fill
             ]
             [ El.el
                 [ El.width El.fill
@@ -147,33 +146,27 @@ userView device { username, id } =
                 , FontColor.subTitle
                 ]
                 (El.text "Rooms")
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
+            , paragraph
                 [ El.text "- A Room is opened when the owner of the Room enters it." ]
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
+            , paragraph
                 [ El.text "- A Room can only be entered by a guest after it has been opened by the owner." ]
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
+            , paragraph
                 [ El.text "- When the owner leaves a room it will close and all occupants will return to the lobby. " ]
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
+            , paragraph
                 [ El.text "- When a room closes, the messages will be retained until the room is deleted by the owner." ]
-            , El.paragraph
-                [ El.spacing 5
-                , El.width El.fill
-                ]
+            , paragraph
                 [ El.text "- A room is deleted when it's owner leaves this Example, or when the Delete button is clicked." ]
             ]
         ]
+
+
+paragraph : List (Element msg) -> Element msg
+paragraph text =
+    El.paragraph
+        [ El.spacing 5
+        , El.width El.fill
+        ]
+        text
 
 
 

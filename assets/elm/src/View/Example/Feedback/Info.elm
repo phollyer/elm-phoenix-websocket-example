@@ -14,6 +14,7 @@ import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
 import UI.Padding as Padding
 
 
@@ -99,7 +100,7 @@ view device (Config config) =
 field : Device -> String -> String -> Element msg
 field device label topic_ =
     El.wrappedRow
-        [ fontSize device
+        [ FontSize.panelContent device
         , spacing device
         , El.width El.fill
         ]
@@ -126,16 +127,6 @@ maybe toField label maybeValue =
 
 
 {- Attributes -}
-
-
-fontSize : Device -> Attribute msg
-fontSize { class } =
-    case class of
-        Phone ->
-            Font.size 12
-
-        _ ->
-            Font.size 14
 
 
 spacing : Device -> Attribute msg
