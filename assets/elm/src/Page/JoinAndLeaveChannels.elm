@@ -133,38 +133,31 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
     let
-        ( example_, subModel ) =
-            case selectedExample of
-                "Simple Join And Leave" ->
-                    ( SimpleJoinAndLeave
-                    , SimpleJoinAndLeave.init
-                    )
-
-                "Join With Good Params" ->
-                    ( JoinWithGoodParams
-                    , JoinWithGoodParams.init
-                    )
-
-                "Join With Bad Params" ->
-                    ( JoinWithBadParams
-                    , JoinWithBadParams.init
-                    )
-
-                "Join Multiple Channels" ->
-                    ( JoinMultipleChannels
-                    , JoinMultipleChannels.init
-                    )
-
-                _ ->
-                    ( SimpleJoinAndLeave
-                    , SimpleJoinAndLeave.init
-                    )
+        phoenix =
+            Session.phoenix model.session
     in
     ( { model
         | example =
-            example_ <|
-                subModel
-                    (Session.phoenix model.session)
+            case selectedExample of
+                "Simple Join And Leave" ->
+                    SimpleJoinAndLeave <|
+                        SimpleJoinAndLeave.init phoenix
+
+                "Join With Good Params" ->
+                    JoinWithGoodParams <|
+                        JoinWithGoodParams.init phoenix
+
+                "Join With Bad Params" ->
+                    JoinWithBadParams <|
+                        JoinWithBadParams.init phoenix
+
+                "Join Multiple Channels" ->
+                    JoinMultipleChannels <|
+                        JoinMultipleChannels.init phoenix
+
+                _ ->
+                    SimpleJoinAndLeave <|
+                        SimpleJoinAndLeave.init phoenix
       }
     , cmd
     )
@@ -246,8 +239,7 @@ view model =
 -}
 introduction : List (List (Element Msg))
 introduction =
-    [ [ El.text "Joining a Channel is taken care of automatically when the first push to the Channel is made, "
-      , El.text "however, if you want to take manual control, here's a few examples."
+    [ [ El.text "When a Join is requested, the Socket will connect automatically if it is required. "
       ]
     , [ El.text "Clicking on a function will take you to its documentation." ]
     ]

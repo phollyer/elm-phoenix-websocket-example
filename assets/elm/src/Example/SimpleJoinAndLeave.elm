@@ -7,9 +7,9 @@ module Example.SimpleJoinAndLeave exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Phoenix
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..), SocketState(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example as Example
 import View.Example.ApplicableFunctions as ApplicableFunctions
@@ -19,6 +19,7 @@ import View.Example.Feedback.Content as FeedbackContent
 import View.Example.Feedback.Info as FeedbackInfo
 import View.Example.Feedback.Panel as FeedbackPanel
 import View.Example.UsefulFunctions as UsefulFunctions
+import View.Group as Group
 
 
 
@@ -38,12 +39,19 @@ init phoenix =
 
 type alias Model =
     { phoenix : Phoenix.Model
-    , responses : List Phoenix.ChannelResponse
+    , responses : List Response
     }
 
 
+type Response
+    = Socket SocketMessage
+    | Channel ChannelResponse
+
+
 type Action
-    = Join
+    = Connect
+    | Disconnect
+    | Join
     | Leave
 
 
@@ -61,6 +69,14 @@ update msg model =
     case msg of
         GotControlClick action ->
             case action of
+                Connect ->
+                    Phoenix.connect model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
+
+                Disconnect ->
+                    Phoenix.disconnect (Just 1000) model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
+
                 Join ->
                     Phoenix.join "example:join_and_leave_channels" model.phoenix
                         |> updatePhoenixWith PhoenixMsg model
@@ -74,10 +90,16 @@ update msg model =
                 ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update subMsg model.phoenix
                         |> Phoenix.updateWith PhoenixMsg model
+
+                _ =
+                    Debug.log "" phoenixMsg
             in
             case phoenixMsg of
-                Phoenix.ChannelResponse response ->
-                    ( { newModel | responses = response :: newModel.responses }, cmd )
+                SocketMessage (StateChange state) ->
+                    ( { newModel | responses = Socket (StateChange state) :: newModel.responses }, cmd )
+
+                ChannelResponse response ->
+                    ( { newModel | responses = Channel response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -112,7 +134,10 @@ view device model =
 
 description : List (List (Element msg))
 description =
-    [ [ El.text "A simple Join to a Channel without sending any params." ] ]
+    [ [ El.text "A simple Join to a Channel without sending any params. "
+      , El.text ""
+      ]
+    ]
 
 
 
@@ -123,9 +148,18 @@ controls : Device -> Model -> Element Msg
 controls device { phoenix } =
     Controls.init
         |> Controls.controls
-            [ Controls.Join (GotControlClick Join) (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            [ Controls.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
+            , Controls.Join (GotControlClick Join) (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             , Controls.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            , Controls.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
             ]
+        |> Controls.group
+            (Group.init
+                |> Group.layouts
+                    [ ( Phone, Portrait, [ 2, 2 ] ) ]
+                |> Group.order
+                    [ ( Phone, Portrait, [ 1, 3, 4, 2 ] ) ]
+            )
         |> Controls.view device
 
 
@@ -139,7 +173,7 @@ feedback device { phoenix, responses } =
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (channelResponses device responses)
+                |> FeedbackPanel.scrollable (responsesView device phoenix responses)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
@@ -153,15 +187,23 @@ feedback device { phoenix, responses } =
         |> Feedback.view device
 
 
-channelResponses : Device -> List Phoenix.ChannelResponse -> List (Element Msg)
-channelResponses device responses =
-    List.map (channelResponse device) responses
+responsesView : Device -> Phoenix.Model -> List Response -> List (Element Msg)
+responsesView device phoenix responses =
+    List.map (responseView device phoenix) responses
 
 
-channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
-channelResponse device response =
+responseView : Device -> Phoenix.Model -> Response -> Element Msg
+responseView device phoenix response =
     case response of
-        Phoenix.JoinOk topic payload ->
+        Socket (StateChange state) ->
+            FeedbackContent.init
+                |> FeedbackContent.title (Just "SocketMessage")
+                |> FeedbackContent.label "StateChange"
+                |> FeedbackContent.element
+                    (El.text (socketStateToString state))
+                |> FeedbackContent.view device
+
+        Channel (JoinOk topic payload) ->
             FeedbackContent.init
                 |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "JoinOk"
@@ -173,7 +215,7 @@ channelResponse device response =
                     )
                 |> FeedbackContent.view device
 
-        Phoenix.LeaveOk topic ->
+        Channel (LeaveOk topic) ->
             FeedbackContent.init
                 |> FeedbackContent.title (Just "ChannelResponse")
                 |> FeedbackContent.label "LeaveOk"
@@ -188,11 +230,29 @@ channelResponse device response =
             El.none
 
 
+socketStateToString : SocketState -> String
+socketStateToString state =
+    case state of
+        Connecting ->
+            "Connecting"
+
+        Connected ->
+            "Connected"
+
+        Disconnecting ->
+            "Disconnecting"
+
+        Disconnected _ ->
+            "Disconnected"
+
+
 applicableFunctions : Device -> Element Msg
 applicableFunctions device =
     ApplicableFunctions.init
         |> ApplicableFunctions.functions
-            [ "Phoenix.join"
+            [ "Phoenix.connect"
+            , "Phoenix.disconnect"
+            , "Phoenix.join"
             , "Phoenix.leave"
             ]
         |> ApplicableFunctions.view device
@@ -202,7 +262,8 @@ usefulFunctions : Device -> Phoenix.Model -> Element Msg
 usefulFunctions device phoenix =
     UsefulFunctions.init
         |> UsefulFunctions.functions
-            [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
+            [ ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:join_and_leave_channels" phoenix |> String.printBool )
             , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
             ]
         |> UsefulFunctions.view device
