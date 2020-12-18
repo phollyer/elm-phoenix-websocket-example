@@ -1,12 +1,14 @@
 module View.MultiRoomChat.Lobby.Registration exposing
     ( init
     , onChange
+    , onColorChange
     , onSubmit
+    , selectedColor
     , username
     , view
     )
 
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Border as Border
 import UI.BackgroundColor as BackgroundColor
 import UI.FontFamily as FontFamily
@@ -20,7 +22,9 @@ import View.MultiRoomChat.Lobby.Form as Form
 type Config msg
     = Config
         { username : String
+        , selectedColor : Maybe Color
         , onChange : Maybe (String -> msg)
+        , onColorChange : Maybe (Color -> msg)
         , onSubmit : Maybe msg
         }
 
@@ -29,7 +33,9 @@ init : Config msg
 init =
     Config
         { username = ""
+        , selectedColor = Nothing
         , onChange = Nothing
+        , onColorChange = Nothing
         , onSubmit = Nothing
         }
 
@@ -39,9 +45,19 @@ username name (Config config) =
     Config { config | username = name }
 
 
+selectedColor : Maybe Color -> Config msg -> Config msg
+selectedColor color (Config config) =
+    Config { config | selectedColor = color }
+
+
 onChange : (String -> msg) -> Config msg -> Config msg
 onChange toMsg (Config config) =
     Config { config | onChange = Just toMsg }
+
+
+onColorChange : (Color -> msg) -> Config msg -> Config msg
+onColorChange toMsg (Config config) =
+    Config { config | onColorChange = Just toMsg }
 
 
 onSubmit : msg -> Config msg -> Config msg
@@ -91,7 +107,9 @@ form device (Config config) =
         ]
         (Form.init
             |> Form.text config.username
+            |> Form.selectedColor config.selectedColor
             |> Form.onChange config.onChange
+            |> Form.onColorChange config.onColorChange
             |> Form.onSubmit config.onSubmit
             |> Form.view device
         )

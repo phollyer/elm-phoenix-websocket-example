@@ -9,8 +9,9 @@ module Example.MultiRoomChat exposing
     )
 
 import Browser.Navigation as Nav
+import Colors.Alpha as Color
 import Configs exposing (joinConfig)
-import Element exposing (Device, Element)
+import Element exposing (Color, Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
 import Example.MultiRoomChat.Room as Room exposing (OutMsg(..))
 import Json.Encode as JE
@@ -30,6 +31,7 @@ init phoenix =
     { phoenix = phoenix
     , state = Unregistered
     , username = ""
+    , selectedColor = Nothing
     , lobby = Lobby.init phoenix
     , room = Room.init phoenix
     }
@@ -43,6 +45,7 @@ type alias Model =
     { phoenix : Phoenix.Model
     , state : State
     , username : String
+    , selectedColor : Maybe Color
     , lobby : Lobby.Model
     , room : Room.Model
     }
@@ -62,6 +65,7 @@ type Msg
     = PhoenixMsg Phoenix.Msg
     | LobbyMsg Lobby.Msg
     | RoomMsg Room.Msg
+    | GotColorSelection Color
     | GotUsernameChange String
     | GotJoinLobby
 
@@ -71,6 +75,9 @@ update msg model =
     case msg of
         GotUsernameChange name ->
             ( { model | username = name }, Cmd.none )
+
+        GotColorSelection color ->
+            ( { model | selectedColor = Just color }, Cmd.none )
 
         LobbyMsg subMsg ->
             let
@@ -221,7 +228,9 @@ view device model =
         Unregistered ->
             LobbyRegistration.init
                 |> LobbyRegistration.username model.username
+                |> LobbyRegistration.selectedColor model.selectedColor
                 |> LobbyRegistration.onChange GotUsernameChange
+                |> LobbyRegistration.onColorChange GotColorSelection
                 |> LobbyRegistration.onSubmit GotJoinLobby
                 |> LobbyRegistration.view device
 
