@@ -90,9 +90,6 @@ update msg model =
                 ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update subMsg model.phoenix
                         |> Phoenix.updateWith PhoenixMsg model
-
-                _ =
-                    Debug.log "" phoenixMsg
             in
             case phoenixMsg of
                 SocketMessage (StateChange state) ->
