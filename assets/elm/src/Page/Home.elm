@@ -107,7 +107,7 @@ socketExamples device =
         |> Panel.title "Control the Connection (3)"
         |> Panel.description
             [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
-            , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be deined." ]
+            , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be denied." ]
             ]
         |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
         |> Panel.view device
