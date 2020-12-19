@@ -1,9 +1,11 @@
 module View.MultiRoomChat.Lobby.Registration exposing
     ( init
+    , onBackgroundColorChange
     , onChange
-    , onColorChange
+    , onForegroundColorChange
     , onSubmit
-    , selectedColor
+    , selectedBackgroundColor
+    , selectedForegroundColor
     , username
     , view
     )
@@ -22,9 +24,11 @@ import View.MultiRoomChat.Lobby.Form as Form
 type Config msg
     = Config
         { username : String
-        , selectedColor : Maybe Color
+        , selectedBackgroundColor : Maybe Color
+        , selectedForegroundColor : Maybe Color
         , onChange : Maybe (String -> msg)
-        , onColorChange : Maybe (Color -> msg)
+        , onBackgroundColorChange : Maybe (Color -> msg)
+        , onForegroundColorChange : Maybe (Color -> msg)
         , onSubmit : Maybe msg
         }
 
@@ -33,9 +37,11 @@ init : Config msg
 init =
     Config
         { username = ""
-        , selectedColor = Nothing
+        , selectedBackgroundColor = Nothing
+        , selectedForegroundColor = Nothing
         , onChange = Nothing
-        , onColorChange = Nothing
+        , onBackgroundColorChange = Nothing
+        , onForegroundColorChange = Nothing
         , onSubmit = Nothing
         }
 
@@ -45,9 +51,14 @@ username name (Config config) =
     Config { config | username = name }
 
 
-selectedColor : Maybe Color -> Config msg -> Config msg
-selectedColor color (Config config) =
-    Config { config | selectedColor = color }
+selectedBackgroundColor : Maybe Color -> Config msg -> Config msg
+selectedBackgroundColor color (Config config) =
+    Config { config | selectedBackgroundColor = color }
+
+
+selectedForegroundColor : Maybe Color -> Config msg -> Config msg
+selectedForegroundColor color (Config config) =
+    Config { config | selectedForegroundColor = color }
 
 
 onChange : (String -> msg) -> Config msg -> Config msg
@@ -55,9 +66,14 @@ onChange toMsg (Config config) =
     Config { config | onChange = Just toMsg }
 
 
-onColorChange : (Color -> msg) -> Config msg -> Config msg
-onColorChange toMsg (Config config) =
-    Config { config | onColorChange = Just toMsg }
+onBackgroundColorChange : (Color -> msg) -> Config msg -> Config msg
+onBackgroundColorChange toMsg (Config config) =
+    Config { config | onBackgroundColorChange = Just toMsg }
+
+
+onForegroundColorChange : (Color -> msg) -> Config msg -> Config msg
+onForegroundColorChange toMsg (Config config) =
+    Config { config | onForegroundColorChange = Just toMsg }
 
 
 onSubmit : msg -> Config msg -> Config msg
@@ -107,9 +123,11 @@ form device (Config config) =
         ]
         (Form.init
             |> Form.text config.username
-            |> Form.selectedColor config.selectedColor
+            |> Form.selectedBackgroundColor config.selectedBackgroundColor
+            |> Form.selectedForegroundColor config.selectedForegroundColor
             |> Form.onChange config.onChange
-            |> Form.onColorChange config.onColorChange
+            |> Form.onBackgroundColorChange config.onBackgroundColorChange
+            |> Form.onForegroundColorChange config.onForegroundColorChange
             |> Form.onSubmit config.onSubmit
             |> Form.view device
         )

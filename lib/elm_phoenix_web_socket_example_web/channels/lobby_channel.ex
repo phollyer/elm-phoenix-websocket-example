@@ -6,9 +6,10 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   alias ElmPhoenixWebSocketExampleWeb.Presence
 
 
-  def join("example:lobby", %{"username" => username}, socket) do
+  def join("example:lobby", %{"username" => username, "background_color" => background_color, "foreground_color" => foreground_color} = params, socket) do
+    IO.inspect params
     {:ok, user} =
-      User.create(username)
+      User.create(params)
       |> User.update()
 
     send(self(), :after_join)

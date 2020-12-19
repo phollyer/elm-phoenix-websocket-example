@@ -11,6 +11,7 @@ module Example.MultiRoomChat.Lobby exposing
 
 import Configs exposing (joinConfig, pushConfig)
 import Element exposing (Device, Element)
+import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Types exposing (Presence, Room, User, decodeMetas, decodeRooms, decodeUser, initUser)
@@ -125,7 +126,11 @@ update msg (Model model) =
                         Ok rooms ->
                             ( Model { newModel | rooms = rooms }, cmd )
 
-                        Err _ ->
+                        Err error ->
+                            let
+                                _ =
+                                    Debug.log "" (JD.errorToString error)
+                            in
                             ( Model newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
@@ -149,8 +154,7 @@ toPresences presences =
             , user =
                 decodeUser presence.user
                     |> Result.toMaybe
-                    |> Maybe.withDefault
-                        (User "" "")
+                    |> Maybe.withDefault initUser
             }
         )
         presences

@@ -2,11 +2,13 @@ defmodule ElmPhoenixWebSocketExample.User do
 
   alias ElmPhoenixWebSocketExample.Room
 
-  def create(username) do
+  def create(%{"username" => username, "background_color" => background_color, "foreground_color" => foreground_color}) do
     %{id: create_id(),
       username: username,
+      background_color: background_color,
+      foreground_color: foreground_color,
       rooms: []
-    }
+    } |> IO.inspect
   end
 
   def find(id) do

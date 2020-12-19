@@ -10,6 +10,7 @@ module View.MultiRoomChat.Lobby exposing
     )
 
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Presence, Room, User, initUser)

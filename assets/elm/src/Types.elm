@@ -16,6 +16,8 @@ module Types exposing
     , userDecoder
     )
 
+import Colors.Alpha as Color
+import Element as El exposing (Color)
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
 
@@ -40,6 +42,8 @@ initRoom =
 type alias User =
     { id : String
     , username : String
+    , backgroundColor : Color
+    , foregroundColor : Color
     }
 
 
@@ -47,6 +51,8 @@ initUser : User
 initUser =
     { id = ""
     , username = ""
+    , backgroundColor = Color.black 1
+    , foregroundColor = Color.white 1
     }
 
 
@@ -155,3 +161,34 @@ userDecoder =
         User
         |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "username" JD.string)
+        |> andMap
+            (JD.field "background_color" rgbaDecoder
+                |> JD.andThen toColor
+            )
+        |> andMap
+            (JD.field "foreground_color" rgbaDecoder
+                |> JD.andThen toColor
+            )
+
+
+toColor : RGBA -> JD.Decoder Color
+toColor rgba =
+    JD.succeed (El.fromRgb rgba)
+
+
+type alias RGBA =
+    { red : Float
+    , green : Float
+    , blue : Float
+    , alpha : Float
+    }
+
+
+rgbaDecoder : JD.Decoder RGBA
+rgbaDecoder =
+    JD.succeed
+        RGBA
+        |> andMap (JD.field "red" JD.float)
+        |> andMap (JD.field "green" JD.float)
+        |> andMap (JD.field "blue" JD.float)
+        |> andMap (JD.field "alpha" JD.float)

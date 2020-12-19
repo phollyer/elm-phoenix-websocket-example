@@ -1,18 +1,21 @@
 module View.MultiRoomChat.Lobby.Form exposing
     ( init
+    , onBackgroundColorChange
     , onChange
-    , onColorChange
+    , onForegroundColorChange
     , onSubmit
-    , selectedColor
+    , selectedBackgroundColor
+    , selectedForegroundColor
     , text
     , view
     )
 
 import Colors.Alpha as Color
-import Element as El exposing (Color, Device, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
+import Element.Font as Font
 import List.Extra exposing (greedyGroupsOf)
 import UI.FontColor as FontColor
 import UI.FontSize as FontSize
@@ -27,9 +30,11 @@ import View.InputField as InputField
 type Config msg
     = Config
         { text : String
-        , selectedColor : Maybe Color
+        , selectedBackgroundColor : Maybe Color
+        , selectedForegroundColor : Maybe Color
         , onChange : Maybe (String -> msg)
-        , onColorChange : Maybe (Color -> msg)
+        , onBackgroundColorChange : Maybe (Color -> msg)
+        , onForegroundColorChange : Maybe (Color -> msg)
         , onSubmit : Maybe msg
         }
 
@@ -38,9 +43,11 @@ init : Config msg
 init =
     Config
         { text = ""
-        , selectedColor = Nothing
+        , selectedBackgroundColor = Nothing
+        , selectedForegroundColor = Nothing
         , onChange = Nothing
-        , onColorChange = Nothing
+        , onBackgroundColorChange = Nothing
+        , onForegroundColorChange = Nothing
         , onSubmit = Nothing
         }
 
@@ -50,9 +57,14 @@ text text_ (Config config) =
     Config { config | text = text_ }
 
 
-selectedColor : Maybe Color -> Config msg -> Config msg
-selectedColor color (Config config) =
-    Config { config | selectedColor = color }
+selectedBackgroundColor : Maybe Color -> Config msg -> Config msg
+selectedBackgroundColor color (Config config) =
+    Config { config | selectedBackgroundColor = color }
+
+
+selectedForegroundColor : Maybe Color -> Config msg -> Config msg
+selectedForegroundColor color (Config config) =
+    Config { config | selectedForegroundColor = color }
 
 
 onChange : Maybe (String -> msg) -> Config msg -> Config msg
@@ -60,9 +72,14 @@ onChange maybeMsg (Config config) =
     Config { config | onChange = maybeMsg }
 
 
-onColorChange : Maybe (Color -> msg) -> Config msg -> Config msg
-onColorChange maybeMsg (Config config) =
-    Config { config | onColorChange = maybeMsg }
+onBackgroundColorChange : Maybe (Color -> msg) -> Config msg -> Config msg
+onBackgroundColorChange maybeMsg (Config config) =
+    Config { config | onBackgroundColorChange = maybeMsg }
+
+
+onForegroundColorChange : Maybe (Color -> msg) -> Config msg -> Config msg
+onForegroundColorChange maybeMsg (Config config) =
+    Config { config | onForegroundColorChange = maybeMsg }
 
 
 onSubmit : Maybe msg -> Config msg -> Config msg
@@ -106,50 +123,87 @@ submitButton device (Config config) =
 
 colorsView : Device -> Config msg -> Element msg
 colorsView device (Config config) =
-    case config.onColorChange of
-        Nothing ->
-            El.none
-
-        Just toMsg ->
-            El.column
-                [ El.width El.fill
-                , El.spacing 10
-                ]
-                [ El.el
-                    [ El.centerX
-                    , FontColor.panelHeader
-                    , FontSize.title device
-                    ]
-                    (El.text "Select a Color")
-                , El.column
+    El.column
+        [ El.width El.fill
+        , El.spacing 10
+        ]
+        [ El.el
+            [ El.centerX
+            , FontColor.panelHeader
+            , FontSize.title device
+            ]
+            (El.text "Select a Background Color")
+        , El.column
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            (colorRows device config.onBackgroundColorChange config.selectedBackgroundColor config.selectedForegroundColor)
+        , El.el
+            [ El.centerX
+            , FontColor.panelHeader
+            , FontSize.title device
+            ]
+            (El.text "Select a Foreground Color")
+        , El.column
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            (colorRows device config.onForegroundColorChange config.selectedForegroundColor config.selectedBackgroundColor)
+        , case ( config.selectedBackgroundColor, config.selectedForegroundColor ) of
+            ( Just bgColor, Just fontColor ) ->
+                El.column
                     [ El.width El.fill
                     , El.spacing 10
                     ]
-                    (colorRows device toMsg config.selectedColor)
-                ]
-
-
-colorRows : Device -> (Color -> msg) -> Maybe Color -> List (Element msg)
-colorRows { class, orientation } toMsg color =
-    let
-        numPerRow =
-            case ( class, orientation ) of
-                ( Phone, Portrait ) ->
-                    5
-
-                _ ->
-                    10
-    in
-    List.map (toColor toMsg color) colors
-        |> greedyGroupsOf numPerRow
-        |> List.map
-            (\row ->
-                El.row
-                    [ El.centerX
-                    , El.spacing 10
+                    [ El.el
+                        [ El.centerX
+                        , FontColor.panelHeader
+                        , FontSize.title device
+                        ]
+                        (El.text "Preview")
+                    , El.el
+                        [ padding device
+                        , roundedBorder device
+                        , El.centerX
+                        , Background.color bgColor
+                        , Font.color fontColor
+                        ]
+                        (El.text config.text)
                     ]
-                    row
-            )
+
+            _ ->
+                El.none
+        ]
+
+
+colorRows : Device -> Maybe (Color -> msg) -> Maybe Color -> Maybe Color -> List (Element msg)
+colorRows { class, orientation } maybeMsg selectedColor altColor =
+    case maybeMsg of
+        Nothing ->
+            []
+
+        Just toMsg ->
+            let
+                numPerRow =
+                    case ( class, orientation ) of
+                        ( Phone, Portrait ) ->
+                            6
+
+                        _ ->
+                            10
+            in
+            List.filter (\color -> Just color /= altColor) colors
+                |> List.map
+                    (toColor toMsg selectedColor)
+                |> greedyGroupsOf numPerRow
+                |> List.map
+                    (\row ->
+                        El.wrappedRow
+                            [ El.centerX
+                            , El.spacing 10
+                            ]
+                            row
+                    )
 
 
 toColor : (Color -> msg) -> Maybe Color -> Color -> Element msg
@@ -196,3 +250,35 @@ colors =
     , Color.turquoise 1
     , Color.yellow 1
     ]
+
+
+
+{- Attributes -}
+
+
+padding : Device -> Attribute msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+roundedBorder : Device -> Attribute msg
+roundedBorder { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                14
+
+            _ ->
+                20

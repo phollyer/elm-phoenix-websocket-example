@@ -8,6 +8,7 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     )
 
 import Element as El exposing (Attribute, Device, Element)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Types exposing (Room, User, initUser)
@@ -114,7 +115,7 @@ toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
         (List.append defaultAttrs <|
-            roomAttrs config.user room
+            roomAttrs room
         )
         [ El.column
             [ El.width El.fill
@@ -217,30 +218,18 @@ defaultAttrs =
     ]
 
 
-roomAttrs : User -> Room -> List (Attribute msg)
-roomAttrs currentUser room =
-    if currentUser == room.owner then
-        [ BackgroundColor.ownRoom
-        , BorderColor.ownRoom
-        , El.mouseOver
-            [ BorderColor.mouseOverOwnRoom
-            , Shadow.ownRoom
-            ]
-        , FontColor.ownRoom
+roomAttrs : Room -> List (Attribute msg)
+roomAttrs room =
+    [ Background.color room.owner.backgroundColor
+    , Border.color room.owner.foregroundColor
+    , El.mouseOver
+        [ Border.color room.owner.backgroundColor
+        , Border.shadow
+            { size = 1
+            , blur = 5
+            , color = room.owner.backgroundColor
+            , offset = ( 0, 0 )
+            }
         ]
-
-    else if List.member room.owner room.members then
-        [ BackgroundColor.openRoom
-        , BorderColor.openRoom
-        , El.mouseOver
-            [ BorderColor.mouseOverOpenRoom
-            , Shadow.openRoom
-            ]
-        , FontColor.openRoom
-        ]
-
-    else
-        [ BackgroundColor.closedRoom
-        , BorderColor.closedRoom
-        , FontColor.closedRoom
-        ]
+    , Font.color room.owner.foregroundColor
+    ]
