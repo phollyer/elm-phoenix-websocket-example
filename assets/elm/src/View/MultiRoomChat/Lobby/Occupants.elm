@@ -5,8 +5,10 @@ module View.MultiRoomChat.Lobby.Occupants exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font exposing (Font)
 import Types exposing (User, initUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -46,7 +48,7 @@ currentUser users (Config config) =
 
 
 view : Device -> Config -> Element msg
-view _ config =
+view device config =
     El.column
         [ BackgroundColor.panel
         , Border.rounded 10
@@ -60,17 +62,75 @@ view _ config =
             , FontColor.subTitle
             ]
             (El.text "Occupants")
-        , El.paragraph
-            [ El.width El.fill ]
-            [ toOccupants config ]
+        , El.wrappedRow
+            [ El.width El.fill
+            , El.spacing 10
+            ]
+            (toOccupants device config)
         ]
 
 
-toOccupants : Config -> Element msg
-toOccupants (Config config) =
-    List.filter (\occupant -> occupant /= config.currentUser) config.all
-        |> List.map .username
-        |> List.append [ "You" ]
-        |> List.intersperse ", "
-        |> String.concat
-        |> El.text
+toOccupants : Device -> Config -> List (Element msg)
+toOccupants device (Config config) =
+    List.partition (\user -> user == config.currentUser) config.all
+        |> Tuple.mapFirst
+            (List.map (toOccupant device config.currentUser))
+        |> Tuple.mapSecond
+            (List.map (toOccupant device config.currentUser))
+        |> combine List.append
+
+
+toOccupant : Device -> User -> User -> Element msg
+toOccupant device currentUser_ user =
+    El.el
+        [ padding device
+        , roundedBorder device
+        , Background.color user.backgroundColor
+        , Border.color user.foregroundColor
+        , Border.width 1
+        , Font.color user.foregroundColor
+        ]
+        (El.text <|
+            if currentUser_ == user then
+                "You"
+
+            else
+                user.username
+        )
+
+
+combine : (a -> b -> c) -> ( a, b ) -> c
+combine func ( a, b ) =
+    func a b
+
+
+
+{- Attributes -}
+
+
+padding : Device -> Attribute msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                14
+
+            _ ->
+                20
+
+
+roundedBorder : Device -> Attribute msg
+roundedBorder { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10

@@ -143,6 +143,7 @@ maybeDeleteBtn device maybeToOnDelete currentUser room =
                 Button.init
                     |> Button.setLabel "Delete"
                     |> Button.setOnPress (Just (onDelete_ room))
+                    |> Button.setType (Button.User currentUser)
                     |> Button.view device
 
     else
@@ -160,6 +161,7 @@ maybeEnterBtn device maybeToOnClick currentUser room =
                 Button.init
                     |> Button.setLabel "Enter"
                     |> Button.setOnPress (Just (onClick_ room))
+                    |> Button.setType (Button.User currentUser)
                     |> Button.view device
 
     else
