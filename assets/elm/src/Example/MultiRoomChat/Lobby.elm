@@ -14,7 +14,7 @@ import Element exposing (Device, Element)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
-import Types exposing (Presence, Room, User, decodeMetas, decodeRooms, decodeUser, initUser)
+import Types exposing (Presence, Room, User, decodeMetas, decodeRooms, decodeUser, initRoom, initUser)
 import View.MultiRoomChat.Lobby as Lobby
 
 
@@ -28,6 +28,7 @@ type Model
         , user : User
         , presences : List Presence
         , rooms : List Room
+        , showRoomMembers : Maybe Room
         }
 
 
@@ -38,6 +39,7 @@ init phoenix =
         , user = initUser
         , presences = []
         , rooms = []
+        , showRoomMembers = Nothing
         }
 
 
@@ -48,6 +50,7 @@ enter user phoenix =
         , user = user
         , presences = []
         , rooms = []
+        , showRoomMembers = Nothing
         }
 
 
@@ -65,6 +68,7 @@ type Msg
     | GotCreateRoom
     | GotEnterRoom Room
     | GotDeleteRoom Room
+    | GotShowRoomMembers (Maybe Room)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -114,6 +118,9 @@ update msg (Model model) =
                 |> Phoenix.join topic
                 |> updatePhoenixWith PhoenixMsg (Model model)
 
+        GotShowRoomMembers maybeRoom ->
+            ( Model { model | showRoomMembers = maybeRoom }, Cmd.none )
+
         PhoenixMsg subMsg ->
             let
                 ( newModel, cmd, phoenixMsg ) =
@@ -124,7 +131,23 @@ update msg (Model model) =
                 ChannelEvent "example:lobby" "room_list" payload ->
                     case decodeRooms payload of
                         Ok rooms ->
-                            ( Model { newModel | rooms = rooms }, cmd )
+                            ( Model
+                                { newModel
+                                    | rooms = rooms
+                                    , showRoomMembers =
+                                        Maybe.map
+                                            (\room ->
+                                                case List.filter (\r -> r.id == room.id) rooms of
+                                                    [] ->
+                                                        initRoom
+
+                                                    first :: _ ->
+                                                        first
+                                            )
+                                            newModel.showRoomMembers
+                                }
+                            , cmd
+                            )
 
                         Err error ->
                             let
@@ -176,12 +199,14 @@ subscriptions toMsg (Model { phoenix }) =
 
 
 view : Device -> Model -> Element Msg
-view device (Model { presences, rooms, user }) =
+view device (Model { presences, rooms, user, showRoomMembers }) =
     Lobby.init
         |> Lobby.user user
         |> Lobby.onCreateRoom GotCreateRoom
         |> Lobby.onEnterRoom GotEnterRoom
         |> Lobby.onDeleteRoom GotDeleteRoom
+        |> Lobby.onMouseEnterRoom GotShowRoomMembers
+        |> Lobby.showRoomMembers showRoomMembers
         |> Lobby.members presences
         |> Lobby.rooms rooms
         |> Lobby.view device

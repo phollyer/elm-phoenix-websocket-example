@@ -4,7 +4,9 @@ module View.MultiRoomChat.Lobby exposing
     , onCreateRoom
     , onDeleteRoom
     , onEnterRoom
+    , onMouseEnterRoom
     , rooms
+    , showRoomMembers
     , user
     , view
     )
@@ -34,7 +36,9 @@ type Config msg
         , onCreateRoom : Maybe msg
         , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
+        , onMouseEnterRoom : Maybe (Maybe Room -> msg)
         , rooms : List Room
+        , showRoomMembers : Maybe Room
         }
 
 
@@ -46,7 +50,9 @@ init =
         , onCreateRoom = Nothing
         , onDeleteRoom = Nothing
         , onEnterRoom = Nothing
+        , onMouseEnterRoom = Nothing
         , rooms = []
+        , showRoomMembers = Nothing
         }
 
 
@@ -70,9 +76,19 @@ onEnterRoom msg (Config config) =
     Config { config | onEnterRoom = Just msg }
 
 
+onMouseEnterRoom : (Maybe Room -> msg) -> Config msg -> Config msg
+onMouseEnterRoom msg (Config config) =
+    Config { config | onMouseEnterRoom = Just msg }
+
+
 rooms : List Room -> Config msg -> Config msg
 rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
+
+
+showRoomMembers : Maybe Room -> Config msg -> Config msg
+showRoomMembers maybeRoom (Config config) =
+    Config { config | showRoomMembers = maybeRoom }
 
 
 user : User -> Config msg -> Config msg
@@ -235,6 +251,8 @@ roomsView device (Config config) =
                 |> Rooms.user config.user
                 |> Rooms.onClick config.onEnterRoom
                 |> Rooms.onDelete config.onDeleteRoom
+                |> Rooms.onMouseEnter config.onMouseEnterRoom
+                |> Rooms.showRoomMembers config.showRoomMembers
                 |> Rooms.view device
             )
 
