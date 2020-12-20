@@ -3,7 +3,7 @@ module Example.MultiRoomChat.Registration exposing (..)
 import Element as El exposing (Color, Device, Element)
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
-import Types exposing (ErrorMessage(..), User, decodeUser)
+import Types exposing (ErrorMessage(..), TwoTrack(..), User, bind, decodeUser)
 import UI.FontColor exposing (error)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby.Registration as Registration exposing (backgroundColorError)
@@ -166,17 +166,13 @@ handleErrors errors (Model model) =
 {- Validation -}
 
 
-isValid : Model -> Bool
-isValid model =
-    case validateUserInput model of
-        Success _ ->
-            True
-
-        Failure _ ->
-            False
+type Field
+    = Username String
+    | BackgroundColor Color
+    | ForegroundColor Color
 
 
-validateUserInput : Model -> TwoTrack
+validateUserInput : Model -> TwoTrack Field
 validateUserInput (Model { username, backgroundColor, foregroundColor }) =
     Success []
         |> bind validateUsername username
@@ -184,43 +180,16 @@ validateUserInput (Model { username, backgroundColor, foregroundColor }) =
         |> bind validateForegroundColor foregroundColor
 
 
-bind : (a -> TwoTrack) -> a -> TwoTrack -> TwoTrack
-bind switch input twoTrack =
-    case ( switch input, twoTrack ) of
-        ( Failure e, Failure f ) ->
-            Failure (List.append e f)
-
-        ( Failure e, _ ) ->
-            Failure e
-
-        ( _, Failure f ) ->
-            Failure f
-
-        ( Success a, Success b ) ->
-            Success (List.append a b)
-
-
-type TwoTrack
-    = Success (List Field)
-    | Failure (List ErrorMessage)
-
-
-type Field
-    = Username String
-    | BackgroundColor Color
-    | ForegroundColor Color
-
-
-validateUsername : String -> TwoTrack
+validateUsername : String -> TwoTrack Field
 validateUsername username =
     if String.trim username == "" then
         Failure [ UsernameCannotBeBlank ]
 
     else
-        Success [ Username username ]
+        Success [ Username (String.trim username) ]
 
 
-validateBackgroundColor : Maybe Color -> TwoTrack
+validateBackgroundColor : Maybe Color -> TwoTrack Field
 validateBackgroundColor maybeColor =
     case maybeColor of
         Nothing ->
@@ -230,7 +199,7 @@ validateBackgroundColor maybeColor =
             Success [ BackgroundColor color ]
 
 
-validateForegroundColor : Maybe Color -> TwoTrack
+validateForegroundColor : Maybe Color -> TwoTrack Field
 validateForegroundColor maybeColor =
     case maybeColor of
         Nothing ->
