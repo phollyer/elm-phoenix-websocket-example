@@ -1,5 +1,6 @@
 module View.MultiRoomChat.Lobby.Form exposing
     ( init
+    , isSubmittable
     , onBackgroundColorChange
     , onChange
     , onForegroundColorChange
@@ -36,6 +37,7 @@ type Config msg
         , onBackgroundColorChange : Maybe (Color -> msg)
         , onForegroundColorChange : Maybe (Color -> msg)
         , onSubmit : Maybe msg
+        , isSubmittable : Bool
         }
 
 
@@ -49,6 +51,7 @@ init =
         , onBackgroundColorChange = Nothing
         , onForegroundColorChange = Nothing
         , onSubmit = Nothing
+        , isSubmittable = False
         }
 
 
@@ -87,6 +90,11 @@ onSubmit maybeMsg (Config config) =
     Config { config | onSubmit = maybeMsg }
 
 
+isSubmittable : Bool -> Config msg -> Config msg
+isSubmittable isValid (Config config) =
+    Config { config | isSubmittable = isValid }
+
+
 
 {- View -}
 
@@ -117,7 +125,7 @@ submitButton device (Config config) =
     Button.init
         |> Button.setLabel "Join Lobby"
         |> Button.setOnPress config.onSubmit
-        |> Button.setEnabled (String.trim config.text /= "")
+        |> Button.setEnabled config.isSubmittable
         |> Button.view device
 
 

@@ -1,5 +1,6 @@
 module View.MultiRoomChat.Lobby.Registration exposing
     ( init
+    , isSubmittable
     , onBackgroundColorChange
     , onChange
     , onForegroundColorChange
@@ -30,6 +31,7 @@ type Config msg
         , onBackgroundColorChange : Maybe (Color -> msg)
         , onForegroundColorChange : Maybe (Color -> msg)
         , onSubmit : Maybe msg
+        , isSubmittable : Bool
         }
 
 
@@ -43,6 +45,7 @@ init =
         , onBackgroundColorChange = Nothing
         , onForegroundColorChange = Nothing
         , onSubmit = Nothing
+        , isSubmittable = False
         }
 
 
@@ -79,6 +82,11 @@ onForegroundColorChange toMsg (Config config) =
 onSubmit : msg -> Config msg -> Config msg
 onSubmit msg (Config config) =
     Config { config | onSubmit = Just msg }
+
+
+isSubmittable : Bool -> Config msg -> Config msg
+isSubmittable isValid (Config config) =
+    Config { config | isSubmittable = isValid }
 
 
 
@@ -129,6 +137,7 @@ form device (Config config) =
             |> Form.onBackgroundColorChange config.onBackgroundColorChange
             |> Form.onForegroundColorChange config.onForegroundColorChange
             |> Form.onSubmit config.onSubmit
+            |> Form.isSubmittable config.isSubmittable
             |> Form.view device
         )
 

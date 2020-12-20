@@ -13,6 +13,7 @@ import Colors.Alpha as Color
 import Configs exposing (joinConfig)
 import Element as El exposing (Color, Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
+import Example.MultiRoomChat.Registration as Registration
 import Example.MultiRoomChat.Room as Room exposing (OutMsg(..))
 import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
@@ -20,7 +21,6 @@ import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
 import Types exposing (Room, User, decodeRoom, decodeUser)
 import Utils exposing (updatePhoenixWith)
-import View.MultiRoomChat.Lobby.Registration as LobbyRegistration
 
 
 
@@ -31,9 +31,7 @@ init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
     , state = Unregistered
-    , username = ""
-    , selectedBackgroundColor = Nothing
-    , selectedForegroundColor = Nothing
+    , registration = Registration.init phoenix
     , lobby = Lobby.init phoenix
     , room = Room.init phoenix
     }
@@ -46,9 +44,7 @@ init phoenix =
 type alias Model =
     { phoenix : Phoenix.Model
     , state : State
-    , username : String
-    , selectedBackgroundColor : Maybe Color
-    , selectedForegroundColor : Maybe Color
+    , registration : Registration.Model
     , lobby : Lobby.Model
     , room : Room.Model
     }
@@ -67,24 +63,35 @@ type State
 type Msg
     = PhoenixMsg Phoenix.Msg
     | LobbyMsg Lobby.Msg
+    | RegistrationMsg Registration.Msg
     | RoomMsg Room.Msg
-    | GotBackgroundColorSelection Color
-    | GotForegroundColorSelection Color
-    | GotUsernameChange String
-    | GotJoinLobby
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotUsernameChange name ->
-            ( { model | username = name }, Cmd.none )
+        RegistrationMsg subMsg ->
+            let
+                ( registration, registrationCmd, outMsg ) =
+                    Registration.update subMsg model.registration
+            in
+            case outMsg of
+                Registration.JoinLobby phoenix user ->
+                    ( { model
+                        | lobby = Lobby.enter user phoenix
+                        , phoenix = phoenix
+                        , state = InLobby user
+                      }
+                    , Cmd.map RegistrationMsg registrationCmd
+                    )
 
-        GotBackgroundColorSelection color ->
-            ( { model | selectedBackgroundColor = Just color }, Cmd.none )
-
-        GotForegroundColorSelection color ->
-            ( { model | selectedForegroundColor = Just color }, Cmd.none )
+                Registration.Empty ->
+                    ( { model
+                        | registration = registration
+                        , phoenix = Registration.toPhoenix registration
+                      }
+                    , Cmd.map RegistrationMsg registrationCmd
+                    )
 
         LobbyMsg subMsg ->
             let
@@ -120,22 +127,6 @@ update msg model =
                     , Cmd.map RoomMsg roomCmd
                     )
 
-        GotJoinLobby ->
-            case validateUserInput model.username model.selectedBackgroundColor model.selectedForegroundColor of
-                Success fields ->
-                    updatePhoenixWith PhoenixMsg model <|
-                        Phoenix.join "example:lobby" <|
-                            Phoenix.setJoinConfig
-                                { joinConfig
-                                    | topic = "example:lobby"
-                                    , events = [ "room_list" ]
-                                    , payload = encodeFields fields
-                                }
-                                model.phoenix
-
-                _ ->
-                    ( model, Cmd.none )
-
         PhoenixMsg subMsg ->
             let
                 ( newModel, cmd, phoenixMsg ) =
@@ -154,10 +145,6 @@ update msg model =
                             )
 
                         Err error ->
-                            let
-                                _ =
-                                    Debug.log "" (JD.errorToString error)
-                            in
                             ( newModel, cmd )
 
                 ChannelResponse (JoinOk _ payload) ->
@@ -187,117 +174,6 @@ update msg model =
 
                 _ ->
                     ( newModel, cmd )
-
-
-
-{- Validation -}
-
-
-validateUserInput : String -> Maybe Color -> Maybe Color -> TwoTrack
-validateUserInput username maybeBackgroundColor maybeForegroundColor =
-    Success []
-        |> bind validateUsername username
-        |> bind validateBackgroundColor maybeBackgroundColor
-        |> bind validateForegroundColor maybeForegroundColor
-
-
-bind : (a -> TwoTrack) -> a -> TwoTrack -> TwoTrack
-bind switch input twoTrack =
-    case ( switch input, twoTrack ) of
-        ( Success a, Success b ) ->
-            Success (List.append a b)
-
-        ( Failure e, Failure f ) ->
-            Failure (List.append e f)
-
-        ( Failure e, _ ) ->
-            Failure e
-
-        ( _, Failure f ) ->
-            Failure f
-
-
-type TwoTrack
-    = Success (List Field)
-    | Failure (List ErrorMessage)
-
-
-type Field
-    = Username String
-    | BackgroundColor Color
-    | ForegroundColor Color
-
-
-type ErrorMessage
-    = UsernameCannotBeBlank
-    | BackgroundColorNotSelected
-    | ForegroundColorNotSelected
-
-
-validateUsername : String -> TwoTrack
-validateUsername username =
-    if username == "" then
-        Failure [ UsernameCannotBeBlank ]
-
-    else
-        Success [ Username username ]
-
-
-validateBackgroundColor : Maybe Color -> TwoTrack
-validateBackgroundColor maybeColor =
-    case maybeColor of
-        Nothing ->
-            Failure [ BackgroundColorNotSelected ]
-
-        Just color ->
-            Success [ BackgroundColor color ]
-
-
-validateForegroundColor : Maybe Color -> TwoTrack
-validateForegroundColor maybeColor =
-    case maybeColor of
-        Nothing ->
-            Failure [ ForegroundColorNotSelected ]
-
-        Just color ->
-            Success [ ForegroundColor color ]
-
-
-
-{- Encoder -}
-
-
-encodeFields : List Field -> Value
-encodeFields fields =
-    JE.object <|
-        List.map encodeField fields
-
-
-encodeField : Field -> ( String, Value )
-encodeField field =
-    case field of
-        Username username ->
-            ( "username", JE.string username )
-
-        BackgroundColor color ->
-            ( "background_color", encodeColor color )
-
-        ForegroundColor color ->
-            ( "foreground_color", encodeColor color )
-
-
-encodeColor : Color -> Value
-encodeColor color =
-    let
-        rgba =
-            El.toRgb color
-    in
-    JE.object
-        [ ( "red", JE.float rgba.red )
-        , ( "green", JE.float rgba.green )
-        , ( "blue", JE.float rgba.blue )
-        , ( "alpha", JE.float rgba.alpha )
-        ]
 
 
 
@@ -351,15 +227,8 @@ view : Device -> Model -> Element Msg
 view device model =
     case model.state of
         Unregistered ->
-            LobbyRegistration.init
-                |> LobbyRegistration.username model.username
-                |> LobbyRegistration.selectedBackgroundColor model.selectedBackgroundColor
-                |> LobbyRegistration.selectedForegroundColor model.selectedForegroundColor
-                |> LobbyRegistration.onChange GotUsernameChange
-                |> LobbyRegistration.onBackgroundColorChange GotBackgroundColorSelection
-                |> LobbyRegistration.onForegroundColorChange GotForegroundColorSelection
-                |> LobbyRegistration.onSubmit GotJoinLobby
-                |> LobbyRegistration.view device
+            Registration.view device model.registration
+                |> El.map RegistrationMsg
 
         InLobby _ ->
             Lobby.view device model.lobby
