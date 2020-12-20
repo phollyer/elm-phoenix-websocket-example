@@ -3,9 +3,10 @@ module Example.MultiRoomChat.Registration exposing (..)
 import Element as El exposing (Color, Device, Element)
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
-import Types exposing (User, decodeUser)
+import Types exposing (ErrorMessage(..), User, decodeUser)
+import UI.FontColor exposing (error)
 import Utils exposing (updatePhoenixWith)
-import View.MultiRoomChat.Lobby.Registration as Registration
+import View.MultiRoomChat.Lobby.Registration as Registration exposing (backgroundColorError)
 
 
 
@@ -16,8 +17,11 @@ type Model
     = Model
         { phoenix : Phoenix.Model
         , username : String
+        , usernameError : Maybe ErrorMessage
         , backgroundColor : Maybe Color
+        , backgroundColorError : Maybe ErrorMessage
         , foregroundColor : Maybe Color
+        , foregroundColorError : Maybe ErrorMessage
         }
 
 
@@ -26,8 +30,11 @@ init phoenix =
     Model
         { phoenix = phoenix
         , username = ""
+        , usernameError = Nothing
         , backgroundColor = Nothing
+        , backgroundColorError = Nothing
         , foregroundColor = Nothing
+        , foregroundColorError = Nothing
         }
 
 
@@ -57,13 +64,39 @@ update : Msg -> Model -> ( Model, Cmd Msg, OutMsg )
 update msg (Model model) =
     case msg of
         GotUsernameChange name ->
-            ( Model { model | username = name }, Cmd.none, Empty )
+            ( Model
+                { model
+                    | username = name
+                    , usernameError =
+                        if String.trim name == "" then
+                            model.usernameError
+
+                        else
+                            Nothing
+                }
+            , Cmd.none
+            , Empty
+            )
 
         GotBackgroundColorSelection color ->
-            ( Model { model | backgroundColor = Just color }, Cmd.none, Empty )
+            ( Model
+                { model
+                    | backgroundColor = Just color
+                    , backgroundColorError = Nothing
+                }
+            , Cmd.none
+            , Empty
+            )
 
         GotForegroundColorSelection color ->
-            ( Model { model | foregroundColor = Just color }, Cmd.none, Empty )
+            ( Model
+                { model
+                    | foregroundColor = Just color
+                    , foregroundColorError = Nothing
+                }
+            , Cmd.none
+            , Empty
+            )
 
         GotJoinLobby ->
             case validateUserInput (Model model) of
@@ -78,8 +111,8 @@ update msg (Model model) =
                                 }
                                 model.phoenix
 
-                _ ->
-                    ( Model model, Cmd.none, Empty )
+                Failure errors ->
+                    ( handleErrors errors (Model model), Cmd.none, Empty )
 
         PhoenixMsg subMsg ->
             let
@@ -103,6 +136,30 @@ update msg (Model model) =
 updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg, OutMsg )
 updatePhoenixWith toMsg (Model model) ( phoenix, phoenixCmd ) =
     ( Model { model | phoenix = phoenix }, Cmd.map toMsg phoenixCmd, Empty )
+
+
+handleErrors : List ErrorMessage -> Model -> Model
+handleErrors errors (Model model) =
+    List.foldl
+        (\error (Model model_) ->
+            case error of
+                UsernameCannotBeBlank ->
+                    Model { model_ | usernameError = Just UsernameCannotBeBlank }
+
+                BackgroundColorNotSelected ->
+                    Model { model_ | backgroundColorError = Just BackgroundColorNotSelected }
+
+                ForegroundColorNotSelected ->
+                    Model { model_ | foregroundColorError = Just ForegroundColorNotSelected }
+        )
+        (Model
+            { model
+                | usernameError = Nothing
+                , backgroundColorError = Nothing
+                , foregroundColorError = Nothing
+            }
+        )
+        errors
 
 
 
@@ -130,9 +187,6 @@ validateUserInput (Model { username, backgroundColor, foregroundColor }) =
 bind : (a -> TwoTrack) -> a -> TwoTrack -> TwoTrack
 bind switch input twoTrack =
     case ( switch input, twoTrack ) of
-        ( Success a, Success b ) ->
-            Success (List.append a b)
-
         ( Failure e, Failure f ) ->
             Failure (List.append e f)
 
@@ -141,6 +195,9 @@ bind switch input twoTrack =
 
         ( _, Failure f ) ->
             Failure f
+
+        ( Success a, Success b ) ->
+            Success (List.append a b)
 
 
 type TwoTrack
@@ -154,15 +211,9 @@ type Field
     | ForegroundColor Color
 
 
-type ErrorMessage
-    = UsernameCannotBeBlank
-    | BackgroundColorNotSelected
-    | ForegroundColorNotSelected
-
-
 validateUsername : String -> TwoTrack
 validateUsername username =
-    if username == "" then
+    if String.trim username == "" then
         Failure [ UsernameCannotBeBlank ]
 
     else
@@ -244,11 +295,13 @@ view : Device -> Model -> Element Msg
 view device (Model model) =
     Registration.init
         |> Registration.username model.username
-        |> Registration.selectedBackgroundColor model.backgroundColor
-        |> Registration.selectedForegroundColor model.foregroundColor
+        |> Registration.usernameError model.usernameError
+        |> Registration.backgroundColor model.backgroundColor
+        |> Registration.backgroundColorError model.backgroundColorError
+        |> Registration.foregroundColor model.foregroundColor
+        |> Registration.foregroundColorError model.foregroundColorError
         |> Registration.onChange GotUsernameChange
         |> Registration.onBackgroundColorChange GotBackgroundColorSelection
         |> Registration.onForegroundColorChange GotForegroundColorSelection
         |> Registration.onSubmit GotJoinLobby
-        |> Registration.isSubmittable (isValid (Model model))
         |> Registration.view device

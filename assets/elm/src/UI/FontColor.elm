@@ -3,6 +3,7 @@ module UI.FontColor exposing
     , buttonDisabled
     , closedRoom
     , default
+    , error
     , function
     , heading
     , label
@@ -57,6 +58,15 @@ vsn =
 panelHeader : Attribute msg
 panelHeader =
     Font.color Color.aliceblue
+
+
+
+{- Error -}
+
+
+error : Attribute msg
+error =
+    Font.color Color.pink
 
 
 

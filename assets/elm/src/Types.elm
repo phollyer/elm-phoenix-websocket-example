@@ -1,5 +1,6 @@
 module Types exposing
-    ( Message
+    ( ErrorMessage(..)
+    , Message
     , Meta
     , Presence
     , Room
@@ -10,6 +11,7 @@ module Types exposing
     , decodeRoom
     , decodeRooms
     , decodeUser
+    , errorToString
     , initRoom
     , initUser
     , messageDecoder
@@ -20,6 +22,33 @@ import Colors.Alpha as Color
 import Element as El exposing (Color)
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
+
+
+
+{- Errors -}
+
+
+type ErrorMessage
+    = UsernameCannotBeBlank
+    | BackgroundColorNotSelected
+    | ForegroundColorNotSelected
+
+
+errorToString : ErrorMessage -> String
+errorToString error =
+    case error of
+        BackgroundColorNotSelected ->
+            "A Background Color must be seleceted"
+
+        ForegroundColorNotSelected ->
+            "A Foreground Color must be selected"
+
+        UsernameCannotBeBlank ->
+            "Username can not be empty"
+
+
+
+{- Room -}
 
 
 type alias Room =
