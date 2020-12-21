@@ -17,7 +17,8 @@ import Element.Font as Font
 import Json.Decode.Extra exposing (combine)
 import List.Extra as List
 import Session exposing (device)
-import Types exposing (Room, User, initUser)
+import Type.Room exposing (Room)
+import Type.User as User exposing (User)
 import UI.BackgroundColor as BackgroundColor
 import UI.BorderColor as BorderColor
 import UI.FontColor as FontColor
@@ -44,7 +45,7 @@ init : Config msg
 init =
     Config
         { rooms = []
-        , user = initUser
+        , user = User.init
         , onClick = Nothing
         , onDelete = Nothing
         , onMouseEnter = Nothing

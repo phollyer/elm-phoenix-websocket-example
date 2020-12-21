@@ -15,9 +15,13 @@ import Element exposing (Device, Element)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
-import Types exposing (ErrorMessage(..), Presence, Room, RoomInvitation, User, decodeMetas, decodeRoomInvitation, decodeRooms, decodeUser, encodeUser, initRoom, initUser, toPresences)
+import Type.ErrorMessage exposing (ErrorMessage(..))
+import Type.Presence as Presence exposing (Presence)
+import Type.Room as Room exposing (Room)
+import Type.RoomInvite as RoomInvite exposing (RoomInvite)
+import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
-import View.MultiRoomChat.Lobby as Lobby exposing (inviteError, roomInvitations)
+import View.MultiRoomChat.Lobby as Lobby
 
 
 
@@ -31,7 +35,7 @@ type Model
         , presences : List Presence
         , rooms : List Room
         , showRoomMembers : Maybe Room
-        , roomInvites : List RoomInvitation
+        , roomInvites : List RoomInvite
         , inviteError : Maybe ErrorMessage
         }
 
@@ -40,7 +44,7 @@ init : Phoenix.Model -> Model
 init phoenix =
     Model
         { phoenix = phoenix
-        , user = initUser
+        , user = User.init
         , presences = []
         , rooms = []
         , showRoomMembers = Nothing
@@ -82,9 +86,9 @@ type Msg
     | GotEnterRoom Room
     | GotDeleteRoom Room
     | GotShowRoomMembers (Maybe Room)
-    | GotAcceptRoomInvite RoomInvitation
-    | GotDeclineRoomInvite RoomInvitation
-    | GotInviteErrorOk RoomInvitation
+    | GotAcceptRoomInvite RoomInvite
+    | GotDeclineRoomInvite RoomInvite
+    | GotInviteErrorOk RoomInvite
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -126,7 +130,7 @@ update msg (Model model) =
                     , event = "invite_accepted"
                     , payload =
                         JE.object
-                            [ ( "from", encodeUser invite.from )
+                            [ ( "from", User.encode invite.from )
                             , ( "room_id", JE.string invite.room_id )
                             ]
                 }
@@ -141,7 +145,7 @@ update msg (Model model) =
                     , event = "invite_declined"
                     , payload =
                         JE.object
-                            [ ( "from", encodeUser invite.from )
+                            [ ( "from", User.encode invite.from )
                             , ( "room_id", JE.string invite.room_id )
                             ]
                 }
@@ -160,7 +164,7 @@ update msg (Model model) =
             in
             case phoenixMsg of
                 ChannelEvent "example:lobby" "room_list" payload ->
-                    case decodeRooms payload of
+                    case Room.decodeList payload of
                         Ok rooms ->
                             ( Model
                                 { newModel
@@ -170,7 +174,7 @@ update msg (Model model) =
                                             (\room ->
                                                 case List.filter (\r -> r.id == room.id) rooms of
                                                     [] ->
-                                                        initRoom
+                                                        Room.init
 
                                                     first :: _ ->
                                                         first
@@ -184,7 +188,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelEvent "example:lobby" "room_invite" payload ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             if invite.to_id == newModel.user.id then
                                 ( Model
@@ -199,7 +203,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelEvent "example:lobby" "revoke_invite" payload ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             if invite.to_id == newModel.user.id then
                                 ( Model
@@ -214,7 +218,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushOk "example:lobby" "invite_accepted" _ payload) ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             enterRoom invite.room_id (Model { model | roomInvites = [] })
 
@@ -222,7 +226,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushError "example:lobby" "invite_accepted" _ payload) ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             ( Model
                                 { newModel
@@ -236,7 +240,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushOk "example:lobby" "invite_declined" _ payload) ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             ( Model
                                 { newModel
@@ -249,7 +253,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
-                    ( Model { newModel | presences = toPresences state }, cmd )
+                    ( Model { newModel | presences = Presence.decodeList state }, cmd )
 
                 _ ->
                     ( Model newModel, cmd )
@@ -310,6 +314,6 @@ view device (Model { presences, rooms, user, showRoomMembers, roomInvites, invit
         |> Lobby.showRoomMembers showRoomMembers
         |> Lobby.members presences
         |> Lobby.rooms rooms
-        |> Lobby.roomInvitations roomInvites
+        |> Lobby.roomInvites roomInvites
         |> Lobby.inviteError inviteError
         |> Lobby.view device

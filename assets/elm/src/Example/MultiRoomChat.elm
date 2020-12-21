@@ -14,12 +14,13 @@ import Configs exposing (joinConfig)
 import Element as El exposing (Color, Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
 import Example.MultiRoomChat.Registration as Registration
-import Example.MultiRoomChat.Room as Room exposing (OutMsg(..))
+import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
 import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
-import Types exposing (Room, User, decodeRoom, decodeUser)
+import Type.Room as Room exposing (Room)
+import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
 
 
@@ -33,7 +34,7 @@ init phoenix =
     , state = Unregistered
     , registration = Registration.init phoenix
     , lobby = Lobby.init phoenix
-    , room = Room.init phoenix
+    , room = ChatRoom.init phoenix
     }
 
 
@@ -46,7 +47,7 @@ type alias Model =
     , state : State
     , registration : Registration.Model
     , lobby : Lobby.Model
-    , room : Room.Model
+    , room : ChatRoom.Model
     }
 
 
@@ -64,7 +65,7 @@ type Msg
     = PhoenixMsg Phoenix.Msg
     | LobbyMsg Lobby.Msg
     | RegistrationMsg Registration.Msg
-    | RoomMsg Room.Msg
+    | RoomMsg ChatRoom.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -108,13 +109,13 @@ update msg model =
         RoomMsg subMsg ->
             let
                 ( room, roomCmd, roomMsg ) =
-                    Room.update subMsg model.room
+                    ChatRoom.update subMsg model.room
             in
             case roomMsg of
                 Empty ->
                     ( { model
                         | room = room
-                        , phoenix = Room.toPhoenix room
+                        , phoenix = ChatRoom.toPhoenix room
                       }
                     , Cmd.map RoomMsg roomCmd
                     )
@@ -122,7 +123,7 @@ update msg model =
                 LeaveRoom ->
                     ( { model
                         | room = room
-                        , state = InLobby (Room.owner room)
+                        , state = InLobby (ChatRoom.owner room)
                       }
                     , Cmd.map RoomMsg roomCmd
                     )
@@ -135,7 +136,7 @@ update msg model =
             in
             case phoenixMsg of
                 ChannelResponse (JoinOk "example:lobby" payload) ->
-                    case decodeUser payload of
+                    case User.decode payload of
                         Ok user ->
                             ( { newModel
                                 | lobby = Lobby.enter user newModel.phoenix
@@ -148,13 +149,13 @@ update msg model =
                             ( newModel, cmd )
 
                 ChannelResponse (JoinOk _ payload) ->
-                    case decodeRoom payload of
+                    case Room.decode payload of
                         Ok room ->
                             case model.state of
                                 InLobby user ->
                                     let
                                         ( newRoom, roomCmd ) =
-                                            Room.enter newModel.phoenix (Lobby.occupants model.lobby) user room
+                                            ChatRoom.enter newModel.phoenix (Lobby.occupants model.lobby) user room
                                     in
                                     ( { newModel
                                         | state = InRoom user room
@@ -211,7 +212,7 @@ subscriptions model =
                 Lobby.subscriptions LobbyMsg model.lobby
 
             InRoom _ _ ->
-                Room.subscriptions model.room
+                ChatRoom.subscriptions model.room
                     |> Sub.map RoomMsg
 
             _ ->
@@ -235,5 +236,5 @@ view device model =
                 |> El.map LobbyMsg
 
         InRoom _ _ ->
-            Room.view device model.room
+            ChatRoom.view device model.room
                 |> El.map RoomMsg

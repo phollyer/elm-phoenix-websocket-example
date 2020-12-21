@@ -9,7 +9,7 @@ module View.MultiRoomChat.Lobby exposing
     , onEnterRoom
     , onInviteErrorOk
     , onMouseEnterRoom
-    , roomInvitations
+    , roomInvites
     , rooms
     , showRoomMembers
     , user
@@ -21,14 +21,18 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (ErrorMessage(..), Presence, Room, RoomInvitation, User, errorToString, initUser)
+import Type.ErrorMessage exposing (ErrorMessage(..))
+import Type.Presence exposing (Presence)
+import Type.Room exposing (Room)
+import Type.RoomInvite exposing (RoomInvite)
+import Type.User as User exposing (User)
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import View.Button as Button
 import View.MultiRoomChat.Lobby.Occupants as Occupants
 import View.MultiRoomChat.Lobby.Rooms as Rooms
-import View.MultiRoomChat.User as User
+import View.MultiRoomChat.User as UserView
 
 
 
@@ -43,12 +47,12 @@ type Config msg
         , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
         , onMouseEnterRoom : Maybe (Maybe Room -> msg)
-        , onAcceptRoomInvite : Maybe (RoomInvitation -> msg)
-        , onDeclineRoomInvite : Maybe (RoomInvitation -> msg)
-        , onInviteErrorOk : Maybe (RoomInvitation -> msg)
+        , onAcceptRoomInvite : Maybe (RoomInvite -> msg)
+        , onDeclineRoomInvite : Maybe (RoomInvite -> msg)
+        , onInviteErrorOk : Maybe (RoomInvite -> msg)
         , rooms : List Room
         , showRoomMembers : Maybe Room
-        , roomInvitations : List RoomInvitation
+        , roomInvites : List RoomInvite
         , inviteError : Maybe ErrorMessage
         }
 
@@ -56,7 +60,7 @@ type Config msg
 init : Config msg
 init =
     Config
-        { user = initUser
+        { user = User.init
         , members = []
         , onCreateRoom = Nothing
         , onDeleteRoom = Nothing
@@ -67,7 +71,7 @@ init =
         , onInviteErrorOk = Nothing
         , rooms = []
         , showRoomMembers = Nothing
-        , roomInvitations = []
+        , roomInvites = []
         , inviteError = Nothing
         }
 
@@ -97,17 +101,17 @@ onMouseEnterRoom msg (Config config) =
     Config { config | onMouseEnterRoom = Just msg }
 
 
-onAcceptRoomInvite : (RoomInvitation -> msg) -> Config msg -> Config msg
+onAcceptRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
 onAcceptRoomInvite msg (Config config) =
     Config { config | onAcceptRoomInvite = Just msg }
 
 
-onDeclineRoomInvite : (RoomInvitation -> msg) -> Config msg -> Config msg
+onDeclineRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
 onDeclineRoomInvite msg (Config config) =
     Config { config | onDeclineRoomInvite = Just msg }
 
 
-onInviteErrorOk : (RoomInvitation -> msg) -> Config msg -> Config msg
+onInviteErrorOk : (RoomInvite -> msg) -> Config msg -> Config msg
 onInviteErrorOk msg (Config config) =
     Config { config | onInviteErrorOk = Just msg }
 
@@ -117,9 +121,9 @@ rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
 
 
-roomInvitations : List RoomInvitation -> Config msg -> Config msg
-roomInvitations invites (Config config) =
-    Config { config | roomInvitations = invites }
+roomInvites : List RoomInvite -> Config msg -> Config msg
+roomInvites invites (Config config) =
+    Config { config | roomInvites = invites }
 
 
 inviteError : Maybe ErrorMessage -> Config msg -> Config msg
@@ -147,7 +151,7 @@ view device (Config config) =
         [ El.width El.fill
         , El.spacing 15
         , El.inFront <|
-            roomInvitation device (Config config)
+            roomInvite device (Config config)
         , El.inFront <|
             inviteErrorView device config.inviteError config.onInviteErrorOk
         ]
@@ -182,9 +186,9 @@ container { class, orientation } =
             El.wrappedRow
 
 
-roomInvitation : Device -> Config msg -> Element msg
-roomInvitation device (Config config) =
-    case ( config.roomInvitations, config.inviteError ) of
+roomInvite : Device -> Config msg -> Element msg
+roomInvite device (Config config) =
+    case ( config.roomInvites, config.inviteError ) of
         ( invite :: _, Nothing ) ->
             case ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) of
                 ( Just acceptMsg, Just declineMsg ) ->
@@ -239,7 +243,7 @@ roomInvitation device (Config config) =
             El.none
 
 
-inviteErrorView : Device -> Maybe ErrorMessage -> Maybe (RoomInvitation -> msg) -> Element msg
+inviteErrorView : Device -> Maybe ErrorMessage -> Maybe (RoomInvite -> msg) -> Element msg
 inviteErrorView device maybeError maybeMsg =
     case ( maybeError, maybeMsg ) of
         ( Just (RoomClosed invite), Just toMsg ) ->
@@ -290,10 +294,10 @@ userView device { username, id } =
         , El.spacing 20
         , El.width El.fill
         ]
-        [ User.init
-            |> User.username username
-            |> User.userId id
-            |> User.view device
+        [ UserView.init
+            |> UserView.username username
+            |> UserView.userId id
+            |> UserView.view device
         , El.column
             [ El.spacing 10
             , El.width El.fill

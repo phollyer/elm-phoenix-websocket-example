@@ -9,7 +9,7 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font exposing (Font)
-import Types exposing (User, initUser)
+import Type.User as User exposing (User)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 
@@ -29,7 +29,7 @@ init : Config
 init =
     Config
         { all = []
-        , currentUser = initUser
+        , currentUser = User.init
         }
 
 

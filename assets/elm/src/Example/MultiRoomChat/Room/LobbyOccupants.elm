@@ -9,7 +9,10 @@ import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..), pushConfig)
 import Tuple3
-import Types exposing (Presence, Room, RoomInvitation, User, decodeRoomInvitation, decodeUser, encodeRoom, encodeUser, initUser, toPresences)
+import Type.Presence as Presence exposing (Presence)
+import Type.Room exposing (Room)
+import Type.RoomInvite as RoomInvite exposing (RoomInvite)
+import Type.User exposing (User)
 import UI.Padding as Padding
 import Utils exposing (updatePhoenixWith)
 import View.Panel as Panel
@@ -25,7 +28,7 @@ type Model
         , occupants : List Presence
         , user : User
         , room : Room
-        , sentInvites : List RoomInvitation
+        , sentInvites : List RoomInvite
         }
 
 
@@ -75,7 +78,7 @@ update msg (Model model) =
             in
             case phoenixMsg of
                 ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             if List.member invite newModel.sentInvites then
                                 Phoenix.push
@@ -99,7 +102,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushError "example:lobby" "room_invite" _ payload) ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
 
@@ -107,7 +110,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelEvent "example:lobby" "invite_declined" payload ->
-                    case decodeRoomInvitation payload of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             if invite.from.id == newModel.user.id then
                                 ( Model
@@ -122,7 +125,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 PresenceEvent (State "example:lobby" presences) ->
-                    ( Model { newModel | occupants = toPresences presences }
+                    ( Model { newModel | occupants = Presence.decodeList presences }
                     , cmd
                     )
 
@@ -160,7 +163,7 @@ view device (Model model) =
         ]
 
 
-occupantsView : Device -> List RoomInvitation -> User -> List Presence -> Element Msg
+occupantsView : Device -> List RoomInvite -> User -> List Presence -> Element Msg
 occupantsView device sentInvites user occupants =
     El.column
         [ padding device
@@ -172,7 +175,7 @@ occupantsView device sentInvites user occupants =
         )
 
 
-occupantView : Device -> List RoomInvitation -> Presence -> Element Msg
+occupantView : Device -> List RoomInvite -> Presence -> Element Msg
 occupantView device sentInvites { user } =
     El.el
         [ padding device
@@ -206,7 +209,7 @@ occupantView device sentInvites { user } =
         )
 
 
-isInvited : User -> List RoomInvitation -> Bool
+isInvited : User -> List RoomInvite -> Bool
 isInvited user sentInvites =
     case List.filter (\invite -> invite.to_id == user.id) sentInvites of
         [] ->

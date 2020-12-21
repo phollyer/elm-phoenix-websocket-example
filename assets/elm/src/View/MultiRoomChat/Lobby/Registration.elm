@@ -20,7 +20,7 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import List.Extra exposing (greedyGroupsOf)
-import Types exposing (ErrorMessage, errorToString)
+import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
@@ -173,7 +173,7 @@ errorView device maybeError =
                 [ El.width El.fill
                 , FontColor.error
                 ]
-                (El.text (errorToString error))
+                (El.text (ErrorMessage.toString error))
 
 
 inputField : Device -> Config msg -> Element msg

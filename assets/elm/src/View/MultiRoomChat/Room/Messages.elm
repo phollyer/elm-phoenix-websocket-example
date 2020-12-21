@@ -10,7 +10,8 @@ import Element as El exposing (Attribute, Color, Device, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (Message, User, initUser)
+import Type.ChatMessage exposing (ChatMessage)
+import Type.User as User exposing (User)
 import UI.FontColor as FontColor
 
 
@@ -21,14 +22,14 @@ import UI.FontColor as FontColor
 type Config
     = Config
         { user : User
-        , messages : List Message
+        , messages : List ChatMessage
         }
 
 
 init : Config
 init =
     Config
-        { user = initUser
+        { user = User.init
         , messages = []
         }
 
@@ -38,7 +39,7 @@ user user_ (Config config) =
     Config { config | user = user_ }
 
 
-messages : List Message -> Config -> Config
+messages : List ChatMessage -> Config -> Config
 messages list (Config config) =
     Config { config | messages = list }
 
@@ -60,7 +61,7 @@ view _ (Config config) =
         List.map (toMessage config.user) config.messages
 
 
-toMessage : User -> Message -> Element msg
+toMessage : User -> ChatMessage -> Element msg
 toMessage currentUser message =
     if currentUser.id == message.owner.id then
         userMessage message
@@ -69,7 +70,7 @@ toMessage currentUser message =
         othersMessage message
 
 
-userMessage : Message -> Element msg
+userMessage : ChatMessage -> Element msg
 userMessage { owner, text } =
     row
         [ emptySpace
@@ -84,7 +85,7 @@ userMessage { owner, text } =
         ]
 
 
-othersMessage : Message -> Element msg
+othersMessage : ChatMessage -> Element msg
 othersMessage { owner, text } =
     row
         [ column

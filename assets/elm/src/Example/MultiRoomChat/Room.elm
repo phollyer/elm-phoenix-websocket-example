@@ -20,7 +20,10 @@ import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Task
-import Types exposing (Message, Presence, Room, User, decodeMessages, decodeRoom, initRoom, initUser)
+import Type.ChatMessage as ChatMessage exposing (ChatMessage)
+import Type.Presence exposing (Presence)
+import Type.Room as Room exposing (Room)
+import Type.User as User exposing (User)
 import UI.Padding as Padding
 import View.MultiRoomChat.Room.Chat as Chat
 
@@ -34,7 +37,7 @@ type Model
         { phoenix : Phoenix.Model
         , layoutHeight : Float
         , message : String
-        , messages : List Message
+        , messages : List ChatMessage
         , occupantsTyping : List String
         , room : Room
         , user : User
@@ -50,9 +53,9 @@ init phoenix =
         , message = ""
         , messages = []
         , occupantsTyping = []
-        , room = initRoom
-        , user = initUser
-        , lobbyOccupants = LobbyOccupants.init phoenix initUser initRoom []
+        , room = Room.init
+        , user = User.init
+        , lobbyOccupants = LobbyOccupants.init phoenix User.init Room.init []
         }
 
 
@@ -201,7 +204,7 @@ update msg (Model model) =
                             ( Model newModel, cmd, Empty )
 
                 ChannelEvent _ "message_list" payload ->
-                    case decodeMessages payload of
+                    case ChatMessage.decodeList payload of
                         Ok messages_ ->
                             ( Model { newModel | messages = messages_ }
                             , Cmd.batch
@@ -215,7 +218,7 @@ update msg (Model model) =
                             ( Model newModel, cmd, Empty )
 
                 ChannelEvent _ "room_closed" payload ->
-                    case decodeRoom payload of
+                    case Room.decode payload of
                         Ok room ->
                             if room.id == newModel.room.id then
                                 ( Model newModel, cmd, LeaveRoom )
@@ -227,7 +230,7 @@ update msg (Model model) =
                             ( Model newModel, cmd, Empty )
 
                 ChannelEvent _ "room_deleted" payload ->
-                    case decodeRoom payload of
+                    case Room.decode payload of
                         Ok room ->
                             if room.id == newModel.room.id then
                                 ( Model newModel, cmd, LeaveRoom )

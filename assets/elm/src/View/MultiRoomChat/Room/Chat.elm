@@ -17,7 +17,9 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
-import Types exposing (Message, Room, User, initRoom, initUser)
+import Type.ChatMessage exposing (ChatMessage)
+import Type.Room as Room exposing (Room)
+import Type.User as User exposing (User)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.Padding as Padding
@@ -35,7 +37,7 @@ type Config msg
         , room : Room
         , userText : String
         , membersTyping : List String
-        , messages : List Message
+        , messages : List ChatMessage
         , messagesContainerMaxHeight : Int
         , onChange : Maybe (String -> msg)
         , onFocus : Maybe msg
@@ -47,8 +49,8 @@ type Config msg
 init : Config msg
 init =
     Config
-        { user = initUser
-        , room = initRoom
+        { user = User.init
+        , room = Room.init
         , userText = ""
         , membersTyping = []
         , messages = []
@@ -80,7 +82,7 @@ membersTyping members (Config config) =
     Config { config | membersTyping = members }
 
 
-messages : List Message -> Config msg -> Config msg
+messages : List ChatMessage -> Config msg -> Config msg
 messages messages_ (Config config) =
     Config { config | messages = messages_ }
 

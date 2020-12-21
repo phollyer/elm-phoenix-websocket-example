@@ -3,7 +3,10 @@ module Example.MultiRoomChat.Registration exposing (..)
 import Element as El exposing (Color, Device, Element)
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
-import Types exposing (ErrorMessage(..), TwoTrack(..), User, bind, decodeUser, encodeColor)
+import Type.Color as Color
+import Type.ErrorMessage exposing (ErrorMessage(..))
+import Type.TwoTrack exposing (TwoTrack(..), bind)
+import Type.User as User exposing (User)
 import UI.FontColor exposing (error)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby.Registration as Registration exposing (backgroundColorError)
@@ -126,7 +129,7 @@ update msg (Model model) =
             in
             case phoenixMsg of
                 ChannelResponse (JoinOk "example:lobby" payload) ->
-                    case decodeUser payload of
+                    case User.decode payload of
                         Ok user ->
                             ( Model newModel, cmd, JoinLobby newModel.phoenix user )
 
@@ -233,10 +236,10 @@ encodeField field =
             ( "username", JE.string username )
 
         BackgroundColor color ->
-            ( "background_color", encodeColor color )
+            ( "background_color", Color.encode color )
 
         ForegroundColor color ->
-            ( "foreground_color", encodeColor color )
+            ( "foreground_color", Color.encode color )
 
 
 

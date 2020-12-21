@@ -16,7 +16,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Types exposing (User)
+import Type.User exposing (User)
 import UI.Align as Align exposing (X(..), Y(..))
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
