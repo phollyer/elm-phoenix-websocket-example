@@ -80,10 +80,6 @@ update msg (Model model) =
                             ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
 
                         Err e ->
-                            let
-                                _ =
-                                    Debug.log "" (JD.errorToString e)
-                            in
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushError "example:lobby" "room_invite" _ payload) ->
