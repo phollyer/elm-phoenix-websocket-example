@@ -220,6 +220,19 @@ update msg (Model model) =
                         Err _ ->
                             ( Model newModel, cmd )
 
+                ChannelResponse (PushOk "example:lobby" "invite_declined" _ payload) ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            ( Model
+                                { newModel
+                                    | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites
+                                }
+                            , cmd
+                            )
+
+                        Err _ ->
+                            ( Model newModel, cmd )
+
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
                     ( Model { newModel | presences = toPresences state }, cmd )
 

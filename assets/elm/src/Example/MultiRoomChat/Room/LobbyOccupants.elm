@@ -99,7 +99,7 @@ update msg (Model model) =
                         Ok invite ->
                             if invite.from.id == newModel.user.id then
                                 ( Model
-                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ == invite) newModel.sentInvites }
+                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ /= invite) newModel.sentInvites }
                                 , cmd
                                 )
 
