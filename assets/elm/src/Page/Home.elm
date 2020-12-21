@@ -103,44 +103,62 @@ introduction =
 
 socketExamples : Device -> List (Element Msg)
 socketExamples device =
-    [ Panel.init
-        |> Panel.title "Control the Connection (3)"
-        |> Panel.description
-            [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
-            , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be denied." ]
-            ]
-        |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
-        |> Panel.view device
+    [ container
+        (Panel.init
+            |> Panel.title "Control the Connection (3)"
+            |> Panel.description
+                [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
+                , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be denied." ]
+                ]
+            |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
+            |> Panel.view device
+        )
     ]
 
 
 channelsExamples : Device -> List (Element Msg)
 channelsExamples device =
-    [ Panel.init
-        |> Panel.title "Joining and Leaving (4)"
-        |> Panel.description
-            [ [ El.text "Manually join and leave a Channel." ]
-            , [ El.text "Join with good and bad params, and multiple Channels at once." ]
-            ]
-        |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
-        |> Panel.view device
-    , Panel.init
-        |> Panel.title "Sending and Receiving (4)"
-        |> Panel.description
-            [ [ El.text "Send and receive events." ]
-            , [ El.text "Handle a Push that results in a timeout. Choose the retry strategy and see the countdown until the next attempt." ]
-            ]
-        |> Panel.onClick (Just (NavigateTo SendAndReceive))
-        |> Panel.view device
+    [ container
+        (Panel.init
+            |> Panel.title "Joining and Leaving (4)"
+            |> Panel.description
+                [ [ El.text "Manually join and leave a Channel." ]
+                , [ El.text "Join with good and bad params, and multiple Channels at once." ]
+                ]
+            |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
+            |> Panel.view device
+        )
+    , container
+        (Panel.init
+            |> Panel.title "Sending and Receiving (4)"
+            |> Panel.description
+                [ [ El.text "Send and receive events." ]
+                , [ El.text "Handle a Push that results in a timeout. Choose the retry strategy and see the countdown until the next attempt." ]
+                ]
+            |> Panel.onClick (Just (NavigateTo SendAndReceive))
+            |> Panel.view device
+        )
     ]
 
 
 presenceExamples : Device -> List (Element Msg)
 presenceExamples device =
-    [ Panel.init
-        |> Panel.title "Multi-Room Chat"
-        |> Panel.description
-            [ [ El.text "Create, delete and enter multiple rooms. Chat in each of them." ] ]
-        |> Panel.onClick (Just (NavigateTo ChatRooms))
-        |> Panel.view device
+    [ container
+        (Panel.init
+            |> Panel.title "Multi-Room Chat"
+            |> Panel.description
+                [ [ El.text "Create, delete and enter multiple rooms. Chat in each of them." ] ]
+            |> Panel.onClick (Just (NavigateTo ChatRooms))
+            |> Panel.view device
+        )
     ]
+
+
+container : Element Msg -> Element Msg
+container =
+    El.el
+        [ El.height <|
+            El.maximum 300 El.fill
+        , El.width <|
+            El.maximum 250 El.fill
+        ]

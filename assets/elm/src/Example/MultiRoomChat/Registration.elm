@@ -3,7 +3,7 @@ module Example.MultiRoomChat.Registration exposing (..)
 import Element as El exposing (Color, Device, Element)
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
-import Types exposing (ErrorMessage(..), TwoTrack(..), User, bind, decodeUser)
+import Types exposing (ErrorMessage(..), TwoTrack(..), User, bind, decodeUser, encodeColor)
 import UI.FontColor exposing (error)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby.Registration as Registration exposing (backgroundColorError)
@@ -106,7 +106,10 @@ update msg (Model model) =
                             Phoenix.setJoinConfig
                                 { joinConfig
                                     | topic = "example:lobby"
-                                    , events = [ "room_list" ]
+                                    , events =
+                                        [ "room_list"
+                                        , "room_invite"
+                                        ]
                                     , payload = encodeFields fields
                                 }
                                 model.phoenix
@@ -230,20 +233,6 @@ encodeField field =
 
         ForegroundColor color ->
             ( "foreground_color", encodeColor color )
-
-
-encodeColor : Color -> Value
-encodeColor color =
-    let
-        rgba =
-            El.toRgb color
-    in
-    JE.object
-        [ ( "red", JE.float rgba.red )
-        , ( "green", JE.float rgba.green )
-        , ( "blue", JE.float rgba.blue )
-        , ( "alpha", JE.float rgba.alpha )
-        ]
 
 
 

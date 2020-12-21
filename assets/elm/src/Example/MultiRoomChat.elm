@@ -154,7 +154,7 @@ update msg model =
                                 InLobby user ->
                                     let
                                         ( newRoom, roomCmd ) =
-                                            Room.enter user room newModel.phoenix
+                                            Room.enter newModel.phoenix (Lobby.occupants model.lobby) user room
                                     in
                                     ( { newModel
                                         | state = InRoom user room

@@ -1,4 +1,4 @@
-module View.MultiRoomChat.Room exposing
+module View.MultiRoomChat.Room.Chat exposing
     ( init
     , membersTyping
     , messages

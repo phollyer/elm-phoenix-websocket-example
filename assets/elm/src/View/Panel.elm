@@ -1,6 +1,7 @@
 module View.Panel exposing
     ( Config
     , description
+    , element
     , init
     , onClick
     , title
@@ -13,6 +14,7 @@ import Element.Events as Event
 import Element.Font as Font
 import UI.BackgroundColor as BackgroundColor
 import UI.BorderColor as BorderColor
+import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
@@ -28,6 +30,7 @@ type Config msg
     = Config
         { title : String
         , description : List (List (Element msg))
+        , element : Element msg
         , onClick : Maybe msg
         }
 
@@ -37,6 +40,7 @@ init =
     Config
         { title = ""
         , description = []
+        , element = El.none
         , onClick = Nothing
         }
 
@@ -49,6 +53,11 @@ title text (Config config) =
 description : List (List (Element msg)) -> Config msg -> Config msg
 description desc (Config config) =
     Config { config | description = desc }
+
+
+element : Element msg -> Config msg -> Config msg
+element el (Config config) =
+    Config { config | element = el }
 
 
 onClick : Maybe msg -> Config msg -> Config msg
@@ -71,7 +80,14 @@ view device (Config config) =
         panel device
             config.onClick
             [ header device config.title
-            , content device config.description
+            , El.column
+                [ BackgroundColor.panelContent
+                , El.height El.fill
+                , El.width El.fill
+                ]
+                [ descriptionView device config.description
+                , elementView config.element
+                ]
             ]
 
 
@@ -82,29 +98,34 @@ view device (Config config) =
 panel : Device -> Maybe msg -> List (Element msg) -> Element msg
 panel device maybeMsg =
     El.column
-        (panelAttrs device
+        (panelAttrs device maybeMsg
             |> andMaybeEventWith maybeMsg Event.onClick
         )
 
 
-panelAttrs : Device -> List (Attribute msg)
-panelAttrs device =
-    [ roundedBorder device
-    , BackgroundColor.panel
-    , Border.width 1
-    , BorderColor.panel
-    , El.centerX
-    , El.clip
-    , El.pointer
-    , El.mouseDown
-        [ Shadow.panel device ]
-    , El.mouseOver
-        [ Shadow.panel device ]
-    , El.height <|
-        El.maximum 300 El.fill
-    , El.width <|
-        El.maximum 250 El.fill
-    ]
+panelAttrs : Device -> Maybe msg -> List (Attribute msg)
+panelAttrs device maybeMsg =
+    List.append
+        (case maybeMsg of
+            Nothing ->
+                []
+
+            Just _ ->
+                [ El.pointer ]
+        )
+        [ roundedBorder device
+        , BackgroundColor.panel
+        , Border.width 1
+        , BorderColor.panel
+        , El.centerX
+        , El.clip
+        , El.mouseDown
+            [ Shadow.panel device ]
+        , El.mouseOver
+            [ Shadow.panel device ]
+        , El.height El.fill
+        , El.width El.fill
+        ]
 
 
 
@@ -128,16 +149,15 @@ header device text =
 
 
 
-{- Content -}
+{- Description -}
 
 
-content : Device -> List (List (Element msg)) -> Element msg
-content device paragraphs =
+descriptionView : Device -> List (List (Element msg)) -> Element msg
+descriptionView device paragraphs =
     El.column
         [ BackgroundColor.panelContent
         , El.padding 10
         , El.spacing 10
-        , El.height El.fill
         , El.width El.fill
         , Font.justify
         , FontFamily.default
@@ -151,6 +171,24 @@ toParagraph paragraph =
     El.paragraph
         [ El.width El.fill ]
         paragraph
+
+
+
+{- Element -}
+
+
+elementView : Element msg -> Element msg
+elementView el =
+    if el == El.none then
+        El.none
+
+    else
+        El.el
+            [ BorderWidth.top 1
+            , BorderColor.panel
+            , El.width El.fill
+            ]
+            el
 
 
 

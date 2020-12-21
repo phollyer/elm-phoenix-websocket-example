@@ -14,13 +14,15 @@ module Example.MultiRoomChat.Room exposing
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Configs exposing (pushConfig)
-import Element exposing (Device, Element)
+import Element as El exposing (Device, DeviceClass(..), Element)
+import Example.MultiRoomChat.Room.LobbyOccupants as LobbyOccupants
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Task
-import Types exposing (Message, Room, User, decodeMessages, decodeRoom, initRoom, initUser)
-import View.MultiRoomChat.Room as Room
+import Types exposing (Message, Presence, Room, User, decodeMessages, decodeRoom, initRoom, initUser)
+import UI.Padding as Padding
+import View.MultiRoomChat.Room.Chat as Chat
 
 
 
@@ -36,6 +38,7 @@ type Model
         , occupantsTyping : List String
         , room : Room
         , user : User
+        , lobbyOccupants : LobbyOccupants.Model
         }
 
 
@@ -49,11 +52,12 @@ init phoenix =
         , occupantsTyping = []
         , room = initRoom
         , user = initUser
+        , lobbyOccupants = LobbyOccupants.init phoenix initUser initRoom []
         }
 
 
-enter : User -> Room -> Phoenix.Model -> ( Model, Cmd Msg )
-enter user room phoenix =
+enter : Phoenix.Model -> List Presence -> User -> Room -> ( Model, Cmd Msg )
+enter phoenix occupants user room =
     ( Model
         { phoenix = phoenix
         , layoutHeight = 0
@@ -62,6 +66,7 @@ enter user room phoenix =
         , occupantsTyping = []
         , room = room
         , user = user
+        , lobbyOccupants = LobbyOccupants.init phoenix user room occupants
         }
     , getLayoutHeight
     )
@@ -89,6 +94,7 @@ type OutMsg
 type Msg
     = NoOp
     | PhoenixMsg Phoenix.Msg
+    | LobbyOccupantsMsg LobbyOccupants.Msg
     | OnResize Int Int
     | LayoutHeight (Result Dom.Error Dom.Element)
     | GotMessageChange String
@@ -102,6 +108,13 @@ update msg (Model model) =
     case msg of
         NoOp ->
             ( Model model, Cmd.none, Empty )
+
+        LobbyOccupantsMsg subMsg ->
+            let
+                ( lobbyOccupants, loCmd ) =
+                    LobbyOccupants.update subMsg model.lobbyOccupants
+            in
+            ( Model { model | lobbyOccupants = lobbyOccupants }, Cmd.map LobbyOccupantsMsg loCmd, Empty )
 
         OnResize _ _ ->
             ( Model model, getLayoutHeight, Empty )
@@ -194,7 +207,6 @@ update msg (Model model) =
                             , Cmd.batch
                                 [ cmd
                                 , scrollToBottom "message-list"
-                                , scrollToBottom "layout"
                                 ]
                             , Empty
                             )
@@ -252,11 +264,13 @@ scrollToBottom id =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions (Model { phoenix }) =
+subscriptions (Model { phoenix, lobbyOccupants }) =
     Sub.batch
         [ onResize OnResize
         , Phoenix.subscriptions phoenix
             |> Sub.map PhoenixMsg
+        , LobbyOccupants.subscriptions lobbyOccupants
+            |> Sub.map LobbyOccupantsMsg
         ]
 
 
@@ -266,21 +280,47 @@ subscriptions (Model { phoenix }) =
 
 view : Device -> Model -> Element Msg
 view device (Model model) =
-    Room.init
-        |> Room.user model.user
-        |> Room.room model.room
-        |> Room.messages model.messages
-        |> Room.messagesContainerMaxHeight (maxHeight model.layoutHeight)
-        |> Room.membersTyping model.occupantsTyping
-        |> Room.userText model.message
-        |> Room.onChange GotMessageChange
-        |> Room.onFocus (GotMemberStartedTyping model.user model.room)
-        |> Room.onLoseFocus (GotMemberStoppedTyping model.user model.room)
-        |> Room.onSubmit GotSendMessage
-        |> Room.view device
+    container device
+        [ Chat.init
+            |> Chat.user model.user
+            |> Chat.room model.room
+            |> Chat.messages model.messages
+            |> Chat.messagesContainerMaxHeight (maxHeight model.layoutHeight)
+            |> Chat.membersTyping model.occupantsTyping
+            |> Chat.userText model.message
+            |> Chat.onChange GotMessageChange
+            |> Chat.onFocus (GotMemberStartedTyping model.user model.room)
+            |> Chat.onLoseFocus (GotMemberStoppedTyping model.user model.room)
+            |> Chat.onSubmit GotSendMessage
+            |> Chat.view device
+        , LobbyOccupants.view device model.lobbyOccupants
+            |> El.map LobbyOccupantsMsg
+        ]
+
+
+container : Device -> List (Element Msg) -> Element Msg
+container { class } =
+    case class of
+        Phone ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        _ ->
+            El.row
+                [ El.height El.fill
+                , El.width El.fill
+                , El.spacing 10
+                , Padding.right 10
+                ]
 
 
 maxHeight : Float -> Int
 maxHeight layoutHeight =
     floor <|
         (layoutHeight - 20)
+
+
+
+{- Attributes -}

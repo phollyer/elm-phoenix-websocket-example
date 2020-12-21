@@ -3,6 +3,7 @@ module Example.MultiRoomChat.Lobby exposing
     , Msg
     , enter
     , init
+    , occupants
     , subscriptions
     , toPhoenix
     , update
@@ -14,8 +15,8 @@ import Element exposing (Device, Element)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
-import Types exposing (Presence, Room, User, decodeMetas, decodeRooms, decodeUser, initRoom, initUser)
-import View.MultiRoomChat.Lobby as Lobby
+import Types exposing (Presence, Room, RoomInvitation, User, decodeMetas, decodeRoomInvitation, decodeRooms, decodeUser, initRoom, initUser, toPresences)
+import View.MultiRoomChat.Lobby as Lobby exposing (roomInvitations)
 
 
 
@@ -29,6 +30,7 @@ type Model
         , presences : List Presence
         , rooms : List Room
         , showRoomMembers : Maybe Room
+        , roomInvites : List RoomInvitation
         }
 
 
@@ -40,6 +42,7 @@ init phoenix =
         , presences = []
         , rooms = []
         , showRoomMembers = Nothing
+        , roomInvites = []
         }
 
 
@@ -51,12 +54,18 @@ enter user phoenix =
         , presences = []
         , rooms = []
         , showRoomMembers = Nothing
+        , roomInvites = []
         }
 
 
 toPhoenix : Model -> Phoenix.Model
-toPhoenix (Model model) =
-    model.phoenix
+toPhoenix (Model { phoenix }) =
+    phoenix
+
+
+occupants : Model -> List Presence
+occupants (Model { presences }) =
+    presences
 
 
 
@@ -69,6 +78,8 @@ type Msg
     | GotEnterRoom Room
     | GotDeleteRoom Room
     | GotShowRoomMembers (Maybe Room)
+    | GotAcceptRoomInvite RoomInvitation
+    | GotDeclineRoomInvite RoomInvitation
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -121,6 +132,15 @@ update msg (Model model) =
         GotShowRoomMembers maybeRoom ->
             ( Model { model | showRoomMembers = maybeRoom }, Cmd.none )
 
+        GotAcceptRoomInvite invite ->
+            ( Model model, Cmd.none )
+
+        GotDeclineRoomInvite invite ->
+            ( Model
+                { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+            , Cmd.none
+            )
+
         PhoenixMsg subMsg ->
             let
                 ( newModel, cmd, phoenixMsg ) =
@@ -150,10 +170,21 @@ update msg (Model model) =
                             )
 
                         Err error ->
-                            let
-                                _ =
-                                    Debug.log "" (JD.errorToString error)
-                            in
+                            ( Model newModel, cmd )
+
+                ChannelEvent "example:lobby" "room_invite" payload ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            if invite.to_id == newModel.user.id then
+                                ( Model
+                                    { newModel | roomInvites = List.append newModel.roomInvites [ invite ] }
+                                , cmd
+                                )
+
+                            else
+                                ( Model newModel, cmd )
+
+                        Err e ->
                             ( Model newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
@@ -166,21 +197,6 @@ update msg (Model model) =
 updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
 updatePhoenixWith toMsg (Model model) ( phoenix, phoenixCmd ) =
     ( Model { model | phoenix = phoenix }, Cmd.map toMsg phoenixCmd )
-
-
-toPresences : List Phoenix.Presence -> List Presence
-toPresences presences =
-    List.map
-        (\presence ->
-            { id = presence.id
-            , metas = decodeMetas presence.metas
-            , user =
-                decodeUser presence.user
-                    |> Result.toMaybe
-                    |> Maybe.withDefault initUser
-            }
-        )
-        presences
 
 
 
@@ -199,14 +215,17 @@ subscriptions toMsg (Model { phoenix }) =
 
 
 view : Device -> Model -> Element Msg
-view device (Model { presences, rooms, user, showRoomMembers }) =
+view device (Model { presences, rooms, user, showRoomMembers, roomInvites }) =
     Lobby.init
         |> Lobby.user user
         |> Lobby.onCreateRoom GotCreateRoom
         |> Lobby.onEnterRoom GotEnterRoom
         |> Lobby.onDeleteRoom GotDeleteRoom
         |> Lobby.onMouseEnterRoom GotShowRoomMembers
+        |> Lobby.onAcceptRoomInvite GotAcceptRoomInvite
+        |> Lobby.onDeclineRoomInvite GotDeclineRoomInvite
         |> Lobby.showRoomMembers showRoomMembers
         |> Lobby.members presences
         |> Lobby.rooms rooms
+        |> Lobby.roomInvitations roomInvites
         |> Lobby.view device

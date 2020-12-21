@@ -1,21 +1,25 @@
 module View.MultiRoomChat.Lobby exposing
     ( init
     , members
+    , onAcceptRoomInvite
     , onCreateRoom
+    , onDeclineRoomInvite
     , onDeleteRoom
     , onEnterRoom
     , onMouseEnterRoom
+    , roomInvitations
     , rooms
     , showRoomMembers
     , user
     , view
     )
 
+import Colors.Alpha as Color
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (Presence, Room, User, initUser)
+import Types exposing (Presence, Room, RoomInvitation, User, initUser)
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -37,8 +41,11 @@ type Config msg
         , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
         , onMouseEnterRoom : Maybe (Maybe Room -> msg)
+        , onAcceptRoomInvite : Maybe (RoomInvitation -> msg)
+        , onDeclineRoomInvite : Maybe (RoomInvitation -> msg)
         , rooms : List Room
         , showRoomMembers : Maybe Room
+        , roomInvitations : List RoomInvitation
         }
 
 
@@ -51,8 +58,11 @@ init =
         , onDeleteRoom = Nothing
         , onEnterRoom = Nothing
         , onMouseEnterRoom = Nothing
+        , onAcceptRoomInvite = Nothing
+        , onDeclineRoomInvite = Nothing
         , rooms = []
         , showRoomMembers = Nothing
+        , roomInvitations = []
         }
 
 
@@ -81,9 +91,24 @@ onMouseEnterRoom msg (Config config) =
     Config { config | onMouseEnterRoom = Just msg }
 
 
+onAcceptRoomInvite : (RoomInvitation -> msg) -> Config msg -> Config msg
+onAcceptRoomInvite msg (Config config) =
+    Config { config | onAcceptRoomInvite = Just msg }
+
+
+onDeclineRoomInvite : (RoomInvitation -> msg) -> Config msg -> Config msg
+onDeclineRoomInvite msg (Config config) =
+    Config { config | onDeclineRoomInvite = Just msg }
+
+
 rooms : List Room -> Config msg -> Config msg
 rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
+
+
+roomInvitations : List RoomInvitation -> Config msg -> Config msg
+roomInvitations invites (Config config) =
+    Config { config | roomInvitations = invites }
 
 
 showRoomMembers : Maybe Room -> Config msg -> Config msg
@@ -105,6 +130,8 @@ view device (Config config) =
     El.column
         [ El.width El.fill
         , El.spacing 15
+        , El.inFront <|
+            roomInvitation device (Config config)
         ]
         [ container device
             [ El.width El.fill
@@ -135,6 +162,63 @@ container { class, orientation } =
 
         _ ->
             El.wrappedRow
+
+
+roomInvitation : Device -> Config msg -> Element msg
+roomInvitation device (Config config) =
+    case config.roomInvitations of
+        [] ->
+            El.none
+
+        invite :: _ ->
+            case ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) of
+                ( Just acceptMsg, Just declineMsg ) ->
+                    El.el
+                        [ roundedBorder device
+                        , El.height El.fill
+                        , El.width El.fill
+                        , Background.color (Color.white 0.5)
+                        ]
+                        (El.column
+                            [ padding device
+                            , spacing device
+                            , roundedBorder device
+                            , Background.color invite.from.backgroundColor
+                            , Border.color invite.from.foregroundColor
+                            , Border.width 1
+                            , El.centerX
+                            , El.centerY
+                            , Font.color invite.from.foregroundColor
+                            ]
+                            [ El.el
+                                [ El.centerX ]
+                                (El.text "Room Invite")
+                            , El.paragraph
+                                []
+                                [ El.text "You have received an invitation from "
+                                , El.text invite.from.username
+                                , El.text " to join them in their room."
+                                ]
+                            , El.row
+                                [ spacing device
+                                , El.centerX
+                                ]
+                                [ Button.init
+                                    |> Button.setLabel "Decline"
+                                    |> Button.setOnPress (Just (declineMsg invite))
+                                    |> Button.setType (Button.User invite.from)
+                                    |> Button.view device
+                                , Button.init
+                                    |> Button.setLabel "Accept"
+                                    |> Button.setOnPress (Just (acceptMsg invite))
+                                    |> Button.setType (Button.User invite.from)
+                                    |> Button.view device
+                                ]
+                            ]
+                        )
+
+                _ ->
+                    El.none
 
 
 
@@ -269,3 +353,45 @@ alignFont { class, orientation } =
 
         _ ->
             Font.alignLeft
+
+
+padding : Device -> Attribute msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+roundedBorder : Device -> Attribute msg
+roundedBorder { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+spacing : Device -> Attribute msg
+spacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                15
+
+            _ ->
+                20
