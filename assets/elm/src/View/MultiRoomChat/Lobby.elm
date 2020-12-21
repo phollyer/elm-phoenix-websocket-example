@@ -1,11 +1,13 @@
 module View.MultiRoomChat.Lobby exposing
     ( init
+    , inviteError
     , members
     , onAcceptRoomInvite
     , onCreateRoom
     , onDeclineRoomInvite
     , onDeleteRoom
     , onEnterRoom
+    , onInviteErrorOk
     , onMouseEnterRoom
     , roomInvitations
     , rooms
@@ -19,7 +21,7 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Types exposing (Presence, Room, RoomInvitation, User, initUser)
+import Types exposing (ErrorMessage(..), Presence, Room, RoomInvitation, User, errorToString, initUser)
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -43,9 +45,11 @@ type Config msg
         , onMouseEnterRoom : Maybe (Maybe Room -> msg)
         , onAcceptRoomInvite : Maybe (RoomInvitation -> msg)
         , onDeclineRoomInvite : Maybe (RoomInvitation -> msg)
+        , onInviteErrorOk : Maybe (RoomInvitation -> msg)
         , rooms : List Room
         , showRoomMembers : Maybe Room
         , roomInvitations : List RoomInvitation
+        , inviteError : Maybe ErrorMessage
         }
 
 
@@ -60,9 +64,11 @@ init =
         , onMouseEnterRoom = Nothing
         , onAcceptRoomInvite = Nothing
         , onDeclineRoomInvite = Nothing
+        , onInviteErrorOk = Nothing
         , rooms = []
         , showRoomMembers = Nothing
         , roomInvitations = []
+        , inviteError = Nothing
         }
 
 
@@ -101,6 +107,11 @@ onDeclineRoomInvite msg (Config config) =
     Config { config | onDeclineRoomInvite = Just msg }
 
 
+onInviteErrorOk : (RoomInvitation -> msg) -> Config msg -> Config msg
+onInviteErrorOk msg (Config config) =
+    Config { config | onInviteErrorOk = Just msg }
+
+
 rooms : List Room -> Config msg -> Config msg
 rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
@@ -109,6 +120,11 @@ rooms rooms_ (Config config) =
 roomInvitations : List RoomInvitation -> Config msg -> Config msg
 roomInvitations invites (Config config) =
     Config { config | roomInvitations = invites }
+
+
+inviteError : Maybe ErrorMessage -> Config msg -> Config msg
+inviteError maybeError (Config config) =
+    Config { config | inviteError = maybeError }
 
 
 showRoomMembers : Maybe Room -> Config msg -> Config msg
@@ -132,6 +148,8 @@ view device (Config config) =
         , El.spacing 15
         , El.inFront <|
             roomInvitation device (Config config)
+        , El.inFront <|
+            inviteErrorView device config.inviteError config.onInviteErrorOk
         ]
         [ container device
             [ El.width El.fill
@@ -166,11 +184,8 @@ container { class, orientation } =
 
 roomInvitation : Device -> Config msg -> Element msg
 roomInvitation device (Config config) =
-    case config.roomInvitations of
-        [] ->
-            El.none
-
-        invite :: _ ->
+    case ( config.roomInvitations, config.inviteError ) of
+        ( invite :: _, Nothing ) ->
             case ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) of
                 ( Just acceptMsg, Just declineMsg ) ->
                     El.el
@@ -219,6 +234,48 @@ roomInvitation device (Config config) =
 
                 _ ->
                     El.none
+
+        _ ->
+            El.none
+
+
+inviteErrorView : Device -> Maybe ErrorMessage -> Maybe (RoomInvitation -> msg) -> Element msg
+inviteErrorView device maybeError maybeMsg =
+    case ( maybeError, maybeMsg ) of
+        ( Just (RoomClosed invite), Just toMsg ) ->
+            El.el
+                [ roundedBorder device
+                , El.height El.fill
+                , El.width El.fill
+                , Background.color (Color.white 0.5)
+                ]
+                (El.column
+                    [ padding device
+                    , spacing device
+                    , roundedBorder device
+                    , Background.color invite.from.backgroundColor
+                    , Border.color invite.from.foregroundColor
+                    , Border.width 1
+                    , El.centerX
+                    , El.centerY
+                    , Font.color invite.from.foregroundColor
+                    ]
+                    [ El.el
+                        [ El.centerX ]
+                        (El.text "Error")
+                    , El.paragraph
+                        []
+                        [ El.text "Sorry, the room has now closed." ]
+                    , Button.init
+                        |> Button.setLabel "OK"
+                        |> Button.setOnPress (Just (toMsg invite))
+                        |> Button.setType (Button.User invite.from)
+                        |> Button.view device
+                    ]
+                )
+
+        _ ->
+            El.none
 
 
 

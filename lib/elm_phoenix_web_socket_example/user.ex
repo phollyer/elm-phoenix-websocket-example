@@ -8,7 +8,7 @@ defmodule ElmPhoenixWebSocketExample.User do
       background_color: background_color,
       foreground_color: foreground_color,
       rooms: []
-    } |> IO.inspect
+    }
   end
 
   def find(id) do

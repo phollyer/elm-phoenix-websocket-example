@@ -5,6 +5,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
+import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..), pushConfig)
 import Tuple3
@@ -58,8 +59,8 @@ update msg (Model model) =
                     , event = "room_invite"
                     , payload =
                         JE.object
-                            [ ( "to", JE.string user.id )
-                            , ( "room", JE.string model.room.id )
+                            [ ( "to_id", JE.string user.id )
+                            , ( "room_id", JE.string model.room.id )
                             ]
                 }
                 model.phoenix
@@ -73,16 +74,24 @@ update msg (Model model) =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                ChannelEvent "example:lobby" "room_invite" payload ->
+                ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
                     case decodeRoomInvitation payload of
                         Ok invite ->
-                            if invite.from.id == newModel.user.id then
-                                ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
-
-                            else
-                                ( Model newModel, cmd )
+                            ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
 
                         Err e ->
+                            let
+                                _ =
+                                    Debug.log "" (JD.errorToString e)
+                            in
+                            ( Model newModel, cmd )
+
+                ChannelResponse (PushError "example:lobby" "room_invite" _ payload) ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
+
+                        Err _ ->
                             ( Model newModel, cmd )
 
                 ChannelEvent "example:lobby" "invite_declined" payload ->

@@ -42,6 +42,7 @@ type ErrorMessage
     = UsernameCannotBeBlank
     | BackgroundColorNotSelected
     | ForegroundColorNotSelected
+    | RoomClosed RoomInvitation
 
 
 errorToString : ErrorMessage -> String
@@ -55,6 +56,9 @@ errorToString error =
 
         UsernameCannotBeBlank ->
             "Username can not be empty"
+
+        RoomClosed _ ->
+            "That room has now closed"
 
 
 
@@ -297,8 +301,8 @@ roomInvitationDecoder =
     JD.succeed
         RoomInvitation
         |> andMap (JD.field "from" userDecoder)
-        |> andMap (JD.field "to" JD.string)
-        |> andMap (JD.field "room" JD.string)
+        |> andMap (JD.field "to_id" JD.string)
+        |> andMap (JD.field "room_id" JD.string)
 
 
 

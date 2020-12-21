@@ -155,6 +155,9 @@ handleErrors errors (Model model) =
 
                 ForegroundColorNotSelected ->
                     Model { model_ | foregroundColorError = Just ForegroundColorNotSelected }
+
+                _ ->
+                    Model model_
         )
         (Model
             { model

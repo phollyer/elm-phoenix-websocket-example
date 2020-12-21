@@ -15,9 +15,9 @@ import Element exposing (Device, Element)
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
-import Types exposing (Presence, Room, RoomInvitation, User, decodeMetas, decodeRoomInvitation, decodeRooms, decodeUser, initRoom, initUser, toPresences)
+import Types exposing (ErrorMessage(..), Presence, Room, RoomInvitation, User, decodeMetas, decodeRoomInvitation, decodeRooms, decodeUser, encodeUser, initRoom, initUser, toPresences)
 import Utils exposing (updatePhoenixWith)
-import View.MultiRoomChat.Lobby as Lobby exposing (roomInvitations)
+import View.MultiRoomChat.Lobby as Lobby exposing (inviteError, roomInvitations)
 
 
 
@@ -32,6 +32,7 @@ type Model
         , rooms : List Room
         , showRoomMembers : Maybe Room
         , roomInvites : List RoomInvitation
+        , inviteError : Maybe ErrorMessage
         }
 
 
@@ -44,6 +45,7 @@ init phoenix =
         , rooms = []
         , showRoomMembers = Nothing
         , roomInvites = []
+        , inviteError = Nothing
         }
 
 
@@ -56,6 +58,7 @@ enter user phoenix =
         , rooms = []
         , showRoomMembers = Nothing
         , roomInvites = []
+        , inviteError = Nothing
         }
 
 
@@ -81,6 +84,7 @@ type Msg
     | GotShowRoomMembers (Maybe Room)
     | GotAcceptRoomInvite RoomInvitation
     | GotDeclineRoomInvite RoomInvitation
+    | GotInviteErrorOk RoomInvitation
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -110,34 +114,25 @@ update msg (Model model) =
                 |> Tuple.mapFirst Model
 
         GotEnterRoom room ->
-            let
-                topic =
-                    "example:room:" ++ room.id
-            in
-            Phoenix.setJoinConfig
-                { joinConfig
-                    | topic = topic
-                    , events =
-                        [ "message_list"
-                        , "member_started_typing"
-                        , "member_stopped_typing"
-                        , "room_closed"
-                        , "room_deleted"
-                        ]
-                    , payload =
-                        JE.object
-                            [ ( "id", JE.string model.user.id ) ]
-                }
-                model.phoenix
-                |> Phoenix.join topic
-                |> updatePhoenixWith PhoenixMsg model
-                |> Tuple.mapFirst Model
+            enterRoom room.id (Model model)
 
         GotShowRoomMembers maybeRoom ->
             ( Model { model | showRoomMembers = maybeRoom }, Cmd.none )
 
         GotAcceptRoomInvite invite ->
-            ( Model model, Cmd.none )
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "invite_accepted"
+                    , payload =
+                        JE.object
+                            [ ( "from", encodeUser invite.from )
+                            , ( "room_id", JE.string invite.room_id )
+                            ]
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+                |> Tuple.mapFirst Model
 
         GotDeclineRoomInvite invite ->
             Phoenix.push
@@ -146,11 +141,16 @@ update msg (Model model) =
                     , event = "invite_declined"
                     , payload =
                         JE.object
-                            [ ( "to_id", JE.string invite.from.id ) ]
+                            [ ( "from", encodeUser invite.from )
+                            , ( "room_id", JE.string invite.room_id )
+                            ]
                 }
                 model.phoenix
                 |> updatePhoenixWith PhoenixMsg { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
                 |> Tuple.mapFirst Model
+
+        GotInviteErrorOk invite ->
+            ( Model { model | inviteError = Nothing }, Cmd.none )
 
         PhoenixMsg subMsg ->
             let
@@ -198,11 +198,59 @@ update msg (Model model) =
                         Err e ->
                             ( Model newModel, cmd )
 
+                ChannelResponse (PushOk "example:lobby" "invite_accepted" _ payload) ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            enterRoom invite.room_id (Model { model | roomInvites = [] })
+
+                        Err _ ->
+                            ( Model newModel, cmd )
+
+                ChannelResponse (PushError "example:lobby" "invite_accepted" _ payload) ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            ( Model
+                                { newModel
+                                    | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites
+                                    , inviteError = Just (RoomClosed invite)
+                                }
+                            , cmd
+                            )
+
+                        Err _ ->
+                            ( Model newModel, cmd )
+
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
                     ( Model { newModel | presences = toPresences state }, cmd )
 
                 _ ->
                     ( Model newModel, cmd )
+
+
+enterRoom : String -> Model -> ( Model, Cmd Msg )
+enterRoom roomId (Model model) =
+    let
+        topic =
+            "example:room:" ++ roomId
+    in
+    Phoenix.setJoinConfig
+        { joinConfig
+            | topic = topic
+            , events =
+                [ "message_list"
+                , "member_started_typing"
+                , "member_stopped_typing"
+                , "room_closed"
+                , "room_deleted"
+                ]
+            , payload =
+                JE.object
+                    [ ( "id", JE.string model.user.id ) ]
+        }
+        model.phoenix
+        |> Phoenix.join topic
+        |> updatePhoenixWith PhoenixMsg model
+        |> Tuple.mapFirst Model
 
 
 
@@ -221,7 +269,7 @@ subscriptions toMsg (Model { phoenix }) =
 
 
 view : Device -> Model -> Element Msg
-view device (Model { presences, rooms, user, showRoomMembers, roomInvites }) =
+view device (Model { presences, rooms, user, showRoomMembers, roomInvites, inviteError }) =
     Lobby.init
         |> Lobby.user user
         |> Lobby.onCreateRoom GotCreateRoom
@@ -230,8 +278,10 @@ view device (Model { presences, rooms, user, showRoomMembers, roomInvites }) =
         |> Lobby.onMouseEnterRoom GotShowRoomMembers
         |> Lobby.onAcceptRoomInvite GotAcceptRoomInvite
         |> Lobby.onDeclineRoomInvite GotDeclineRoomInvite
+        |> Lobby.onInviteErrorOk GotInviteErrorOk
         |> Lobby.showRoomMembers showRoomMembers
         |> Lobby.members presences
         |> Lobby.rooms rooms
         |> Lobby.roomInvitations roomInvites
+        |> Lobby.inviteError inviteError
         |> Lobby.view device
