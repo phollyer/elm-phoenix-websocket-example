@@ -7,18 +7,17 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
 
 
   def join("example:lobby", %{"username" => username, "background_color" => background_color, "foreground_color" => foreground_color} = params, socket) do
-    IO.inspect params
     {:ok, user} =
       User.create(params)
       |> User.update()
 
     send(self(), :after_join)
 
-    {:ok, user, assign(socket, %{user: user})}
+    {:ok, user, assign(socket, %{user_id: user.id})}
   end
 
   def handle_info(:after_join, socket) do
-    {:ok, presence} = Presence.track(socket, socket.assigns.user.id, %{
+    {:ok, presence} = Presence.track(socket, socket.assigns.user_id, %{
       online_at: System.system_time(:millisecond),
       device: ""
     })
@@ -31,7 +30,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   end
 
   def terminate(_reason, socket) do
-    {:ok, user} = User.find(socket.assigns.user.id)
+    {:ok, user} = User.find(socket.assigns.user_id)
 
     Enum.map(user.rooms, &(Room.find(&1)))
       |> Enum.each(fn result ->
@@ -49,7 +48,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   end
 
   def handle_in("create_room", _, socket) do
-    {:ok, user} = User.find(socket.assigns.user.id)
+    {:ok, user} = User.find(socket.assigns.user_id)
 
     User.create_room(user)
 
@@ -64,6 +63,22 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     Room.delete(room)
 
     broadcast_room_list(socket)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("room_invite", %{"to" => to_id, "room" => room_id}, socket) do
+    {:ok, user} = User.find(socket.assigns.user_id)
+    {:ok, room} = Room.find(room_id)
+
+    broadcast(socket, "room_invite", %{to: to_id, from: user, room: room.id})
+
+    {:reply, :ok, socket}
+  end
+  def handle_in("invite_declined", %{"to" => to_id}, socket) do
+    {:ok, user} = User.find(socket.assigns.user_id)
+
+    broadcast(socket, "invite_declined", %{to: to_id, from: user})
 
     {:reply, :ok, socket}
   end

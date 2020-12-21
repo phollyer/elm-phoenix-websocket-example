@@ -8,9 +8,9 @@ import Element.Font as Font
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..), pushConfig)
 import Tuple3
-import Types exposing (Presence, Room, User, decodeUser, encodeRoom, encodeUser, initUser, toPresences)
+import Types exposing (Presence, Room, RoomInvitation, User, decodeRoomInvitation, decodeUser, encodeRoom, encodeUser, initUser, toPresences)
 import UI.Padding as Padding
-import Utils
+import Utils exposing (updatePhoenixWith)
 import View.Panel as Panel
 
 
@@ -24,6 +24,7 @@ type Model
         , occupants : List Presence
         , user : User
         , room : Room
+        , sentInvites : List RoomInvitation
         }
 
 
@@ -34,6 +35,7 @@ init phoenix user room occupants =
         , occupants = occupants
         , user = user
         , room = room
+        , sentInvites = []
         }
 
 
@@ -50,39 +52,61 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
         GotInviteUser user ->
-            let
-                ( phoenix, phoenixCmd ) =
-                    Phoenix.push
-                        { pushConfig
-                            | topic = "example:lobby"
-                            , event = "room_invite"
-                            , payload =
-                                JE.object
-                                    [ ( "to", JE.string user.id )
-                                    , ( "room", JE.string model.room.id )
-                                    ]
-                        }
-                        model.phoenix
-            in
-            ( Model { model | phoenix = phoenix }
-            , Cmd.map PhoenixMsg phoenixCmd
-            )
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "room_invite"
+                    , payload =
+                        JE.object
+                            [ ( "to", JE.string user.id )
+                            , ( "room", JE.string model.room.id )
+                            ]
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+                |> Tuple.mapFirst Model
 
         PhoenixMsg subMsg ->
             let
-                ( phoenix, cmd, phoenixMsg ) =
+                ( newModel, cmd, phoenixMsg ) =
                     Phoenix.update subMsg model.phoenix
                         |> Phoenix.updateWith PhoenixMsg model
-                        |> Tuple3.mapFirst Model
             in
             case phoenixMsg of
+                ChannelEvent "example:lobby" "room_invite" payload ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            if invite.from.id == newModel.user.id then
+                                ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
+
+                            else
+                                ( Model newModel, cmd )
+
+                        Err e ->
+                            ( Model newModel, cmd )
+
+                ChannelEvent "example:lobby" "invite_declined" payload ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            if invite.from.id == newModel.user.id then
+                                ( Model
+                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ == invite) newModel.sentInvites }
+                                , cmd
+                                )
+
+                            else
+                                ( Model newModel, cmd )
+
+                        Err e ->
+                            ( Model newModel, cmd )
+
                 PresenceEvent (State "example:lobby" presences) ->
-                    ( Model { model | occupants = toPresences presences }
-                    , Cmd.none
+                    ( Model { newModel | occupants = toPresences presences }
+                    , cmd
                     )
 
                 _ ->
-                    ( Model model, Cmd.none )
+                    ( Model newModel, cmd )
 
 
 
@@ -110,25 +134,25 @@ view device (Model model) =
             |> Panel.description
                 [ [ El.text "Select a user to invite them into the room." ] ]
             |> Panel.element
-                (occupantsView device model.user model.occupants)
+                (occupantsView device model.sentInvites model.user model.occupants)
             |> Panel.view device
         ]
 
 
-occupantsView : Device -> User -> List Presence -> Element Msg
-occupantsView device user occupants =
+occupantsView : Device -> List RoomInvitation -> User -> List Presence -> Element Msg
+occupantsView device sentInvites user occupants =
     El.column
         [ padding device
         , spacing device
         , El.width El.fill
         ]
         (List.filter (\presence -> user /= presence.user) occupants
-            |> List.map (occupantView device)
+            |> List.map (occupantView device sentInvites)
         )
 
 
-occupantView : Device -> Presence -> Element Msg
-occupantView device { user } =
+occupantView : Device -> List RoomInvitation -> Presence -> Element Msg
+occupantView device sentInvites { user } =
     El.el
         [ padding device
         , roundedBorders device
@@ -149,7 +173,26 @@ occupantView device { user } =
         , Event.onClick (GotInviteUser user)
         , Font.color user.foregroundColor
         ]
-        (El.text user.username)
+        (El.text <|
+            user.username
+                ++ (case isInvited user sentInvites of
+                        True ->
+                            " (Invited)"
+
+                        False ->
+                            ""
+                   )
+        )
+
+
+isInvited : User -> List RoomInvitation -> Bool
+isInvited user sentInvites =
+    case List.filter (\invite -> invite.to_id == user.id) sentInvites of
+        [] ->
+            False
+
+        _ ->
+            True
 
 
 

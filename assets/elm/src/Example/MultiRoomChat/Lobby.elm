@@ -16,6 +16,7 @@ import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Types exposing (Presence, Room, RoomInvitation, User, decodeMetas, decodeRoomInvitation, decodeRooms, decodeUser, initRoom, initUser, toPresences)
+import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as Lobby exposing (roomInvitations)
 
 
@@ -86,25 +87,27 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
         GotCreateRoom ->
-            updatePhoenixWith PhoenixMsg (Model model) <|
-                Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "create_room"
-                    }
-                    model.phoenix
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "create_room"
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+                |> Tuple.mapFirst Model
 
         GotDeleteRoom room ->
-            updatePhoenixWith PhoenixMsg (Model model) <|
-                Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "delete_room"
-                        , payload =
-                            JE.object
-                                [ ( "room_id", JE.string room.id ) ]
-                    }
-                    model.phoenix
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "delete_room"
+                    , payload =
+                        JE.object
+                            [ ( "room_id", JE.string room.id ) ]
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
+                |> Tuple.mapFirst Model
 
         GotEnterRoom room ->
             let
@@ -127,7 +130,8 @@ update msg (Model model) =
                 }
                 model.phoenix
                 |> Phoenix.join topic
-                |> updatePhoenixWith PhoenixMsg (Model model)
+                |> updatePhoenixWith PhoenixMsg model
+                |> Tuple.mapFirst Model
 
         GotShowRoomMembers maybeRoom ->
             ( Model { model | showRoomMembers = maybeRoom }, Cmd.none )
@@ -136,10 +140,17 @@ update msg (Model model) =
             ( Model model, Cmd.none )
 
         GotDeclineRoomInvite invite ->
-            ( Model
-                { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
-            , Cmd.none
-            )
+            Phoenix.push
+                { pushConfig
+                    | topic = "example:lobby"
+                    , event = "invite_declined"
+                    , payload =
+                        JE.object
+                            [ ( "to_id", JE.string invite.from.id ) ]
+                }
+                model.phoenix
+                |> updatePhoenixWith PhoenixMsg { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+                |> Tuple.mapFirst Model
 
         PhoenixMsg subMsg ->
             let
@@ -192,11 +203,6 @@ update msg (Model model) =
 
                 _ ->
                     ( Model newModel, cmd )
-
-
-updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg )
-updatePhoenixWith toMsg (Model model) ( phoenix, phoenixCmd ) =
-    ( Model { model | phoenix = phoenix }, Cmd.map toMsg phoenixCmd )
 
 
 
