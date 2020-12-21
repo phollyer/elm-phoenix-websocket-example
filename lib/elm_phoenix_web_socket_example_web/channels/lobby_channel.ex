@@ -118,6 +118,20 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("revoke_invite", %{"to_id" => to_id, "room_id" => room_id}, socket) do
+    {:ok, user} = User.find(socket.assigns.user_id)
+
+    invite = 
+      %{from: user,
+        to_id: to_id,
+        room_id: room_id
+      }
+
+      broadcast(socket, "revoke_invite", invite)
+
+      {:reply, :ok, socket}
+  end
+
 
   defp broadcast_room_list(socket) do
     broadcast(socket, "room_list", %{rooms: Room.all()})

@@ -77,7 +77,23 @@ update msg (Model model) =
                 ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
                     case decodeRoomInvitation payload of
                         Ok invite ->
-                            ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
+                            if List.member invite newModel.sentInvites then
+                                Phoenix.push
+                                    { pushConfig
+                                        | topic = "example:lobby"
+                                        , event = "revoke_invite"
+                                        , payload =
+                                            JE.object
+                                                [ ( "to_id", JE.string invite.to_id )
+                                                , ( "room_id", JE.string invite.room_id )
+                                                ]
+                                    }
+                                    newModel.phoenix
+                                    |> updatePhoenixWith PhoenixMsg newModel
+                                    |> Tuple.mapFirst Model
+
+                            else
+                                ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
 
                         Err e ->
                             ( Model newModel, cmd )

@@ -198,6 +198,21 @@ update msg (Model model) =
                         Err e ->
                             ( Model newModel, cmd )
 
+                ChannelEvent "example:lobby" "revoke_invite" payload ->
+                    case decodeRoomInvitation payload of
+                        Ok invite ->
+                            if invite.to_id == newModel.user.id then
+                                ( Model
+                                    { newModel | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites }
+                                , cmd
+                                )
+
+                            else
+                                ( Model newModel, cmd )
+
+                        Err e ->
+                            ( Model newModel, cmd )
+
                 ChannelResponse (PushOk "example:lobby" "invite_accepted" _ payload) ->
                     case decodeRoomInvitation payload of
                         Ok invite ->
