@@ -142,7 +142,7 @@ introduction =
             [ El.text "Welcome," ]
         , El.paragraph
             [ El.width El.fill ]
-            [ El.text "Please enter a username in order to join the Lobby." ]
+            [ El.text "Please enter a username, and select your colors in order to join the Lobby." ]
         ]
 
 
@@ -223,8 +223,8 @@ colorsView device (Config config) =
             ]
             (colorRows device config.onForegroundColorChange config.foregroundColor config.backgroundColor)
         , errorView device config.foregroundColorError
-        , case ( config.backgroundColor, config.foregroundColor ) of
-            ( Just bgColor, Just fontColor ) ->
+        , case ( config.foregroundColor, config.backgroundColor, not <| String.isEmpty config.username ) of
+            ( Just fgColor, Just bgColor, True ) ->
                 El.column
                     [ El.width El.fill
                     , El.spacing 10
@@ -238,9 +238,11 @@ colorsView device (Config config) =
                     , El.el
                         [ padding device
                         , roundedBorder device
-                        , El.centerX
                         , Background.color bgColor
-                        , Font.color fontColor
+                        , Border.color fgColor
+                        , Border.width 1
+                        , El.centerX
+                        , Font.color fgColor
                         ]
                         (El.text config.username)
                     ]
