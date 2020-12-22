@@ -182,6 +182,14 @@ update msg model =
                             , cmd
                             )
 
+                        [ "example", "lobby" ] ->
+                            ( { newModel
+                                | state = Unregistered
+                                , registration = Registration.init newModel.phoenix
+                              }
+                            , cmd
+                            )
+
                         _ ->
                             ( newModel, cmd )
 
@@ -202,8 +210,7 @@ back key model =
 
         InLobby _ ->
             Phoenix.leave "example:lobby" model.phoenix
-                |> updatePhoenixWith PhoenixMsg
-                    { model | state = Unregistered }
+                |> updatePhoenixWith PhoenixMsg model
 
         Unregistered ->
             ( model, Route.back key )
