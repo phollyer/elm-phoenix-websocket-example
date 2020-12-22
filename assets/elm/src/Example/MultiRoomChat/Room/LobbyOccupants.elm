@@ -133,6 +133,16 @@ update msg (Model model) =
                     ( Model newModel, cmd )
 
 
+updateRoom : Room -> Model -> Model
+updateRoom room (Model model) =
+    Model { model | room = room }
+
+
+updateOccupants : List Presence -> Model -> Model
+updateOccupants occupants (Model model) =
+    Model { model | occupants = occupants }
+
+
 
 {- Subscriptions -}
 
@@ -154,23 +164,23 @@ view device (Model model) =
         , El.width El.fill
         ]
         [ Panel.init
-            |> Panel.title "All Users"
+            |> Panel.title "Lobby Occupants"
             |> Panel.description
                 [ [ El.text "Select a user to invite them into the room." ] ]
             |> Panel.element
-                (occupantsView device model.sentInvites model.user model.occupants)
+                (occupantsView device model.sentInvites model.room model.occupants)
             |> Panel.view device
         ]
 
 
-occupantsView : Device -> List RoomInvite -> User -> List Presence -> Element Msg
-occupantsView device sentInvites user occupants =
+occupantsView : Device -> List RoomInvite -> Room -> List Presence -> Element Msg
+occupantsView device sentInvites room occupants =
     El.column
         [ padding device
         , spacing device
         , El.width El.fill
         ]
-        (List.filter (\presence -> user /= presence.user) occupants
+        (List.filter (\presence -> not <| List.member presence.user room.members) occupants
             |> List.map (occupantView device sentInvites)
         )
 

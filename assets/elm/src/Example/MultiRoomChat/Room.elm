@@ -15,18 +15,22 @@ module Example.MultiRoomChat.Room exposing
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Configs exposing (pushConfig)
-import Element as El exposing (Device, DeviceClass(..), Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Example.MultiRoomChat.Room.LobbyOccupants as LobbyOccupants
 import Json.Decode as JD
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..))
 import Task
 import Type.ChatMessage as ChatMessage exposing (ChatMessage)
-import Type.Presence exposing (Presence)
+import Type.Presence as Presence exposing (Presence)
 import Type.Room as Room exposing (Room)
 import Type.User as User exposing (User)
 import UI.Padding as Padding
 import View.MultiRoomChat.Room.Chat as Chat
+import View.Panel as Panel
 
 
 
@@ -247,6 +251,41 @@ update msg (Model model) =
                         Err _ ->
                             ( Model newModel, cmd, Empty )
 
+                PresenceEvent (State topic presence) ->
+                    case Phoenix.topicParts topic of
+                        [ "example", "room", _ ] ->
+                            let
+                                room =
+                                    Room.updateMembers
+                                        (Presence.decodeList presence
+                                            |> List.map .user
+                                        )
+                                        newModel.room
+                            in
+                            ( Model
+                                { newModel
+                                    | room = room
+                                    , lobbyOccupants = LobbyOccupants.updateRoom room newModel.lobbyOccupants
+                                }
+                            , cmd
+                            , Empty
+                            )
+
+                        [ "example", "lobby" ] ->
+                            ( Model
+                                { newModel
+                                    | lobbyOccupants =
+                                        LobbyOccupants.updateOccupants
+                                            (Presence.decodeList presence)
+                                            newModel.lobbyOccupants
+                                }
+                            , cmd
+                            , Empty
+                            )
+
+                        _ ->
+                            ( Model newModel, cmd, Empty )
+
                 _ ->
                     ( Model newModel, cmd, Empty )
 
@@ -302,6 +341,7 @@ view device (Model model) =
             |> Chat.onLoseFocus (GotMemberStoppedTyping model.user model.room)
             |> Chat.onSubmit GotSendMessage
             |> Chat.view device
+        , roomOccupants device model.room.members
         , LobbyOccupants.view device model.lobbyOccupants
             |> El.map LobbyOccupantsMsg
         ]
@@ -325,6 +365,35 @@ container { class } =
                 ]
 
 
+roomOccupants : Device -> List User -> Element Msg
+roomOccupants device occupants =
+    Panel.init
+        |> Panel.title "Room Occupants"
+        |> Panel.element
+            (El.column
+                [ padding device
+                , spacing device
+                , El.width El.fill
+                ]
+                (List.map (toRoomOccupant device) occupants)
+            )
+        |> Panel.view device
+
+
+toRoomOccupant : Device -> User -> Element Msg
+toRoomOccupant device occupant =
+    El.el
+        [ padding device
+        , roundedBorders device
+        , Background.color occupant.backgroundColor
+        , Border.color occupant.foregroundColor
+        , Border.width 1
+        , El.width El.fill
+        , Font.color occupant.foregroundColor
+        ]
+        (El.text occupant.username)
+
+
 maxHeight : Float -> Int
 maxHeight layoutHeight =
     floor <|
@@ -333,3 +402,45 @@ maxHeight layoutHeight =
 
 
 {- Attributes -}
+
+
+padding : Device -> Attribute Msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+spacing : Device -> Attribute Msg
+spacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+roundedBorders : Device -> Attribute Msg
+roundedBorders { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10

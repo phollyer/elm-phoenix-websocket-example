@@ -4,6 +4,7 @@ module Type.Room exposing
     , decodeList
     , encode
     , init
+    , updateMembers
     )
 
 import Json.Decode as JD exposing (Value)
@@ -28,6 +29,15 @@ init =
     , members = []
     , messages = []
     }
+
+
+
+{- Build -}
+
+
+updateMembers : List User -> Room -> Room
+updateMembers users room =
+    { room | members = users }
 
 
 
