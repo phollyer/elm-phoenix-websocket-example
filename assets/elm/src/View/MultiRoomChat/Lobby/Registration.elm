@@ -152,13 +152,23 @@ form device (Config config) =
         [ BackgroundColor.panel
         , Border.rounded 10
         , El.padding 20
-        , El.spacing 20
+        , spacing device
         , El.width El.fill
         ]
-        [ inputField device (Config config)
-        , errorView device config.usernameError
+        [ section device
+            [ inputField device (Config config)
+            , errorView device config.usernameError
+            ]
         , colorsView device (Config config)
         , submitButton device (Config config)
+        ]
+
+
+section : Device -> List (Element msg) -> Element msg
+section device =
+    El.column
+        [ formSpacing device
+        , El.width El.fill
         ]
 
 
@@ -170,9 +180,7 @@ errorView device maybeError =
 
         Just error ->
             El.paragraph
-                [ El.width El.fill
-                , FontColor.error
-                ]
+                [ FontColor.error ]
                 [ El.text (ErrorMessage.toString error) ]
 
 
@@ -197,32 +205,40 @@ colorsView : Device -> Config msg -> Element msg
 colorsView device (Config config) =
     El.column
         [ El.width El.fill
-        , El.spacing 10
+        , spacing device
         ]
-        [ El.el
-            [ El.centerX
-            , FontColor.panelHeader
-            , FontSize.title device
+        [ section device
+            [ El.el
+                [ El.centerX
+                , FontColor.panelHeader
+                , FontSize.title device
+                ]
+                (El.text "Select a Background Color")
+            , El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+                (colorRows device config.onBackgroundColorChange config.backgroundColor config.foregroundColor)
+            , El.el
+                [ El.centerX ]
+                (errorView device config.backgroundColorError)
             ]
-            (El.text "Select a Background Color")
-        , El.column
-            [ El.width El.fill
-            , El.spacing 10
+        , section device
+            [ El.el
+                [ El.centerX
+                , FontColor.panelHeader
+                , FontSize.title device
+                ]
+                (El.text "Select a Foreground Color")
+            , El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+                (colorRows device config.onForegroundColorChange config.foregroundColor config.backgroundColor)
+            , El.el
+                [ El.centerX ]
+                (errorView device config.foregroundColorError)
             ]
-            (colorRows device config.onBackgroundColorChange config.backgroundColor config.foregroundColor)
-        , errorView device config.backgroundColorError
-        , El.el
-            [ El.centerX
-            , FontColor.panelHeader
-            , FontSize.title device
-            ]
-            (El.text "Select a Foreground Color")
-        , El.column
-            [ El.width El.fill
-            , El.spacing 10
-            ]
-            (colorRows device config.onForegroundColorChange config.foregroundColor config.backgroundColor)
-        , errorView device config.foregroundColorError
         , case ( config.foregroundColor, config.backgroundColor, not <| String.isEmpty config.username ) of
             ( Just fgColor, Just bgColor, True ) ->
                 El.column
@@ -293,29 +309,6 @@ toColor toMsg maybeAltColor maybeSelected color =
         El.none
 
 
-colorAttrs : Maybe Color -> Maybe Color -> Color -> List (Attribute msg)
-colorAttrs maybeAltColor maybeSelected color =
-    [ El.width <|
-        El.px 25
-    , El.height <|
-        El.px 25
-    , Border.color <|
-        Color.black 1
-    , if Just color == maybeAltColor || Just color == maybeSelected then
-        Border.rounded 12
-
-      else
-        El.pointer
-    , Border.width <|
-        if Just color == maybeSelected then
-            3
-
-        else
-            1
-    , Background.color color
-    ]
-
-
 colors : List Color
 colors =
     [ Color.white 1
@@ -370,6 +363,29 @@ colors =
 {- Attributes -}
 
 
+colorAttrs : Maybe Color -> Maybe Color -> Color -> List (Attribute msg)
+colorAttrs maybeAltColor maybeSelected color =
+    [ El.width <|
+        El.px 25
+    , El.height <|
+        El.px 25
+    , Border.color <|
+        Color.black 1
+    , if Just color == maybeAltColor || Just color == maybeSelected then
+        Border.rounded 12
+
+      else
+        El.pointer
+    , Border.width <|
+        if Just color == maybeSelected then
+            3
+
+        else
+            1
+    , Background.color color
+    ]
+
+
 padding : Device -> Attribute msg
 padding { class } =
     El.padding <|
@@ -382,6 +398,34 @@ padding { class } =
 
             _ ->
                 10
+
+
+formSpacing : Device -> Attribute msg
+formSpacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+spacing : Device -> Attribute msg
+spacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                15
+
+            _ ->
+                20
 
 
 roundedBorder : Device -> Attribute msg
