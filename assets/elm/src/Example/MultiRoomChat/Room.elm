@@ -23,6 +23,7 @@ import Example.MultiRoomChat.Room.LobbyOccupants as LobbyOccupants
 import Json.Decode as JD
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..))
+import Session exposing (device)
 import Task
 import Type.ChatMessage as ChatMessage exposing (ChatMessage)
 import Type.Presence as Presence exposing (Presence)
@@ -410,7 +411,7 @@ roomOccupants device occupants =
 
 toRoomOccupant : Device -> User -> Element Msg
 toRoomOccupant device occupant =
-    El.el
+    El.paragraph
         [ padding device
         , roundedBorders device
         , Background.color occupant.backgroundColor
@@ -419,7 +420,7 @@ toRoomOccupant device occupant =
         , El.width El.fill
         , Font.color occupant.foregroundColor
         ]
-        (El.text occupant.username)
+        [ El.text occupant.username ]
 
 
 maxHeight : Float -> Int

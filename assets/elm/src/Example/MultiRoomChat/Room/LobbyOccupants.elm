@@ -190,7 +190,7 @@ occupantsView device sentInvites room occupants =
 
 occupantView : Device -> List RoomInvite -> Presence -> Element Msg
 occupantView device sentInvites { user } =
-    El.el
+    El.paragraph
         [ padding device
         , roundedBorders device
         , Background.color user.backgroundColor
@@ -210,7 +210,7 @@ occupantView device sentInvites { user } =
         , Event.onClick (GotInviteUser user)
         , Font.color user.foregroundColor
         ]
-        (El.text <|
+        [ El.text <|
             user.username
                 ++ (case isInvited user sentInvites of
                         True ->
@@ -219,7 +219,7 @@ occupantView device sentInvites { user } =
                         False ->
                             ""
                    )
-        )
+        ]
 
 
 isInvited : User -> List RoomInvite -> Bool
