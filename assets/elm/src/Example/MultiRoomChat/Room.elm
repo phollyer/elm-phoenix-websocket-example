@@ -15,7 +15,7 @@ module Example.MultiRoomChat.Room exposing
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Configs exposing (pushConfig)
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -329,28 +329,39 @@ subscriptions (Model { phoenix, lobbyOccupants }) =
 view : Device -> Model -> Element Msg
 view device (Model model) =
     container device
-        [ Chat.init
-            |> Chat.user model.user
-            |> Chat.room model.room
-            |> Chat.messages model.messages
-            |> Chat.messagesContainerMaxHeight (maxHeight model.layoutHeight)
-            |> Chat.membersTyping model.occupantsTyping
-            |> Chat.userText model.message
-            |> Chat.onChange GotMessageChange
-            |> Chat.onFocus (GotMemberStartedTyping model.user model.room)
-            |> Chat.onLoseFocus (GotMemberStoppedTyping model.user model.room)
-            |> Chat.onSubmit GotSendMessage
-            |> Chat.view device
-        , roomOccupants device model.room.members
-        , LobbyOccupants.view device model.lobbyOccupants
-            |> El.map LobbyOccupantsMsg
+        [ El.el
+            [ chatWidth device ]
+            (Chat.init
+                |> Chat.user model.user
+                |> Chat.room model.room
+                |> Chat.messages model.messages
+                |> Chat.messagesContainerMaxHeight (maxHeight model.layoutHeight)
+                |> Chat.membersTyping model.occupantsTyping
+                |> Chat.userText model.message
+                |> Chat.onChange GotMessageChange
+                |> Chat.onFocus (GotMemberStartedTyping model.user model.room)
+                |> Chat.onLoseFocus (GotMemberStoppedTyping model.user model.room)
+                |> Chat.onSubmit GotSendMessage
+                |> Chat.view device
+            )
+        , panelContainer device
+            [ roomOccupants device model.room.members
+            , LobbyOccupants.view device model.lobbyOccupants
+                |> El.map LobbyOccupantsMsg
+            ]
         ]
 
 
 container : Device -> List (Element Msg) -> Element Msg
-container { class } =
-    case class of
-        Phone ->
+container { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, _ ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        ( Tablet, Portrait ) ->
             El.column
                 [ El.width El.fill
                 , El.spacing 10
@@ -362,6 +373,23 @@ container { class } =
                 , El.width El.fill
                 , El.spacing 10
                 , Padding.right 10
+                ]
+
+
+panelContainer : Device -> List (Element Msg) -> Element Msg
+panelContainer ({ class, orientation } as device) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        _ ->
+            El.row
+                [ panelWidth device
+                , El.height El.fill
+                , El.spacing 10
                 ]
 
 
@@ -402,6 +430,28 @@ maxHeight layoutHeight =
 
 
 {- Attributes -}
+
+
+chatWidth : Device -> Attribute Msg
+chatWidth { class } =
+    El.width <|
+        case class of
+            Phone ->
+                El.fill
+
+            _ ->
+                El.fillPortion 3
+
+
+panelWidth : Device -> Attribute Msg
+panelWidth { class } =
+    El.width <|
+        case class of
+            Phone ->
+                El.fill
+
+            _ ->
+                El.fillPortion 2
 
 
 padding : Device -> Attribute Msg
