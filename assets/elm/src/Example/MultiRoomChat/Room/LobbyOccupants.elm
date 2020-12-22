@@ -166,7 +166,10 @@ view device (Model model) =
         [ Panel.init
             |> Panel.title "Lobby Occupants"
             |> Panel.description
-                [ [ El.text "Select a user to invite them into the room." ] ]
+                [ [ El.text "Click on a user to invite them into the room. "
+                  , El.text "Click them again to revoke the invitation."
+                  ]
+                ]
             |> Panel.element
                 (occupantsView device model.sentInvites model.room model.occupants)
             |> Panel.view device
