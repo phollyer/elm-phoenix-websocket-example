@@ -56,15 +56,25 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg (Model model) =
     case msg of
         GotInviteUser user ->
+            let
+                invite =
+                    { from = model.user
+                    , to_id = user.id
+                    , room_id = model.room.id
+                    }
+
+                event =
+                    if List.member invite model.sentInvites then
+                        "revoke_invite"
+
+                    else
+                        "room_invite"
+            in
             Phoenix.push
                 { pushConfig
                     | topic = "example:lobby"
-                    , event = "room_invite"
-                    , payload =
-                        JE.object
-                            [ ( "to_id", JE.string user.id )
-                            , ( "room_id", JE.string model.room.id )
-                            ]
+                    , event = event
+                    , payload = RoomInvite.encode invite
                 }
                 model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
@@ -81,19 +91,7 @@ update msg (Model model) =
                     case RoomInvite.decode payload of
                         Ok invite ->
                             if List.member invite newModel.sentInvites then
-                                Phoenix.push
-                                    { pushConfig
-                                        | topic = "example:lobby"
-                                        , event = "revoke_invite"
-                                        , payload =
-                                            JE.object
-                                                [ ( "to_id", JE.string invite.to_id )
-                                                , ( "room_id", JE.string invite.room_id )
-                                                ]
-                                    }
-                                    newModel.phoenix
-                                    |> updatePhoenixWith PhoenixMsg newModel
-                                    |> Tuple.mapFirst Model
+                                ( Model newModel, cmd )
 
                             else
                                 ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
@@ -111,6 +109,21 @@ update msg (Model model) =
 
                 ChannelEvent "example:lobby" "invite_declined" payload ->
                     case RoomInvite.decode payload of
+                        Ok invite ->
+                            if invite.from.id == newModel.user.id then
+                                ( Model
+                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ /= invite) newModel.sentInvites }
+                                , cmd
+                                )
+
+                            else
+                                ( Model newModel, cmd )
+
+                        Err e ->
+                            ( Model newModel, cmd )
+
+                ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
+                    case RoomInvite.decode payload |> Debug.log "" of
                         Ok invite ->
                             if invite.from.id == newModel.user.id then
                                 ( Model

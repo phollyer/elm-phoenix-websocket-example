@@ -113,6 +113,7 @@ update msg (Model model) =
                                         [ "room_list"
                                         , "room_invite"
                                         , "invite_declined"
+                                        , "revoke_invite"
                                         ]
                                     , payload = encodeFields fields
                                 }

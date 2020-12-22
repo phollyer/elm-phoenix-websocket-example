@@ -129,7 +129,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
 
       broadcast(socket, "revoke_invite", invite)
 
-      {:reply, :ok, socket}
+      {:reply, {:ok, invite}, socket}
   end
 
 

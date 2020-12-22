@@ -205,7 +205,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelEvent "example:lobby" "revoke_invite" payload ->
-                    case RoomInvite.decode payload of
+                    case RoomInvite.decode payload |> Debug.log "revoke invite" of
                         Ok invite ->
                             if invite.to_id == newModel.user.id then
                                 ( Model

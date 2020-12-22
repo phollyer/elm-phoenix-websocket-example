@@ -1,10 +1,12 @@
 module Type.RoomInvite exposing
     ( RoomInvite
     , decode
+    , encode
     )
 
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
+import Json.Encode as JE
 import Type.User as User exposing (User)
 
 
@@ -13,6 +15,15 @@ type alias RoomInvite =
     , to_id : String
     , room_id : String
     }
+
+
+encode : RoomInvite -> Value
+encode invite =
+    JE.object
+        [ ( "from", User.encode invite.from )
+        , ( "to_id", JE.string invite.to_id )
+        , ( "room_id", JE.string invite.room_id )
+        ]
 
 
 decode : Value -> Result JD.Error RoomInvite
