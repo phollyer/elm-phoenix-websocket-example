@@ -263,14 +263,12 @@ colorRows { class, orientation } maybeMsg selectedColor altColor =
                 numPerRow =
                     case ( class, orientation ) of
                         ( Phone, Portrait ) ->
-                            6
+                            5
 
                         _ ->
                             10
             in
-            List.filter (\color -> Just color /= altColor) colors
-                |> List.map
-                    (toColor toMsg selectedColor)
+            List.map (toColor toMsg altColor selectedColor) colors
                 |> greedyGroupsOf numPerRow
                 |> List.map
                     (\row ->
@@ -282,49 +280,89 @@ colorRows { class, orientation } maybeMsg selectedColor altColor =
                     )
 
 
-toColor : (Color -> msg) -> Maybe Color -> Color -> Element msg
-toColor toMsg maybeSelected color =
+toColor : (Color -> msg) -> Maybe Color -> Maybe Color -> Color -> Element msg
+toColor toMsg maybeAltColor maybeSelected color =
     El.el
-        [ El.width <|
-            El.px 25
-        , El.height <|
-            El.px 25
-        , Border.color <|
-            Color.black 1
-        , Border.width <|
-            if Just color == maybeSelected then
-                3
+        (List.append (colorAttrs maybeAltColor maybeSelected color) <|
+            if Just color == maybeAltColor then
+                []
 
             else
-                1
-        , El.pointer
-        , Background.color color
-        , Event.onClick (toMsg color)
-        ]
+                [ Event.onClick (toMsg color) ]
+        )
         El.none
+
+
+colorAttrs : Maybe Color -> Maybe Color -> Color -> List (Attribute msg)
+colorAttrs maybeAltColor maybeSelected color =
+    [ El.width <|
+        El.px 25
+    , El.height <|
+        El.px 25
+    , Border.color <|
+        Color.black 1
+    , if Just color == maybeAltColor || Just color == maybeSelected then
+        Border.rounded 12
+
+      else
+        El.pointer
+    , Border.width <|
+        if Just color == maybeSelected then
+            3
+
+        else
+            1
+    , Background.color color
+    ]
 
 
 colors : List Color
 colors =
-    [ Color.beige 1
+    [ Color.white 1
+    , Color.beige 1
+    , Color.antiquewhite 1
+    , Color.mistyrose 1
+    , Color.navajowhite 1
+    , Color.lightsalmon 1
+    , Color.indianred 1
+    , Color.crimson 1
+    , Color.firebrick 1
+    , Color.darkred 1
+    , Color.lightgreen 1
+    , Color.mediumseagreen 1
+    , Color.seagreen 1
+    , Color.green 1
+    , Color.darkgreen 1
+    , Color.powderblue 1
+    , Color.lightskyblue 1
+    , Color.dodgerblue 1
     , Color.blue 1
-    , Color.brown 1
-    , Color.cyan 1
-    , Color.gold 1
-    , Color.grey 1
-    , Color.lavender 1
-    , Color.magenta 1
-    , Color.maroon 1
-    , Color.orange 1
-    , Color.peachpuff 1
-    , Color.pink 1
-    , Color.purple 1
-    , Color.red 1
-    , Color.silver 1
-    , Color.tan 1
-    , Color.teal 1
-    , Color.turquoise 1
+    , Color.darkslateblue 1
+    , Color.lightYellow1 1
+    , Color.lightYellow2 1
+    , Color.lightYellow3 1
+    , Color.lightYellow4 1
     , Color.yellow 1
+    , Color.lightpink 1
+    , Color.palevioletred 1
+    , Color.hotpink 1
+    , Color.deeppink 1
+    , Color.mediumvioletred 1
+    , Color.lavender 1
+    , Color.plum 1
+    , Color.orchid 1
+    , Color.darkorchid 1
+    , Color.purple 1
+    , Color.tan 1
+    , Color.peru 1
+    , Color.chocolate 1
+    , Color.sienna 1
+    , Color.saddlebrown 1
+    , Color.silver 1
+    , Color.darkgrey 1
+    , Color.grey 1
+    , Color.dimgrey 1
+    , Color.black 1
     ]
 
 
@@ -358,10 +396,6 @@ roundedBorder { class } =
 
             _ ->
                 20
-
-
-
-{- Attributes -}
 
 
 width : Device -> Attribute msg
