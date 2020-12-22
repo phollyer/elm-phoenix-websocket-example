@@ -4,7 +4,7 @@ defmodule ElmPhoenixWebSocketExample.MixProject do
   def project do
     [
       app: :elm_phoenix_web_socket_example,
-      version: "0.2.2",
+      version: "0.2.3",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
