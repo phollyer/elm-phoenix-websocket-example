@@ -123,7 +123,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
-                    case RoomInvite.decode payload |> Debug.log "" of
+                    case RoomInvite.decode payload of
                         Ok invite ->
                             if invite.from.id == newModel.user.id then
                                 ( Model
