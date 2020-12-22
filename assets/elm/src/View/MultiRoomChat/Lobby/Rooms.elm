@@ -155,17 +155,26 @@ toRoomList device (Config config) rooms_ =
                         else
                             room.owner.username
                     )
-                , El.el
-                    [ El.width El.fill
-                    , El.inFront <|
-                        El.el
-                            [ El.width El.fill
-                            , El.above <|
-                                occupantsList device config.showRoomMembers
-                            ]
-                            El.none
-                    ]
-                    El.none
+                , case config.showRoomMembers of
+                    Nothing ->
+                        El.el [] El.none
+
+                    Just room_ ->
+                        if room_ == room then
+                            El.el
+                                [ El.width El.fill
+                                , El.inFront <|
+                                    El.el
+                                        [ El.width El.fill
+                                        , El.above <|
+                                            occupantsList device room
+                                        ]
+                                        El.none
+                                ]
+                                El.none
+
+                        else
+                            El.el [] El.none
                 , List.map (toRoom device (Config config)) rooms_
                     |> El.wrappedRow
                         [ El.spacing 10
@@ -203,13 +212,13 @@ toRoom device (Config config) room =
         ]
 
 
-occupantsList : Device -> Maybe Room -> Element msg
-occupantsList device maybeRoom =
-    case maybeRoom of
-        Nothing ->
+occupantsList : Device -> Room -> Element msg
+occupantsList device room =
+    case room.members of
+        [] ->
             El.none
 
-        Just room ->
+        _ ->
             El.wrappedRow
                 [ padding device
                 , roundedBorders device
