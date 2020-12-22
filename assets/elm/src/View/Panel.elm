@@ -8,7 +8,7 @@ module View.Panel exposing
     , view
     )
 
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..), paragraph)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
@@ -103,31 +103,6 @@ panel device maybeMsg =
         )
 
 
-panelAttrs : Device -> Maybe msg -> List (Attribute msg)
-panelAttrs device maybeMsg =
-    List.append
-        (case maybeMsg of
-            Nothing ->
-                []
-
-            Just _ ->
-                [ El.pointer ]
-        )
-        [ roundedBorder device
-        , BackgroundColor.panel
-        , Border.width 1
-        , BorderColor.panel
-        , El.centerX
-        , El.clip
-        , El.mouseDown
-            [ Shadow.panel device ]
-        , El.mouseOver
-            [ Shadow.panel device ]
-        , El.height El.fill
-        , El.width El.fill
-        ]
-
-
 
 {- Header -}
 
@@ -154,16 +129,21 @@ header device text =
 
 descriptionView : Device -> List (List (Element msg)) -> Element msg
 descriptionView device paragraphs =
-    El.column
-        [ BackgroundColor.panelContent
-        , El.padding 10
-        , El.spacing 10
-        , El.width El.fill
-        , Font.justify
-        , FontFamily.default
-        , FontSize.panelContent device
-        ]
-        (List.map toParagraph paragraphs)
+    case paragraphs of
+        [] ->
+            El.none
+
+        _ ->
+            El.column
+                [ BackgroundColor.panelContent
+                , El.padding 10
+                , El.spacing 10
+                , El.width El.fill
+                , Font.justify
+                , FontFamily.default
+                , FontSize.panelContent device
+                ]
+                (List.map toParagraph paragraphs)
 
 
 toParagraph : List (Element msg) -> Element msg
@@ -193,6 +173,31 @@ elementView el =
 
 
 {- Attributes -}
+
+
+panelAttrs : Device -> Maybe msg -> List (Attribute msg)
+panelAttrs device maybeMsg =
+    List.append
+        (case maybeMsg of
+            Nothing ->
+                []
+
+            Just _ ->
+                [ El.pointer ]
+        )
+        [ roundedBorder device
+        , BackgroundColor.panel
+        , Border.width 1
+        , BorderColor.panel
+        , El.centerX
+        , El.clip
+        , El.mouseDown
+            [ Shadow.panel device ]
+        , El.mouseOver
+            [ Shadow.panel device ]
+        , El.height El.fill
+        , El.width El.fill
+        ]
 
 
 roundedBorder : Device -> Attribute msg
