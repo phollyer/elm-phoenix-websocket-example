@@ -155,32 +155,33 @@ toRoomList device (Config config) rooms_ =
                         else
                             room.owner.username
                     )
-                , case config.showRoomMembers of
-                    Nothing ->
-                        El.el [] El.none
-
-                    Just room_ ->
-                        if room_ == room then
-                            El.el
-                                [ El.width El.fill
-                                , El.inFront <|
-                                    El.el
-                                        [ El.width El.fill
-                                        , El.above <|
-                                            occupantsList device room
-                                        ]
-                                        El.none
-                                ]
-                                El.none
-
-                        else
-                            El.el [] El.none
                 , List.map (toRoom device (Config config)) rooms_
                     |> El.wrappedRow
                         [ El.spacing 10
                         , El.width El.fill
                         ]
                 ]
+
+
+occupantsView : Device -> Maybe Room -> Room -> List (Attribute msg)
+occupantsView device maybeForRoom room =
+    case maybeForRoom of
+        Nothing ->
+            []
+
+        Just room_ ->
+            if room_ == room then
+                [ El.inFront <|
+                    El.el
+                        [ El.width El.fill
+                        , El.above <|
+                            occupantsList device room
+                        ]
+                        El.none
+                ]
+
+            else
+                []
 
 
 sortOtherRooms : Device -> Config msg -> List Room -> List (List Room)
@@ -194,8 +195,8 @@ sortOtherRooms device config rooms_ =
 toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
-        (List.append defaultAttrs <|
-            roomAttrs device room config.onMouseEnter
+        (List.append defaultAttrs (roomAttrs device room config.onMouseEnter)
+            |> List.append (occupantsView device config.showRoomMembers room)
         )
         [ El.text <|
             "Occupants: "
