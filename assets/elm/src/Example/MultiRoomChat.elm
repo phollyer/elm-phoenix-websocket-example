@@ -124,6 +124,11 @@ update msg model =
                     ( { model
                         | room = room
                         , state = InLobby (ChatRoom.owner room)
+                        , phoenix = ChatRoom.toPhoenix model.room
+                        , lobby =
+                            Lobby.enter
+                                (ChatRoom.owner model.room)
+                                (ChatRoom.toPhoenix model.room)
                       }
                     , Cmd.map RoomMsg roomCmd
                     )
@@ -173,6 +178,22 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
+                ChannelResponse (LeaveOk topic) ->
+                    case Phoenix.topicParts topic of
+                        [ "example", "room", _ ] ->
+                            ( { newModel
+                                | state = InLobby (ChatRoom.owner model.room)
+                                , lobby =
+                                    Lobby.enter
+                                        (ChatRoom.owner model.room)
+                                        newModel.phoenix
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
                 _ ->
                     ( newModel, cmd )
 
@@ -186,8 +207,7 @@ back key model =
     case model.state of
         InRoom user room ->
             Phoenix.leave ("example:room:" ++ room.id) model.phoenix
-                |> updatePhoenixWith PhoenixMsg
-                    { model | state = InLobby user }
+                |> updatePhoenixWith PhoenixMsg model
 
         InLobby _ ->
             Phoenix.leave "example:lobby" model.phoenix

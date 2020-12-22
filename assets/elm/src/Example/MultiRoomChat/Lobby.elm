@@ -58,7 +58,9 @@ enter user phoenix =
     Model
         { phoenix = phoenix
         , user = user
-        , presences = []
+        , presences =
+            Phoenix.presenceState "example:lobby" phoenix
+                |> Presence.decodeList
         , rooms = []
         , showRoomMembers = Nothing
         , roomInvites = []
