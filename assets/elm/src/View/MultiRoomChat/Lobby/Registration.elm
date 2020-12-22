@@ -169,11 +169,11 @@ errorView device maybeError =
             El.none
 
         Just error ->
-            El.el
+            El.paragraph
                 [ El.width El.fill
                 , FontColor.error
                 ]
-                (El.text (ErrorMessage.toString error))
+                [ El.text (ErrorMessage.toString error) ]
 
 
 inputField : Device -> Config msg -> Element msg

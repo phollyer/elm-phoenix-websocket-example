@@ -153,6 +153,9 @@ handleErrors errors (Model model) =
                 UsernameCannotBeBlank ->
                     Model { model_ | usernameError = Just UsernameCannotBeBlank }
 
+                UsernamePartsCannotBeLongerThan12Chars ->
+                    Model { model_ | usernameError = Just UsernamePartsCannotBeLongerThan12Chars }
+
                 BackgroundColorNotSelected ->
                     Model { model_ | backgroundColorError = Just BackgroundColorNotSelected }
 
@@ -195,8 +198,19 @@ validateUsername username =
     if String.trim username == "" then
         Failure [ UsernameCannotBeBlank ]
 
+    else if usernamePartMoreThan12Chars username then
+        Failure [ UsernamePartsCannotBeLongerThan12Chars ]
+
     else
         Success [ Username (String.trim username) ]
+
+
+usernamePartMoreThan12Chars : String -> Bool
+usernamePartMoreThan12Chars username =
+    String.words username
+        |> List.filter (\word -> String.length word > 12)
+        |> List.isEmpty
+        |> not
 
 
 validateBackgroundColor : Maybe Color -> TwoTrack Field
