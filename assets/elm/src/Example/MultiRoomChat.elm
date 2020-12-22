@@ -121,17 +121,8 @@ update msg model =
                     )
 
                 LeaveRoom ->
-                    ( { model
-                        | room = room
-                        , state = InLobby (ChatRoom.owner room)
-                        , phoenix = ChatRoom.toPhoenix model.room
-                        , lobby =
-                            Lobby.enter
-                                (ChatRoom.owner model.room)
-                                (ChatRoom.toPhoenix model.room)
-                      }
-                    , Cmd.map RoomMsg roomCmd
-                    )
+                    Phoenix.leave ("example:room:" ++ ChatRoom.toId room) model.phoenix
+                        |> updatePhoenixWith PhoenixMsg { model | room = room }
 
         PhoenixMsg subMsg ->
             let

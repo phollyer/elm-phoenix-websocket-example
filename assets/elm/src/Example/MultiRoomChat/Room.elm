@@ -6,6 +6,7 @@ module Example.MultiRoomChat.Room exposing
     , init
     , owner
     , subscriptions
+    , toId
     , toPhoenix
     , update
     , view
@@ -83,6 +84,11 @@ owner (Model { user }) =
 toPhoenix : Model -> Phoenix.Model
 toPhoenix (Model model) =
     model.phoenix
+
+
+toId : Model -> String
+toId (Model model) =
+    model.room.id
 
 
 
