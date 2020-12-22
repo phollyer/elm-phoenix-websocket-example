@@ -6,7 +6,7 @@ module View.MultiRoomChat.Room.Messages exposing
     )
 
 import Colors.Opaque as Color
-import Element as El exposing (Attribute, Color, Device, Element)
+import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -49,52 +49,43 @@ messages list (Config config) =
 
 
 view : Device -> Config -> Element msg
-view _ (Config config) =
+view device (Config config) =
     El.column
-        [ El.spacing 10
-        , El.padding 10
+        [ padding device
+        , spacing device
         , El.height El.fill
         , El.width El.fill
-        , Font.alignLeft
         ]
     <|
-        List.map (toMessage config.user) config.messages
+        List.map (toMessage device config.user) config.messages
 
 
-toMessage : User -> ChatMessage -> Element msg
-toMessage currentUser message =
+toMessage : Device -> User -> ChatMessage -> Element msg
+toMessage device currentUser message =
     if currentUser.id == message.owner.id then
-        userMessage message
+        userMessage device message
 
     else
-        othersMessage message
+        othersMessage device message
 
 
-userMessage : ChatMessage -> Element msg
-userMessage { owner, text } =
+userMessage : Device -> ChatMessage -> Element msg
+userMessage device { owner, text } =
     row
         [ emptySpace
         , column
-            [ username El.alignRight owner.username
-            , messageContent El.alignRight
-                { backgroundColor = Color.darkslateblue
-                , fontColor = Color.skyblue
-                }
-                text
+            [ username device El.alignRight owner
+            , messageContent device El.alignRight owner text
             ]
         ]
 
 
-othersMessage : ChatMessage -> Element msg
-othersMessage { owner, text } =
+othersMessage : Device -> ChatMessage -> Element msg
+othersMessage device { owner, text } =
     row
         [ column
-            [ username El.alignLeft owner.username
-            , messageContent El.alignLeft
-                { backgroundColor = Color.darkseagreen
-                , fontColor = Color.darkolivegreen
-                }
-                text
+            [ username device El.alignLeft owner
+            , messageContent device El.alignLeft owner text
             ]
         , emptySpace
         ]
@@ -110,35 +101,53 @@ column : List (Element msg) -> Element msg
 column =
     El.column
         [ El.spacing 5
-        , El.width <| El.fillPortion 5
+        , El.width <|
+            El.fillPortion 5
         ]
 
 
 emptySpace : Element msg
 emptySpace =
     El.el
-        [ El.width <| El.fillPortion 1 ]
+        [ El.width <|
+            El.fillPortion 1
+        ]
         El.none
 
 
-username : Attribute msg -> String -> Element msg
-username alignment name =
+
+{- Username -}
+
+
+username : Device -> Attribute msg -> User -> Element msg
+username device alignment user_ =
     El.el
         [ alignment
-        , FontColor.default
+        , padding device
+        , roundedBorders device
+        , Background.color user_.backgroundColor
+        , Border.color user_.foregroundColor
+        , Border.width 1
+        , Font.color user_.foregroundColor
         ]
-        (El.text name)
+        (El.text user_.username)
 
 
-messageContent : Attribute msg -> { backgroundColor : Color, fontColor : Color } -> String -> Element msg
-messageContent alignment { backgroundColor, fontColor } text =
+
+{- Message -}
+
+
+messageContent : Device -> Attribute msg -> User -> String -> Element msg
+messageContent device alignment owner text =
     El.column
         [ alignment
-        , Background.color backgroundColor
-        , Border.rounded 10
-        , El.padding 5
-        , El.spacing 10
-        , Font.color fontColor
+        , padding device
+        , spacing device
+        , roundedBorders device
+        , Background.color owner.backgroundColor
+        , Border.color owner.foregroundColor
+        , Border.width 1
+        , Font.color owner.foregroundColor
         ]
         (toParagraphs text)
 
@@ -151,6 +160,53 @@ toParagraphs text =
 
 toParagraph : String -> Element msg
 toParagraph text =
-    El.paragraph
-        [ El.width El.fill ]
-        [ El.text text ]
+    El.el [ El.width El.fill ] <|
+        El.paragraph
+            [ El.width El.fill ]
+            [ El.text text ]
+
+
+
+{- Attributes -}
+
+
+padding : Device -> Attribute msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+spacing : Device -> Attribute msg
+spacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+roundedBorders : Device -> Attribute msg
+roundedBorders { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
