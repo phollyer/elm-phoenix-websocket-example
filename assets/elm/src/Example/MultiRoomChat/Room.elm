@@ -4,12 +4,16 @@ module Example.MultiRoomChat.Room exposing
     , OutMsg(..)
     , enter
     , init
+    , inviteAccepted
+    , inviteDeclined
+    , inviteSent
     , lobbyPresenceState
     , messageList
     , occupantIsTyping
     , occupantStoppedTyping
     , owner
     , presenceState
+    , revokeInvite
     , subscriptions
     , toId
     , toPhoenix
@@ -26,13 +30,14 @@ import Element.Border as Border
 import Element.Font as Font
 import Example.MultiRoomChat.Room.LobbyOccupants as LobbyOccupants
 import Json.Decode as JD
-import Json.Encode as JE
+import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..))
 import Session exposing (device)
 import Task
 import Type.ChatMessage as ChatMessage exposing (ChatMessage)
 import Type.Presence as Presence exposing (Presence)
 import Type.Room as Room exposing (Room)
+import Type.RoomInvite exposing (RoomInvite)
 import Type.User as User exposing (User)
 import UI.Padding as Padding
 import View.MultiRoomChat.Room.Chat as Chat
@@ -107,12 +112,13 @@ toId (Model model) =
 
 type OutMsg
     = Empty
-    | LeaveRoom
+    | SendMessage String Room
+    | OccupantStartedTyping User Room
+    | OccupantStoppedTyping User Room
 
 
 type Msg
     = NoOp
-    | PhoenixMsg Phoenix.Msg
     | LobbyOccupantsMsg LobbyOccupants.Msg
     | OnResize Int Int
     | LayoutHeight (Result Dom.Error Dom.Element)
@@ -150,74 +156,33 @@ update msg (Model model) =
             ( Model { model | message = message }, Cmd.none, Empty )
 
         GotSendMessage ->
-            updatePhoenixWith PhoenixMsg (Model { model | message = "" }) <|
-                Phoenix.push
-                    { pushConfig
-                        | topic = "example:room:" ++ model.room.id
-                        , event = "new_message"
-                        , payload =
-                            JE.object
-                                [ ( "message", JE.string model.message ) ]
-                    }
-                    model.phoenix
+            ( Model { model | message = "" }, Cmd.none, SendMessage model.message model.room )
 
         GotMemberStartedTyping user room ->
-            updatePhoenixWith PhoenixMsg (Model model) <|
-                Phoenix.push
-                    { pushConfig
-                        | topic = "example:room:" ++ room.id
-                        , event = "member_started_typing"
-                        , payload =
-                            JE.object
-                                [ ( "username", JE.string user.username ) ]
-                    }
-                    model.phoenix
+            ( Model model, Cmd.none, OccupantStartedTyping user room )
 
         GotMemberStoppedTyping user room ->
-            updatePhoenixWith PhoenixMsg (Model model) <|
-                Phoenix.push
-                    { pushConfig
-                        | topic = "example:room:" ++ room.id
-                        , event = "member_stopped_typing"
-                        , payload =
-                            JE.object
-                                [ ( "username", JE.string user.username ) ]
-                    }
-                    model.phoenix
+            ( Model model, Cmd.none, OccupantStoppedTyping user room )
 
-        PhoenixMsg subMsg ->
-            let
-                ( newModel, cmd, phoenixMsg ) =
-                    Phoenix.update subMsg model.phoenix
-                        |> Phoenix.updateWith PhoenixMsg model
-            in
-            case phoenixMsg of
-                ChannelEvent _ "room_closed" payload ->
-                    case Room.decode payload of
-                        Ok room ->
-                            if room.id == newModel.room.id then
-                                ( Model newModel, cmd, LeaveRoom )
 
-                            else
-                                ( Model newModel, cmd, Empty )
+inviteSent : RoomInvite -> Model -> Model
+inviteSent invite (Model model) =
+    Model { model | lobbyOccupants = LobbyOccupants.inviteSent invite model.lobbyOccupants }
 
-                        Err _ ->
-                            ( Model newModel, cmd, Empty )
 
-                ChannelEvent _ "room_deleted" payload ->
-                    case Room.decode payload of
-                        Ok room ->
-                            if room.id == newModel.room.id then
-                                ( Model newModel, cmd, LeaveRoom )
+inviteAccepted : RoomInvite -> Model -> Model
+inviteAccepted invite (Model model) =
+    Model { model | lobbyOccupants = LobbyOccupants.inviteAccepted invite model.lobbyOccupants }
 
-                            else
-                                ( Model newModel, cmd, Empty )
 
-                        Err _ ->
-                            ( Model newModel, cmd, Empty )
+inviteDeclined : RoomInvite -> Model -> Model
+inviteDeclined invite (Model model) =
+    Model { model | lobbyOccupants = LobbyOccupants.inviteDeclined invite model.lobbyOccupants }
 
-                _ ->
-                    ( Model newModel, cmd, Empty )
+
+revokeInvite : RoomInvite -> Model -> Model
+revokeInvite invite (Model model) =
+    Model { model | lobbyOccupants = LobbyOccupants.revokeInvite invite model.lobbyOccupants }
 
 
 occupantIsTyping : String -> Model -> Model
@@ -282,8 +247,6 @@ subscriptions : Model -> Sub Msg
 subscriptions (Model { phoenix, lobbyOccupants }) =
     Sub.batch
         [ onResize OnResize
-        , Phoenix.subscriptions phoenix
-            |> Sub.map PhoenixMsg
         , LobbyOccupants.subscriptions lobbyOccupants
             |> Sub.map LobbyOccupantsMsg
         ]

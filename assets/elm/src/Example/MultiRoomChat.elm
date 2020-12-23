@@ -18,13 +18,13 @@ import Example.MultiRoomChat.Registration as Registration
 import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
 import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
 import Type.Presence as Presence
 import Type.Room as Room exposing (Room)
-import Type.RoomInvite as RoomInvite
+import Type.RoomInvite as RoomInvite exposing (RoomInvite)
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
 
@@ -129,9 +129,41 @@ update msg model =
                     , Cmd.map RoomMsg roomCmd
                     )
 
-                LeaveRoom ->
-                    Phoenix.leave ("example:room:" ++ ChatRoom.toId room) model.phoenix
-                        |> updatePhoenixWith PhoenixMsg { model | room = room }
+                SendMessage message room_ ->
+                    updatePhoenixWith PhoenixMsg model <|
+                        Phoenix.push
+                            { pushConfig
+                                | topic = "example:room:" ++ room_.id
+                                , event = "new_message"
+                                , payload =
+                                    JE.object
+                                        [ ( "message", JE.string message ) ]
+                            }
+                            model.phoenix
+
+                OccupantStartedTyping user room_ ->
+                    updatePhoenixWith PhoenixMsg model <|
+                        Phoenix.push
+                            { pushConfig
+                                | topic = "example:room:" ++ room_.id
+                                , event = "member_started_typing"
+                                , payload =
+                                    JE.object
+                                        [ ( "username", JE.string user.username ) ]
+                            }
+                            model.phoenix
+
+                OccupantStoppedTyping user room_ ->
+                    updatePhoenixWith PhoenixMsg model <|
+                        Phoenix.push
+                            { pushConfig
+                                | topic = "example:room:" ++ room_.id
+                                , event = "member_stopped_typing"
+                                , payload =
+                                    JE.object
+                                        [ ( "username", JE.string user.username ) ]
+                            }
+                            model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -156,12 +188,71 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                ChannelEvent "example:lobby" "revoke_invite" payload ->
+                ChannelEvent "example:lobby" "invite_accepted" payload ->
                     case RoomInvite.decode payload of
                         Ok invite ->
-                            ( { newModel | lobby = Lobby.revokeInvite invite newModel.lobby }, cmd )
+                            if invite.toId == Lobby.userId newModel.lobby then
+                                let
+                                    topic =
+                                        "example:room:" ++ invite.roomId
+                                in
+                                updatePhoenixWith PhoenixMsg { newModel | room = ChatRoom.inviteAccepted invite newModel.room } <|
+                                    Phoenix.join topic <|
+                                        Phoenix.setJoinConfig
+                                            { joinConfig
+                                                | topic = topic
+                                                , events =
+                                                    [ "message_list"
+                                                    , "member_started_typing"
+                                                    , "member_stopped_typing"
+                                                    , "room_closed"
+                                                    ]
+                                                , payload =
+                                                    JE.object
+                                                        [ ( "id", JE.string invite.toId ) ]
+                                            }
+                                            model.phoenix
+
+                            else
+                                ( newModel, cmd )
 
                         Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "invite_expired" payload ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel
+                                | lobby = Lobby.inviteExpired invite newModel.lobby
+                              }
+                            , cmd
+                            )
+
+                        Err e ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "invite_revoked" payload ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel | lobby = Lobby.inviteRevoked invite newModel.lobby }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "occupant_left_room" payload ->
+                    ( { newModel | lobby = Lobby.occupantLeftRoom payload newModel.lobby }, cmd )
+
+                ChannelEvent _ "invite_declined" payload ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel
+                                | lobby = Lobby.inviteDeclined invite newModel.lobby
+                                , room = ChatRoom.inviteDeclined invite newModel.room
+                              }
+                            , cmd
+                            )
+
+                        Err e ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "message_list" payload ->
@@ -191,6 +282,23 @@ update msg model =
                             ( { newModel | room = ChatRoom.occupantStoppedTyping username newModel.room }, cmd )
 
                         Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent topic "room_closed" payload ->
+                    case Phoenix.topicParts topic of
+                        [ "example", "lobby" ] ->
+                            case Room.decode payload of
+                                Ok room ->
+                                    ( { newModel | lobby = Lobby.roomClosed room newModel.lobby }, cmd )
+
+                                Err _ ->
+                                    ( newModel, cmd )
+
+                        [ "example", "room", id ] ->
+                            Phoenix.leave ("example:room:" ++ id) newModel.phoenix
+                                |> updatePhoenixWith PhoenixMsg newModel
+
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelResponse (JoinOk "example:lobby" payload) ->
@@ -250,6 +358,22 @@ update msg model =
                     , cmd
                     )
 
+                ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel | room = ChatRoom.inviteSent invite newModel.room }, cmd )
+
+                        Err e ->
+                            ( newModel, cmd )
+
+                ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel | room = ChatRoom.revokeInvite invite newModel.room }, cmd )
+
+                        Err e ->
+                            ( newModel, cmd )
+
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
                     let
                         presenceState =
@@ -264,6 +388,13 @@ update msg model =
 
                 PresenceEvent (Phoenix.State _ state) ->
                     ( { newModel | room = ChatRoom.presenceState (Presence.decodeState state) newModel.room }, cmd )
+
+                PresenceEvent (Phoenix.Leave topic presence) ->
+                    let
+                        _ =
+                            Debug.log "" presence
+                    in
+                    ( newModel, cmd )
 
                 _ ->
                     ( newModel, cmd )

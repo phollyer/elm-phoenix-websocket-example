@@ -12,8 +12,8 @@ import Type.User as User exposing (User)
 
 type alias RoomInvite =
     { from : User
-    , to_id : String
-    , room_id : String
+    , toId : String
+    , roomId : String
     }
 
 
@@ -21,8 +21,8 @@ encode : RoomInvite -> Value
 encode invite =
     JE.object
         [ ( "from", User.encode invite.from )
-        , ( "to_id", JE.string invite.to_id )
-        , ( "room_id", JE.string invite.room_id )
+        , ( "to_id", JE.string invite.toId )
+        , ( "room_id", JE.string invite.roomId )
         ]
 
 

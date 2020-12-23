@@ -38,9 +38,11 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
         if socket.assigns.user_id == room.owner.id do
           Room.delete_all_members(room)
 
-          broadcast(socket, "room_closed", room)
+          broadcast_room_closed(socket, room)
         else
           Room.delete_member(room, socket.assigns.user_id)
+
+          ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "occupant_left_room", %{user_id: socket.assigns.user_id, room_id: room.id})
         end
 
       :not_found ->
@@ -72,6 +74,11 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
     {:reply, :ok, socket}
   end
 
+
+  defp broadcast_room_closed(socket, room) do
+    broadcast(socket, "room_closed", room)
+    ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "room_closed", room)
+  end
 
   defp broadcast_room_list do
     ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "room_list", %{rooms: Room.all()})

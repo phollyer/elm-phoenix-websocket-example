@@ -3,21 +3,28 @@ module Example.MultiRoomChat.Lobby exposing
     , Msg
     , enter
     , init
+    , inviteAccepted
+    , inviteDeclined
+    , inviteExpired
+    , inviteRevoked
+    , occupantLeftRoom
     , occupants
     , presenceState
-    , revokeInvite
+    , roomClosed
     , roomInvite
     , roomList
     , subscriptions
     , toPhoenix
     , update
+    , userId
     , view
     )
 
 import Configs exposing (joinConfig, pushConfig)
 import Element exposing (Device, Element)
 import Json.Decode as JD
-import Json.Encode as JE
+import Json.Decode.Extra exposing (andMap)
+import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.ErrorMessage exposing (ErrorMessage(..))
 import Type.Presence as Presence exposing (Presence)
@@ -82,6 +89,11 @@ occupants (Model { presences }) =
     presences
 
 
+userId : Model -> String
+userId (Model model) =
+    model.user.id
+
+
 
 {- Update -}
 
@@ -137,7 +149,7 @@ update msg (Model model) =
                     , payload =
                         JE.object
                             [ ( "from", User.encode invite.from )
-                            , ( "room_id", JE.string invite.room_id )
+                            , ( "room_id", JE.string invite.roomId )
                             ]
                 }
                 model.phoenix
@@ -152,7 +164,7 @@ update msg (Model model) =
                     , payload =
                         JE.object
                             [ ( "from", User.encode invite.from )
-                            , ( "room_id", JE.string invite.room_id )
+                            , ( "room_id", JE.string invite.roomId )
                             ]
                 }
                 model.phoenix
@@ -162,50 +174,8 @@ update msg (Model model) =
         GotInviteErrorOk invite ->
             ( Model { model | inviteError = Nothing }, Cmd.none )
 
-        PhoenixMsg subMsg ->
-            let
-                ( newModel, cmd, phoenixMsg ) =
-                    Phoenix.update subMsg model.phoenix
-                        |> Phoenix.updateWith PhoenixMsg model
-            in
-            case phoenixMsg of
-                ChannelResponse (PushOk "example:lobby" "invite_accepted" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            enterRoom invite.room_id (Model { model | roomInvites = [] })
-
-                        Err _ ->
-                            ( Model newModel, cmd )
-
-                ChannelResponse (PushError "example:lobby" "invite_accepted" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( Model
-                                { newModel
-                                    | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites
-                                    , inviteError = Just (RoomClosed invite)
-                                }
-                            , cmd
-                            )
-
-                        Err _ ->
-                            ( Model newModel, cmd )
-
-                ChannelResponse (PushOk "example:lobby" "invite_declined" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( Model
-                                { newModel
-                                    | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites
-                                }
-                            , cmd
-                            )
-
-                        Err _ ->
-                            ( Model newModel, cmd )
-
-                _ ->
-                    ( Model newModel, cmd )
+        _ ->
+            ( Model model, Cmd.none )
 
 
 enterRoom : String -> Model -> ( Model, Cmd Msg )
@@ -239,9 +209,62 @@ roomList rooms (Model model) =
     Model { model | rooms = rooms }
 
 
+roomClosed : Room -> Model -> Model
+roomClosed room (Model model) =
+    Model
+        { model | roomInvites = List.filter (\invite_ -> invite_.roomId /= room.id) model.roomInvites }
+
+
+
+{- Room Invites -}
+
+
+inviteAccepted : RoomInvite -> Model -> Model
+inviteAccepted invite (Model model) =
+    if invite.toId == model.user.id then
+        Model
+            { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+
+    else
+        Model model
+
+
+inviteDeclined : RoomInvite -> Model -> Model
+inviteDeclined invite (Model model) =
+    if invite.toId == model.user.id then
+        Model
+            { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+
+    else
+        Model model
+
+
+inviteExpired : RoomInvite -> Model -> Model
+inviteExpired invite (Model model) =
+    if invite.toId == model.user.id then
+        Model
+            { model
+                | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites
+                , inviteError = Just (RoomClosed invite)
+            }
+
+    else
+        Model model
+
+
+inviteRevoked : RoomInvite -> Model -> Model
+inviteRevoked invite (Model model) =
+    if invite.toId == model.user.id then
+        Model
+            { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+
+    else
+        Model model
+
+
 roomInvite : RoomInvite -> Model -> Model
 roomInvite invite (Model model) =
-    if invite.to_id == model.user.id then
+    if invite.toId == model.user.id then
         Model
             { model | roomInvites = List.append model.roomInvites [ invite ] }
 
@@ -249,14 +272,33 @@ roomInvite invite (Model model) =
         Model model
 
 
-revokeInvite : RoomInvite -> Model -> Model
-revokeInvite invite (Model model) =
-    if invite.to_id == model.user.id then
-        Model
-            { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+occupantLeftRoom : Value -> Model -> Model
+occupantLeftRoom payload (Model model) =
+    case decodeOccupant payload of
+        Ok occupant ->
+            Model { model | roomInvites = List.filter (\invite_ -> invite_.from.id /= occupant.userId && invite_.roomId /= occupant.roomId) model.roomInvites }
 
-    else
-        Model model
+        Err _ ->
+            Model model
+
+
+type alias Occupant =
+    { userId : String
+    , roomId : String
+    }
+
+
+decodeOccupant : Value -> Result JD.Error Occupant
+decodeOccupant payload =
+    JD.decodeValue occupantDecoder payload
+
+
+occupantDecoder : JD.Decoder Occupant
+occupantDecoder =
+    JD.succeed
+        Occupant
+        |> andMap (JD.field "user_id" JD.string)
+        |> andMap (JD.field "room_id" JD.string)
 
 
 presenceState : List Presence -> Model -> Model
@@ -270,9 +312,7 @@ presenceState state (Model model) =
 
 subscriptions : (Msg -> msg) -> Model -> Sub msg
 subscriptions toMsg (Model { phoenix }) =
-    Phoenix.subscriptions phoenix
-        |> Sub.map PhoenixMsg
-        |> Sub.map toMsg
+    Sub.none
 
 
 

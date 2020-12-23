@@ -36,7 +36,8 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
       |> Enum.each(fn result ->
         case result do
           {:ok, room} ->
-            broadcast(socket, "room_deleted", room)
+            broadcast(socket, "room_closed", room)
+
           :not_found ->
             nil
         end
@@ -70,21 +71,17 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   def handle_in("room_invite", %{"to_id" => to_id, "room_id" => room_id}, socket) do
     {:ok, user} = User.find(socket.assigns.user_id)
 
+    {:ok, room} = Room.find(room_id)
+
     invite = 
       %{from: user,
         to_id: to_id,
         room_id: room_id
       }
 
-    case Room.find(room_id) do
-      {:ok, room} ->
-        broadcast(socket, "room_invite", invite)
+    broadcast(socket, "room_invite", invite)
 
-        {:reply, {:ok, invite}, socket}
-
-      :not_found ->
-        {:reply, {:error, invite}, socket}
-    end
+    {:reply, {:ok, invite}, socket}
   end
 
   def handle_in("invite_accepted", %{"from" => from, "room_id" => room_id}, socket) do
@@ -99,10 +96,12 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
 
         broadcast(socket, "invite_accepted", invite)
 
-        {:reply, {:ok, invite}, socket}
+        {:reply, :ok, socket}
 
       _ ->
-        {:reply, {:error, invite}, socket}
+        push(socket, "invite_expired", invite)
+
+        {:reply, :ok, socket}
     end
   end
 
@@ -127,7 +126,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
         room_id: room_id
       }
 
-      broadcast(socket, "revoke_invite", invite)
+      broadcast(socket, "invite_revoked", invite)
 
       {:reply, {:ok, invite}, socket}
   end

@@ -6,7 +6,7 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Json.Decode as JD
-import Json.Encode as JE
+import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..), pushConfig)
 import Tuple3
 import Type.Presence as Presence exposing (Presence)
@@ -59,8 +59,8 @@ update msg (Model model) =
             let
                 invite =
                     { from = model.user
-                    , to_id = user.id
-                    , room_id = model.room.id
+                    , toId = user.id
+                    , roomId = model.room.id
                     }
 
                 event =
@@ -87,56 +87,6 @@ update msg (Model model) =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if List.member invite newModel.sentInvites then
-                                ( Model newModel, cmd )
-
-                            else
-                                ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
-
-                        Err e ->
-                            ( Model newModel, cmd )
-
-                ChannelResponse (PushError "example:lobby" "room_invite" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( Model { newModel | sentInvites = invite :: newModel.sentInvites }, cmd )
-
-                        Err _ ->
-                            ( Model newModel, cmd )
-
-                ChannelEvent "example:lobby" "invite_declined" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if invite.from.id == newModel.user.id then
-                                ( Model
-                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ /= invite) newModel.sentInvites }
-                                , cmd
-                                )
-
-                            else
-                                ( Model newModel, cmd )
-
-                        Err e ->
-                            ( Model newModel, cmd )
-
-                ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if invite.from.id == newModel.user.id then
-                                ( Model
-                                    { newModel | sentInvites = List.filter (\invite_ -> invite_ /= invite) newModel.sentInvites }
-                                , cmd
-                                )
-
-                            else
-                                ( Model newModel, cmd )
-
-                        Err e ->
-                            ( Model newModel, cmd )
-
                 _ ->
                     ( Model newModel, cmd )
 
@@ -149,6 +99,42 @@ updateRoom room (Model model) =
 updateOccupants : List Presence -> Model -> Model
 updateOccupants occupants (Model model) =
     Model { model | occupants = occupants }
+
+
+inviteSent : RoomInvite -> Model -> Model
+inviteSent invite (Model model) =
+    if List.member invite model.sentInvites then
+        Model model
+
+    else
+        Model { model | sentInvites = invite :: model.sentInvites }
+
+
+inviteAccepted : RoomInvite -> Model -> Model
+inviteAccepted invite (Model model) =
+    if invite.from.id == model.user.id then
+        Model { model | sentInvites = List.filter (\invite_ -> invite_ /= invite) model.sentInvites }
+
+    else
+        Model model
+
+
+inviteDeclined : RoomInvite -> Model -> Model
+inviteDeclined invite (Model model) =
+    if invite.from.id == model.user.id then
+        Model { model | sentInvites = List.filter (\invite_ -> invite_ /= invite) model.sentInvites }
+
+    else
+        Model model
+
+
+revokeInvite : RoomInvite -> Model -> Model
+revokeInvite invite (Model model) =
+    if invite.from.id == model.user.id then
+        Model { model | sentInvites = List.filter (\invite_ -> invite_ /= invite) model.sentInvites }
+
+    else
+        Model model
 
 
 
@@ -232,7 +218,7 @@ occupantView device sentInvites { user } =
 
 isInvited : User -> List RoomInvite -> Bool
 isInvited user sentInvites =
-    case List.filter (\invite -> invite.to_id == user.id) sentInvites of
+    case List.filter (\invite -> invite.toId == user.id) sentInvites of
         [] ->
             False
 

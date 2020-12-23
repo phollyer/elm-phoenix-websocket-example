@@ -110,10 +110,14 @@ update msg (Model model) =
                                 { joinConfig
                                     | topic = "example:lobby"
                                     , events =
-                                        [ "room_list"
+                                        [ "room_closed"
+                                        , "room_list"
                                         , "room_invite"
+                                        , "invite_accepted"
                                         , "invite_declined"
-                                        , "revoke_invite"
+                                        , "invite_expired"
+                                        , "invite_revoked"
+                                        , "occupant_left_room"
                                         ]
                                     , payload = encodeFields fields
                                 }
