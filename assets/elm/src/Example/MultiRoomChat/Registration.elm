@@ -1,13 +1,20 @@
-module Example.MultiRoomChat.Registration exposing (..)
+module Example.MultiRoomChat.Registration exposing
+    ( Model
+    , Msg
+    , OutMsg(..)
+    , init
+    , toPhoenix
+    , update
+    , view
+    )
 
-import Element as El exposing (Color, Device, Element)
+import Element exposing (Color, Device, Element)
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
 import Type.Color as Color
 import Type.ErrorMessage exposing (ErrorMessage(..))
 import Type.TwoTrack exposing (TwoTrack(..), bind)
 import Type.User as User exposing (User)
-import UI.FontColor exposing (error)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby.Registration as Registration exposing (backgroundColorError)
 
@@ -138,7 +145,7 @@ update msg (Model model) =
                         Ok user ->
                             ( Model newModel, cmd, JoinLobby newModel.phoenix user )
 
-                        Err error ->
+                        Err _ ->
                             ( Model newModel, cmd, Empty )
 
                 _ ->
@@ -259,16 +266,6 @@ encodeField field =
 
         ForegroundColor color ->
             ( "foreground_color", Color.encode color )
-
-
-
-{- Subscriptions -}
-
-
-subscriptions : Model -> Sub Msg
-subscriptions (Model model) =
-    Phoenix.subscriptions model.phoenix
-        |> Sub.map PhoenixMsg
 
 
 

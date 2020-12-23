@@ -5,14 +5,12 @@ module View.MultiRoomChat.Room.Messages exposing
     , view
     )
 
-import Colors.Opaque as Color
-import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element)
+import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Type.ChatMessage exposing (ChatMessage)
 import Type.User as User exposing (User)
-import UI.FontColor as FontColor
 
 
 

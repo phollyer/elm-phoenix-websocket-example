@@ -23,19 +23,15 @@ module Example.MultiRoomChat.Room exposing
 
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
-import Configs exposing (pushConfig)
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orientation(..))
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Example.MultiRoomChat.Room.LobbyOccupants as LobbyOccupants
-import Json.Decode as JD
-import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..))
-import Session exposing (device)
 import Task
-import Type.ChatMessage as ChatMessage exposing (ChatMessage)
-import Type.Presence as Presence exposing (Presence)
+import Type.ChatMessage exposing (ChatMessage)
+import Type.Presence exposing (Presence)
 import Type.Room as Room exposing (Room)
 import Type.RoomInvite exposing (RoomInvite)
 import Type.User as User exposing (User)
@@ -118,8 +114,7 @@ type OutMsg
 
 
 type Msg
-    = NoOp
-    | LobbyOccupantsMsg LobbyOccupants.Msg
+    = LobbyOccupantsMsg LobbyOccupants.Msg
     | OnResize Int Int
     | LayoutHeight (Result Dom.Error Dom.Element)
     | GotMessageChange String
@@ -131,9 +126,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg, OutMsg )
 update msg (Model model) =
     case msg of
-        NoOp ->
-            ( Model model, Cmd.none, Empty )
-
         LobbyOccupantsMsg subMsg ->
             let
                 ( lobbyOccupants, loCmd ) =
@@ -229,11 +221,6 @@ presenceState state (Model model) =
         }
 
 
-updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg, OutMsg )
-updatePhoenixWith toMsg (Model model) ( phoenix, phoenixCmd ) =
-    ( Model { model | phoenix = phoenix }, Cmd.map toMsg phoenixCmd, Empty )
-
-
 getLayoutHeight : Cmd Msg
 getLayoutHeight =
     Task.attempt LayoutHeight (Dom.getElement "layout")
@@ -244,7 +231,7 @@ getLayoutHeight =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions (Model { phoenix, lobbyOccupants }) =
+subscriptions (Model { lobbyOccupants }) =
     Sub.batch
         [ onResize OnResize
         , LobbyOccupants.subscriptions lobbyOccupants

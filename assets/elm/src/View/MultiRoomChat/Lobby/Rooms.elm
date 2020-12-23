@@ -16,13 +16,10 @@ import Element.Events as Event
 import Element.Font as Font
 import Json.Decode.Extra exposing (combine)
 import List.Extra as List
-import Session exposing (device)
 import Type.Room exposing (Room)
 import Type.User as User exposing (User)
 import UI.BackgroundColor as BackgroundColor
-import UI.BorderColor as BorderColor
 import UI.FontColor as FontColor
-import UI.Shadow as Shadow
 import View.Button as Button
 
 
@@ -114,7 +111,7 @@ roomsView : Device -> Config msg -> List (Element msg)
 roomsView device (Config config) =
     List.partition (\room -> room.owner == config.user) config.rooms
         |> Tuple.mapFirst (toRoomList device (Config config))
-        |> Tuple.mapSecond (sortOtherRooms device (Config config))
+        |> Tuple.mapSecond sortOtherRooms
         |> Tuple.mapSecond (toRows device (Config config))
         |> combine
 
@@ -184,8 +181,8 @@ occupantsView device maybeForRoom room =
                 []
 
 
-sortOtherRooms : Device -> Config msg -> List Room -> List (List Room)
-sortOtherRooms device config rooms_ =
+sortOtherRooms : List Room -> List (List Room)
+sortOtherRooms rooms_ =
     List.sortWith byOwner rooms_
         |> List.groupWhile (\roomA roomB -> roomA.owner == roomB.owner)
         |> List.map (\( a, b ) -> a :: b)
@@ -195,7 +192,7 @@ sortOtherRooms device config rooms_ =
 toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
-        (List.append defaultAttrs (roomAttrs device room config.onMouseEnter)
+        (List.append defaultAttrs (roomAttrs room config.onMouseEnter)
             |> List.append (occupantsView device config.showRoomMembers room)
         )
         [ El.text <|
@@ -332,8 +329,8 @@ defaultAttrs =
     ]
 
 
-roomAttrs : Device -> Room -> Maybe (Maybe Room -> msg) -> List (Attribute msg)
-roomAttrs device room maybeOnMouseEnter =
+roomAttrs : Room -> Maybe (Maybe Room -> msg) -> List (Attribute msg)
+roomAttrs room maybeOnMouseEnter =
     case maybeOnMouseEnter of
         Nothing ->
             []

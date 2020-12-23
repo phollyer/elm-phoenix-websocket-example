@@ -170,7 +170,7 @@ feedback device { phoenix, responses } =
         |> Feedback.elements
             [ FeedbackPanel.init
                 |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (responsesView device phoenix responses)
+                |> FeedbackPanel.scrollable (responsesView device responses)
                 |> FeedbackPanel.view device
             , FeedbackPanel.init
                 |> FeedbackPanel.title "Applicable Functions"
@@ -184,13 +184,13 @@ feedback device { phoenix, responses } =
         |> Feedback.view device
 
 
-responsesView : Device -> Phoenix.Model -> List Response -> List (Element Msg)
-responsesView device phoenix responses =
-    List.map (responseView device phoenix) responses
+responsesView : Device -> List Response -> List (Element Msg)
+responsesView device responses =
+    List.map (responseView device) responses
 
 
-responseView : Device -> Phoenix.Model -> Response -> Element Msg
-responseView device phoenix response =
+responseView : Device -> Response -> Element Msg
+responseView device response =
     case response of
         Socket (StateChange state) ->
             FeedbackContent.init

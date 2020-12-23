@@ -13,7 +13,6 @@ module Example.MultiRoomChat.Lobby exposing
     , roomClosed
     , roomInvite
     , roomList
-    , subscriptions
     , toPhoenix
     , update
     , userId
@@ -28,8 +27,8 @@ import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.ErrorMessage exposing (ErrorMessage(..))
 import Type.Presence as Presence exposing (Presence)
-import Type.Room as Room exposing (Room)
-import Type.RoomInvite as RoomInvite exposing (RoomInvite)
+import Type.Room exposing (Room)
+import Type.RoomInvite exposing (RoomInvite)
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as Lobby
@@ -171,7 +170,7 @@ update msg (Model model) =
                 |> updatePhoenixWith PhoenixMsg { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
                 |> Tuple.mapFirst Model
 
-        GotInviteErrorOk invite ->
+        GotInviteErrorOk _ ->
             ( Model { model | inviteError = Nothing }, Cmd.none )
 
         _ ->
@@ -304,15 +303,6 @@ occupantDecoder =
 presenceState : List Presence -> Model -> Model
 presenceState state (Model model) =
     Model { model | presences = state }
-
-
-
-{- Subscriptions -}
-
-
-subscriptions : (Msg -> msg) -> Model -> Sub msg
-subscriptions toMsg (Model { phoenix }) =
-    Sub.none
 
 
 

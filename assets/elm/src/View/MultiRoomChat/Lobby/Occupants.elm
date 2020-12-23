@@ -8,7 +8,7 @@ module View.MultiRoomChat.Lobby.Occupants exposing
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font exposing (Font)
+import Element.Font as Font
 import Type.User as User exposing (User)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor

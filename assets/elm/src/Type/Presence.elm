@@ -3,8 +3,6 @@ module Type.Presence exposing
     , decodeState
     )
 
-import Json.Decode as JD exposing (Value)
-import Json.Decode.Extra exposing (andMap)
 import Phoenix
 import Type.User as User exposing (User)
 

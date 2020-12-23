@@ -10,21 +10,20 @@ module Example.MultiRoomChat exposing
 
 import Browser.Dom as Dom
 import Browser.Navigation as Nav
-import Colors.Alpha as Color
 import Configs exposing (joinConfig)
-import Element as El exposing (Color, Device, Element)
+import Element as El exposing (Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
 import Example.MultiRoomChat.Registration as Registration
 import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
 import Json.Decode as JD
-import Json.Encode as JE exposing (Value)
+import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
 import Type.Presence as Presence
 import Type.Room as Room exposing (Room)
-import Type.RoomInvite as RoomInvite exposing (RoomInvite)
+import Type.RoomInvite as RoomInvite
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
 
@@ -177,7 +176,7 @@ update msg model =
                         Ok rooms ->
                             ( { newModel | lobby = Lobby.roomList rooms newModel.lobby }, cmd )
 
-                        Err error ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "room_invite" payload ->
@@ -228,7 +227,7 @@ update msg model =
                             , cmd
                             )
 
-                        Err e ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "invite_revoked" payload ->
@@ -252,7 +251,7 @@ update msg model =
                             , cmd
                             )
 
-                        Err e ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "message_list" payload ->
@@ -311,7 +310,7 @@ update msg model =
                             , cmd
                             )
 
-                        Err error ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelResponse (JoinOk _ payload) ->
@@ -363,7 +362,7 @@ update msg model =
                         Ok invite ->
                             ( { newModel | room = ChatRoom.inviteSent invite newModel.room }, cmd )
 
-                        Err e ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
@@ -371,7 +370,7 @@ update msg model =
                         Ok invite ->
                             ( { newModel | room = ChatRoom.revokeInvite invite newModel.room }, cmd )
 
-                        Err e ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
@@ -407,7 +406,7 @@ scrollToBottom id =
 back : Nav.Key -> Model -> ( Model, Cmd Msg )
 back key model =
     case model.state of
-        InRoom user room ->
+        InRoom _ room ->
             Phoenix.leave ("example:room:" ++ room.id) model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
 
@@ -429,9 +428,6 @@ subscriptions model =
         [ Sub.map PhoenixMsg <|
             Phoenix.subscriptions model.phoenix
         , case model.state of
-            InLobby _ ->
-                Lobby.subscriptions LobbyMsg model.lobby
-
             InRoom _ _ ->
                 ChatRoom.subscriptions model.room
                     |> Sub.map RoomMsg

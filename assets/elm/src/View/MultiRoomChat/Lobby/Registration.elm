@@ -157,7 +157,7 @@ form device (Config config) =
         ]
         [ section device
             [ inputField device (Config config)
-            , errorView device config.usernameError
+            , errorView config.usernameError
             ]
         , colorsView device (Config config)
         , submitButton device (Config config)
@@ -172,8 +172,8 @@ section device =
         ]
 
 
-errorView : Device -> Maybe ErrorMessage -> Element msg
-errorView device maybeError =
+errorView : Maybe ErrorMessage -> Element msg
+errorView maybeError =
     case maybeError of
         Nothing ->
             El.none
@@ -221,7 +221,7 @@ colorsView device (Config config) =
                 (colorRows device config.onBackgroundColorChange config.backgroundColor config.foregroundColor)
             , El.el
                 [ El.centerX ]
-                (errorView device config.backgroundColorError)
+                (errorView config.backgroundColorError)
             ]
         , section device
             [ El.el
@@ -237,7 +237,7 @@ colorsView device (Config config) =
                 (colorRows device config.onForegroundColorChange config.foregroundColor config.backgroundColor)
             , El.el
                 [ El.centerX ]
-                (errorView device config.foregroundColorError)
+                (errorView config.foregroundColorError)
             ]
         , case ( config.foregroundColor, config.backgroundColor, not <| String.isEmpty config.username ) of
             ( Just fgColor, Just bgColor, True ) ->

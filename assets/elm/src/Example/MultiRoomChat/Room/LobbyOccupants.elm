@@ -1,19 +1,28 @@
-module Example.MultiRoomChat.Room.LobbyOccupants exposing (..)
+module Example.MultiRoomChat.Room.LobbyOccupants exposing
+    ( Model
+    , Msg
+    , init
+    , inviteAccepted
+    , inviteDeclined
+    , inviteSent
+    , revokeInvite
+    , subscriptions
+    , update
+    , updateOccupants
+    , updateRoom
+    , view
+    )
 
 import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Json.Decode as JD
-import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PresenceEvent(..), pushConfig)
-import Tuple3
-import Type.Presence as Presence exposing (Presence)
+import Type.Presence exposing (Presence)
 import Type.Room exposing (Room)
 import Type.RoomInvite as RoomInvite exposing (RoomInvite)
 import Type.User exposing (User)
-import UI.Padding as Padding
 import Utils exposing (updatePhoenixWith)
 import View.Panel as Panel
 
@@ -206,12 +215,11 @@ occupantView device sentInvites { user } =
         ]
         [ El.text <|
             user.username
-                ++ (case isInvited user sentInvites of
-                        True ->
-                            " (Invited)"
+                ++ (if isInvited user sentInvites then
+                        " (Invited)"
 
-                        False ->
-                            ""
+                    else
+                        ""
                    )
         ]
 
