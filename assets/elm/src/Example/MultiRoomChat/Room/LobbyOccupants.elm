@@ -137,11 +137,6 @@ update msg (Model model) =
                         Err e ->
                             ( Model newModel, cmd )
 
-                PresenceEvent (State "example:lobby" presences) ->
-                    ( Model { newModel | occupants = Presence.decodeState presences }
-                    , cmd
-                    )
-
                 _ ->
                     ( Model newModel, cmd )
 
