@@ -37,6 +37,10 @@ init =
     }
 
 
+
+{- Form -}
+
+
 usernameChanged : String -> Registration -> Registration
 usernameChanged name registration =
     { registration
@@ -64,34 +68,6 @@ fgColorSelected color registration =
         | foregroundColor = Just color
         , foregroundColorError = Nothing
     }
-
-
-processErrors : List ErrorMessage -> Registration -> Registration
-processErrors errors registration =
-    List.foldl
-        (\error reg ->
-            case error of
-                UsernameCannotBeBlank ->
-                    { reg | usernameError = Just UsernameCannotBeBlank }
-
-                UsernamePartsCannotBeLongerThan12Chars ->
-                    { reg | usernameError = Just UsernamePartsCannotBeLongerThan12Chars }
-
-                BackgroundColorNotSelected ->
-                    { reg | backgroundColorError = Just BackgroundColorNotSelected }
-
-                ForegroundColorNotSelected ->
-                    { reg | foregroundColorError = Just ForegroundColorNotSelected }
-
-                _ ->
-                    reg
-        )
-        { registration
-            | usernameError = Nothing
-            , backgroundColorError = Nothing
-            , foregroundColorError = Nothing
-        }
-        errors
 
 
 
@@ -150,6 +126,38 @@ validateForegroundColor maybeColor =
 
         Just color ->
             Success [ ForegroundColor color ]
+
+
+
+{- Errors -}
+
+
+processErrors : List ErrorMessage -> Registration -> Registration
+processErrors errors registration =
+    List.foldl
+        (\error reg ->
+            case error of
+                UsernameCannotBeBlank ->
+                    { reg | usernameError = Just UsernameCannotBeBlank }
+
+                UsernamePartsCannotBeLongerThan12Chars ->
+                    { reg | usernameError = Just UsernamePartsCannotBeLongerThan12Chars }
+
+                BackgroundColorNotSelected ->
+                    { reg | backgroundColorError = Just BackgroundColorNotSelected }
+
+                ForegroundColorNotSelected ->
+                    { reg | foregroundColorError = Just ForegroundColorNotSelected }
+
+                _ ->
+                    reg
+        )
+        { registration
+            | usernameError = Nothing
+            , backgroundColorError = Nothing
+            , foregroundColorError = Nothing
+        }
+        errors
 
 
 
