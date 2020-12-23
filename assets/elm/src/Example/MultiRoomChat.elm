@@ -85,6 +85,7 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        {- Registration -}
         GotUsernameChange name ->
             ( { model | registration = Registration.usernameChanged name model.registration }
             , Cmd.none
@@ -127,6 +128,7 @@ update msg model =
                     , Cmd.none
                     )
 
+        {- Lobby -}
         LobbyMsg subMsg ->
             let
                 ( lobby, lobbyCmd ) =
