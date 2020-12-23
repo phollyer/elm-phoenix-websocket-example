@@ -5,6 +5,7 @@ module Example.MultiRoomChat.Room exposing
     , enter
     , init
     , lobbyPresenceState
+    , messageList
     , occupantIsTyping
     , occupantStoppedTyping
     , owner
@@ -191,20 +192,6 @@ update msg (Model model) =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                ChannelEvent _ "message_list" payload ->
-                    case ChatMessage.decodeList payload of
-                        Ok messages_ ->
-                            ( Model { newModel | messages = messages_ }
-                            , Cmd.batch
-                                [ cmd
-                                , scrollToBottom "message-list"
-                                ]
-                            , Empty
-                            )
-
-                        Err _ ->
-                            ( Model newModel, cmd, Empty )
-
                 ChannelEvent _ "room_closed" payload ->
                     case Room.decode payload of
                         Ok room ->
@@ -256,6 +243,15 @@ lobbyPresenceState state (Model model) =
         }
 
 
+messageList : String -> List ChatMessage -> Model -> Model
+messageList roomId messages (Model model) =
+    if roomId == model.room.id then
+        Model { model | messages = messages }
+
+    else
+        Model model
+
+
 presenceState : String -> List Presence -> Model -> Model
 presenceState roomId state (Model model) =
     if roomId == model.room.id then
@@ -284,13 +280,6 @@ updatePhoenixWith toMsg (Model model) ( phoenix, phoenixCmd ) =
 getLayoutHeight : Cmd Msg
 getLayoutHeight =
     Task.attempt LayoutHeight (Dom.getElement "layout")
-
-
-scrollToBottom : String -> Cmd Msg
-scrollToBottom id =
-    Dom.getViewportOf id
-        |> Task.andThen (\{ scene } -> Dom.setViewportOf id 0 scene.height)
-        |> Task.attempt (\_ -> NoOp)
 
 
 

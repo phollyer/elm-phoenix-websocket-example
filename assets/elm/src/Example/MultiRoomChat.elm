@@ -8,6 +8,7 @@ module Example.MultiRoomChat exposing
     , view
     )
 
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Colors.Alpha as Color
 import Configs exposing (joinConfig)
@@ -19,6 +20,8 @@ import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
+import Task
+import Type.ChatMessage as ChatMessage
 import Type.Presence as Presence
 import Type.Room as Room exposing (Room)
 import Type.RoomInvite as RoomInvite
@@ -64,7 +67,8 @@ type State
 
 
 type Msg
-    = PhoenixMsg Phoenix.Msg
+    = NoOp
+    | PhoenixMsg Phoenix.Msg
     | LobbyMsg Lobby.Msg
     | RegistrationMsg Registration.Msg
     | RoomMsg ChatRoom.Msg
@@ -73,6 +77,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         RegistrationMsg subMsg ->
             let
                 ( registration, registrationCmd, outMsg ) =
@@ -155,6 +162,19 @@ update msg model =
                             ( { newModel | lobby = Lobby.revokeInvite invite newModel.lobby }, cmd )
 
                         Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent topic "message_list" payload ->
+                    case ( Phoenix.topicParts topic, ChatMessage.decodeList payload ) of
+                        ( [ "example", "room", id ], Ok messages ) ->
+                            ( { newModel | room = ChatRoom.messageList id messages newModel.room }
+                            , Cmd.batch
+                                [ cmd
+                                , scrollToBottom "message-list"
+                                ]
+                            )
+
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "member_started_typing" payload ->
@@ -252,6 +272,13 @@ update msg model =
 
                 _ ->
                     ( newModel, cmd )
+
+
+scrollToBottom : String -> Cmd Msg
+scrollToBottom id =
+    Dom.getViewportOf id
+        |> Task.andThen (\{ scene } -> Dom.setViewportOf id 0 scene.height)
+        |> Task.attempt (\_ -> NoOp)
 
 
 
