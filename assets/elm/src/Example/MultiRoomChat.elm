@@ -211,29 +211,24 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                ChannelResponse (LeaveOk topic) ->
-                    case Phoenix.topicParts topic of
-                        [ "example", "room", _ ] ->
-                            ( { newModel
-                                | state = InLobby (ChatRoom.owner model.room)
-                                , lobby =
-                                    Lobby.enter
-                                        (ChatRoom.owner model.room)
-                                        newModel.phoenix
-                              }
-                            , cmd
-                            )
+                ChannelResponse (LeaveOk "example:lobby") ->
+                    ( { newModel
+                        | state = Unregistered
+                        , registration = Registration.init newModel.phoenix
+                      }
+                    , cmd
+                    )
 
-                        [ "example", "lobby" ] ->
-                            ( { newModel
-                                | state = Unregistered
-                                , registration = Registration.init newModel.phoenix
-                              }
-                            , cmd
-                            )
-
-                        _ ->
-                            ( newModel, cmd )
+                ChannelResponse (LeaveOk _) ->
+                    ( { newModel
+                        | state = InLobby (ChatRoom.owner model.room)
+                        , lobby =
+                            Lobby.enter
+                                (ChatRoom.owner model.room)
+                                newModel.phoenix
+                      }
+                    , cmd
+                    )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
                     let
