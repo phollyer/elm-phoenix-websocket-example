@@ -164,17 +164,17 @@ update msg model =
                         Err _ ->
                             ( newModel, cmd )
 
-                ChannelEvent topic "message_list" payload ->
-                    case ( Phoenix.topicParts topic, ChatMessage.decodeList payload ) of
-                        ( [ "example", "room", id ], Ok messages ) ->
-                            ( { newModel | room = ChatRoom.messageList id messages newModel.room }
+                ChannelEvent _ "message_list" payload ->
+                    case ChatMessage.decodeList payload of
+                        Ok messages ->
+                            ( { newModel | room = ChatRoom.messageList messages newModel.room }
                             , Cmd.batch
                                 [ cmd
                                 , scrollToBottom "message-list"
                                 ]
                             )
 
-                        _ ->
+                        Err _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "member_started_typing" payload ->
@@ -262,13 +262,8 @@ update msg model =
                     , cmd
                     )
 
-                PresenceEvent (Phoenix.State topic state) ->
-                    case Phoenix.topicParts topic of
-                        [ "example", "room", id ] ->
-                            ( { newModel | room = ChatRoom.presenceState id (Presence.decodeState state) newModel.room }, cmd )
-
-                        _ ->
-                            ( newModel, cmd )
+                PresenceEvent (Phoenix.State _ state) ->
+                    ( { newModel | room = ChatRoom.presenceState (Presence.decodeState state) newModel.room }, cmd )
 
                 _ ->
                     ( newModel, cmd )

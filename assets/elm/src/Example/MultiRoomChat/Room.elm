@@ -243,33 +243,25 @@ lobbyPresenceState state (Model model) =
         }
 
 
-messageList : String -> List ChatMessage -> Model -> Model
-messageList roomId messages (Model model) =
-    if roomId == model.room.id then
-        Model { model | messages = messages }
-
-    else
-        Model model
+messageList : List ChatMessage -> Model -> Model
+messageList messages (Model model) =
+    Model { model | messages = messages }
 
 
-presenceState : String -> List Presence -> Model -> Model
-presenceState roomId state (Model model) =
-    if roomId == model.room.id then
-        let
-            room =
-                Room.updateMembers
-                    (List.map .user state)
-                    model.room
-        in
-        Model
-            { model
-                | room = room
-                , lobbyOccupants =
-                    LobbyOccupants.updateRoom room model.lobbyOccupants
-            }
-
-    else
-        Model model
+presenceState : List Presence -> Model -> Model
+presenceState state (Model model) =
+    let
+        room =
+            Room.updateMembers
+                (List.map .user state)
+                model.room
+    in
+    Model
+        { model
+            | room = room
+            , lobbyOccupants =
+                LobbyOccupants.updateRoom room model.lobbyOccupants
+        }
 
 
 updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg, OutMsg )
