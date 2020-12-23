@@ -389,13 +389,6 @@ update msg model =
                 PresenceEvent (Phoenix.State _ state) ->
                     ( { newModel | room = ChatRoom.presenceState (Presence.decodeState state) newModel.room }, cmd )
 
-                PresenceEvent (Phoenix.Leave topic presence) ->
-                    let
-                        _ =
-                            Debug.log "" presence
-                    in
-                    ( newModel, cmd )
-
                 _ ->
                     ( newModel, cmd )
 
