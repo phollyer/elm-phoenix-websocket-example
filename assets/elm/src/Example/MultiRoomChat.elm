@@ -12,7 +12,6 @@ import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig)
 import Element as El exposing (Color, Device, Element)
-import Example.MultiRoomChat.Lobby as Lobby
 import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
 import Json.Decode as JD
 import Json.Encode as JE
@@ -20,13 +19,15 @@ import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
+import Type.Lobby as Lobby exposing (Lobby)
 import Type.Presence as Presence
 import Type.Registration as Registration exposing (Registration)
 import Type.Room as Room exposing (Room)
-import Type.RoomInvite as RoomInvite
+import Type.RoomInvite as RoomInvite exposing (RoomInvite)
 import Type.TwoTrack exposing (TwoTrack(..))
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
+import View.MultiRoomChat.Lobby as LobbyView
 import View.MultiRoomChat.Lobby.Registration as RegistrationView
 
 
@@ -39,7 +40,7 @@ init phoenix =
     { phoenix = phoenix
     , state = Unregistered
     , registration = Registration.init
-    , lobby = Lobby.init phoenix
+    , lobby = Lobby.init User.init []
     , room = ChatRoom.init phoenix
     }
 
@@ -52,7 +53,7 @@ type alias Model =
     { phoenix : Phoenix.Model
     , state : State
     , registration : Registration
-    , lobby : Lobby.Model
+    , lobby : Lobby
     , room : ChatRoom.Model
     }
 
@@ -61,6 +62,24 @@ type State
     = Unregistered
     | InLobby User
     | InRoom User Room
+
+
+toUser : Model -> User
+toUser { state } =
+    case state of
+        Unregistered ->
+            User.init
+
+        InLobby user ->
+            user
+
+        InRoom user _ ->
+            user
+
+
+toUserId : Model -> String
+toUserId model =
+    model |> toUser |> .id
 
 
 
@@ -74,8 +93,15 @@ type Msg
     | GotForegroundColorSelection Color
     | GotUsernameChange String
     | GotJoinLobby
+      -- Lobby --
+    | GotCreateRoom
+    | GotEnterRoom Room
+    | GotDeleteRoom Room
+    | GotShowRoomMembers (Maybe Room)
+    | GotAcceptRoomInvite RoomInvite
+    | GotDeclineRoomInvite RoomInvite
+    | GotInviteErrorOk RoomInvite
     | PhoenixMsg Phoenix.Msg
-    | LobbyMsg Lobby.Msg
     | RoomMsg ChatRoom.Msg
 
 
@@ -129,17 +155,81 @@ update msg model =
                     )
 
         {- Lobby -}
-        LobbyMsg subMsg ->
-            let
-                ( lobby, lobbyCmd ) =
-                    Lobby.update subMsg model.lobby
-            in
-            ( { model
-                | lobby = lobby
-                , phoenix = Lobby.toPhoenix lobby
-              }
-            , Cmd.map LobbyMsg lobbyCmd
+        GotCreateRoom ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "create_room"
+                    }
+                    model.phoenix
+
+        GotDeleteRoom room ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "delete_room"
+                        , payload =
+                            JE.object
+                                [ ( "room_id", JE.string room.id ) ]
+                    }
+                    model.phoenix
+
+        GotEnterRoom room ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.join ("example:room:" ++ room.id) <|
+                    Phoenix.setJoinConfig
+                        { joinConfig
+                            | topic = "example:room:" ++ room.id
+                            , events =
+                                [ "message_list"
+                                , "member_started_typing"
+                                , "member_stopped_typing"
+                                , "room_closed"
+                                , "room_deleted"
+                                ]
+                            , payload =
+                                JE.object
+                                    [ ( "id", JE.string (toUserId model) ) ]
+                        }
+                        model.phoenix
+
+        GotAcceptRoomInvite invite ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "invite_accepted"
+                        , payload =
+                            JE.object
+                                [ ( "from", User.encode invite.from )
+                                , ( "room_id", JE.string invite.roomId )
+                                ]
+                    }
+                    model.phoenix
+
+        GotDeclineRoomInvite invite ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = "invite_declined"
+                        , payload =
+                            JE.object
+                                [ ( "from", User.encode invite.from )
+                                , ( "room_id", JE.string invite.roomId )
+                                ]
+                    }
+                    model.phoenix
+
+        GotShowRoomMembers maybeRoom ->
+            ( { model | lobby = Lobby.showOccupants maybeRoom model.lobby }
+            , Cmd.none
             )
+
+        GotInviteErrorOk _ ->
+            ( { model | lobby = Lobby.inviteError Nothing model.lobby }, Cmd.none )
 
         RoomMsg subMsg ->
             let
@@ -217,16 +307,12 @@ update msg model =
                 ChannelEvent "example:lobby" "invite_accepted" payload ->
                     case RoomInvite.decode payload of
                         Ok invite ->
-                            if invite.toId == Lobby.userId newModel.lobby then
-                                let
-                                    topic =
-                                        "example:room:" ++ invite.roomId
-                                in
+                            if invite.toId == toUserId model then
                                 updatePhoenixWith PhoenixMsg { newModel | room = ChatRoom.inviteAccepted invite newModel.room } <|
-                                    Phoenix.join topic <|
+                                    Phoenix.join ("example:room:" ++ invite.roomId) <|
                                         Phoenix.setJoinConfig
                                             { joinConfig
-                                                | topic = topic
+                                                | topic = "example:room:" ++ invite.roomId
                                                 , events =
                                                     [ "message_list"
                                                     , "member_started_typing"
@@ -331,7 +417,7 @@ update msg model =
                     case User.decode payload of
                         Ok user ->
                             ( { newModel
-                                | lobby = Lobby.enter user newModel.phoenix
+                                | lobby = Lobby.init user []
                                 , state = InLobby user
                               }
                             , cmd
@@ -376,10 +462,6 @@ update msg model =
                 ChannelResponse (LeaveOk _) ->
                     ( { newModel
                         | state = InLobby (ChatRoom.owner model.room)
-                        , lobby =
-                            Lobby.enter
-                                (ChatRoom.owner model.room)
-                                newModel.phoenix
                       }
                     , cmd
                     )
@@ -485,9 +567,22 @@ view device { state, registration, lobby, room } =
                 |> RegistrationView.onSubmit GotJoinLobby
                 |> RegistrationView.view device
 
-        InLobby _ ->
-            Lobby.view device lobby
-                |> El.map LobbyMsg
+        InLobby user ->
+            LobbyView.init
+                |> LobbyView.user user
+                |> LobbyView.onCreateRoom GotCreateRoom
+                |> LobbyView.onEnterRoom GotEnterRoom
+                |> LobbyView.onDeleteRoom GotDeleteRoom
+                |> LobbyView.onMouseEnterRoom GotShowRoomMembers
+                |> LobbyView.onAcceptRoomInvite GotAcceptRoomInvite
+                |> LobbyView.onDeclineRoomInvite GotDeclineRoomInvite
+                |> LobbyView.onInviteErrorOk GotInviteErrorOk
+                |> LobbyView.showRoomMembers lobby.showOccupants
+                |> LobbyView.members lobby.presences
+                |> LobbyView.rooms lobby.rooms
+                |> LobbyView.roomInvites lobby.roomInvites
+                |> LobbyView.inviteError lobby.inviteError
+                |> LobbyView.view device
 
         InRoom _ _ ->
             ChatRoom.view device room
