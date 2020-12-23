@@ -1,6 +1,6 @@
 module Type.Presence exposing
     ( Presence
-    , decodeList
+    , decodeState
     )
 
 import Json.Decode as JD exposing (Value)
@@ -11,14 +11,7 @@ import Type.User as User exposing (User)
 
 type alias Presence =
     { id : String
-    , metas : List Meta
     , user : User
-    }
-
-
-type alias Meta =
-    { online_at : String
-    , device : String
     }
 
 
@@ -29,7 +22,6 @@ type alias Meta =
 decode : Phoenix.Presence -> Presence
 decode presence =
     { id = presence.id
-    , metas = decodeMetas presence.metas
     , user =
         User.decode presence.user
             |> Result.toMaybe
@@ -37,25 +29,6 @@ decode presence =
     }
 
 
-decodeList : List Phoenix.Presence -> List Presence
-decodeList presences =
+decodeState : List Phoenix.Presence -> List Presence
+decodeState presences =
     List.map decode presences
-
-
-decodeMetas : List Value -> List Meta
-decodeMetas metas =
-    List.map
-        (\meta ->
-            JD.decodeValue metaDecoder meta
-                |> Result.toMaybe
-                |> Maybe.withDefault (Meta "" "")
-        )
-        metas
-
-
-metaDecoder : JD.Decoder Meta
-metaDecoder =
-    JD.succeed
-        Meta
-        |> andMap (JD.field "online_at" JD.string)
-        |> andMap (JD.field "device" JD.string)

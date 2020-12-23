@@ -4,6 +4,10 @@ module Example.MultiRoomChat.Lobby exposing
     , enter
     , init
     , occupants
+    , presenceState
+    , revokeInvite
+    , roomInvite
+    , roomList
     , subscriptions
     , toPhoenix
     , update
@@ -60,7 +64,7 @@ enter user phoenix =
         , user = user
         , presences =
             Phoenix.presenceState "example:lobby" phoenix
-                |> Presence.decodeList
+                |> Presence.decodeState
         , rooms = []
         , showRoomMembers = Nothing
         , roomInvites = []
@@ -165,60 +169,6 @@ update msg (Model model) =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                ChannelEvent "example:lobby" "room_list" payload ->
-                    case Room.decodeList payload of
-                        Ok rooms ->
-                            ( Model
-                                { newModel
-                                    | rooms = rooms
-                                    , showRoomMembers =
-                                        Maybe.map
-                                            (\room ->
-                                                case List.filter (\r -> r.id == room.id) rooms of
-                                                    [] ->
-                                                        Room.init
-
-                                                    first :: _ ->
-                                                        first
-                                            )
-                                            newModel.showRoomMembers
-                                }
-                            , cmd
-                            )
-
-                        Err error ->
-                            ( Model newModel, cmd )
-
-                ChannelEvent "example:lobby" "room_invite" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if invite.to_id == newModel.user.id then
-                                ( Model
-                                    { newModel | roomInvites = List.append newModel.roomInvites [ invite ] }
-                                , cmd
-                                )
-
-                            else
-                                ( Model newModel, cmd )
-
-                        Err e ->
-                            ( Model newModel, cmd )
-
-                ChannelEvent "example:lobby" "revoke_invite" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if invite.to_id == newModel.user.id then
-                                ( Model
-                                    { newModel | roomInvites = List.filter (\invite_ -> invite_ /= invite) newModel.roomInvites }
-                                , cmd
-                                )
-
-                            else
-                                ( Model newModel, cmd )
-
-                        Err e ->
-                            ( Model newModel, cmd )
-
                 ChannelResponse (PushOk "example:lobby" "invite_accepted" _ payload) ->
                     case RoomInvite.decode payload of
                         Ok invite ->
@@ -254,9 +204,6 @@ update msg (Model model) =
                         Err _ ->
                             ( Model newModel, cmd )
 
-                PresenceEvent (Phoenix.State "example:lobby" state) ->
-                    ( Model { newModel | presences = Presence.decodeList state }, cmd )
-
                 _ ->
                     ( Model newModel, cmd )
 
@@ -285,6 +232,36 @@ enterRoom roomId (Model model) =
         |> Phoenix.join topic
         |> updatePhoenixWith PhoenixMsg model
         |> Tuple.mapFirst Model
+
+
+roomList : List Room -> Model -> Model
+roomList rooms (Model model) =
+    Model { model | rooms = rooms }
+
+
+roomInvite : RoomInvite -> Model -> Model
+roomInvite invite (Model model) =
+    if invite.to_id == model.user.id then
+        Model
+            { model | roomInvites = List.append model.roomInvites [ invite ] }
+
+    else
+        Model model
+
+
+revokeInvite : RoomInvite -> Model -> Model
+revokeInvite invite (Model model) =
+    if invite.to_id == model.user.id then
+        Model
+            { model | roomInvites = List.filter (\invite_ -> invite_ /= invite) model.roomInvites }
+
+    else
+        Model model
+
+
+presenceState : List Presence -> Model -> Model
+presenceState state (Model model) =
+    Model { model | presences = state }
 
 
 

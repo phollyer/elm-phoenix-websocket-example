@@ -138,7 +138,7 @@ update msg (Model model) =
                             ( Model newModel, cmd )
 
                 PresenceEvent (State "example:lobby" presences) ->
-                    ( Model { newModel | occupants = Presence.decodeList presences }
+                    ( Model { newModel | occupants = Presence.decodeState presences }
                     , cmd
                     )
 

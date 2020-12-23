@@ -4,7 +4,11 @@ module Example.MultiRoomChat.Room exposing
     , OutMsg(..)
     , enter
     , init
+    , lobbyPresenceState
+    , occupantIsTyping
+    , occupantStoppedTyping
     , owner
+    , presenceState
     , subscriptions
     , toId
     , toPhoenix
@@ -187,33 +191,6 @@ update msg (Model model) =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                ChannelEvent _ "member_started_typing" payload ->
-                    case JD.decodeValue (JD.field "username" JD.string) payload of
-                        Ok username ->
-                            if username /= newModel.user.username && (not <| List.member username newModel.occupantsTyping) then
-                                ( Model { newModel | occupantsTyping = username :: newModel.occupantsTyping }, cmd, Empty )
-
-                            else
-                                ( Model newModel, cmd, Empty )
-
-                        Err _ ->
-                            ( Model newModel, cmd, Empty )
-
-                ChannelEvent _ "member_stopped_typing" payload ->
-                    case JD.decodeValue (JD.field "username" JD.string) payload of
-                        Ok username ->
-                            ( Model
-                                { newModel
-                                    | occupantsTyping =
-                                        List.filter (\name -> name /= username) newModel.occupantsTyping
-                                }
-                            , cmd
-                            , Empty
-                            )
-
-                        Err _ ->
-                            ( Model newModel, cmd, Empty )
-
                 ChannelEvent _ "message_list" payload ->
                     case ChatMessage.decodeList payload of
                         Ok messages_ ->
@@ -252,43 +229,51 @@ update msg (Model model) =
                         Err _ ->
                             ( Model newModel, cmd, Empty )
 
-                PresenceEvent (State topic presence) ->
-                    case Phoenix.topicParts topic of
-                        [ "example", "room", _ ] ->
-                            let
-                                room =
-                                    Room.updateMembers
-                                        (Presence.decodeList presence
-                                            |> List.map .user
-                                        )
-                                        newModel.room
-                            in
-                            ( Model
-                                { newModel
-                                    | room = room
-                                    , lobbyOccupants = LobbyOccupants.updateRoom room newModel.lobbyOccupants
-                                }
-                            , cmd
-                            , Empty
-                            )
-
-                        [ "example", "lobby" ] ->
-                            ( Model
-                                { newModel
-                                    | lobbyOccupants =
-                                        LobbyOccupants.updateOccupants
-                                            (Presence.decodeList presence)
-                                            newModel.lobbyOccupants
-                                }
-                            , cmd
-                            , Empty
-                            )
-
-                        _ ->
-                            ( Model newModel, cmd, Empty )
-
                 _ ->
                     ( Model newModel, cmd, Empty )
+
+
+occupantIsTyping : String -> Model -> Model
+occupantIsTyping username (Model model) =
+    if username /= model.user.username && (not <| List.member username model.occupantsTyping) then
+        Model { model | occupantsTyping = username :: model.occupantsTyping }
+
+    else
+        Model model
+
+
+occupantStoppedTyping : String -> Model -> Model
+occupantStoppedTyping username (Model model) =
+    Model { model | occupantsTyping = List.filter (\name -> name /= username) model.occupantsTyping }
+
+
+lobbyPresenceState : List Presence -> Model -> Model
+lobbyPresenceState state (Model model) =
+    Model
+        { model
+            | lobbyOccupants =
+                LobbyOccupants.updateOccupants state model.lobbyOccupants
+        }
+
+
+presenceState : String -> List Presence -> Model -> Model
+presenceState roomId state (Model model) =
+    if roomId == model.room.id then
+        let
+            room =
+                Room.updateMembers
+                    (List.map .user state)
+                    model.room
+        in
+        Model
+            { model
+                | room = room
+                , lobbyOccupants =
+                    LobbyOccupants.updateRoom room model.lobbyOccupants
+            }
+
+    else
+        Model model
 
 
 updatePhoenixWith : (Phoenix.Msg -> Msg) -> Model -> ( Phoenix.Model, Cmd Phoenix.Msg ) -> ( Model, Cmd Msg, OutMsg )

@@ -19,7 +19,9 @@ import Json.Decode as JD
 import Json.Encode as JE exposing (Value)
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Route
+import Type.Presence as Presence
 import Type.Room as Room exposing (Room)
+import Type.RoomInvite as RoomInvite
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
 
@@ -131,6 +133,46 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
+                ChannelEvent "example:lobby" "room_list" payload ->
+                    case Room.decodeList payload of
+                        Ok rooms ->
+                            ( { newModel | lobby = Lobby.roomList rooms newModel.lobby }, cmd )
+
+                        Err error ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "room_invite" payload ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel | lobby = Lobby.roomInvite invite newModel.lobby }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "revoke_invite" payload ->
+                    case RoomInvite.decode payload of
+                        Ok invite ->
+                            ( { newModel | lobby = Lobby.revokeInvite invite newModel.lobby }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent _ "member_started_typing" payload ->
+                    case JD.decodeValue (JD.field "username" JD.string) payload of
+                        Ok username ->
+                            ( { newModel | room = ChatRoom.occupantIsTyping username newModel.room }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent _ "member_stopped_typing" payload ->
+                    case JD.decodeValue (JD.field "username" JD.string) payload of
+                        Ok username ->
+                            ( { newModel | room = ChatRoom.occupantStoppedTyping username newModel.room }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
                 ChannelResponse (JoinOk "example:lobby" payload) ->
                     case User.decode payload of
                         Ok user ->
@@ -189,6 +231,26 @@ update msg model =
                               }
                             , cmd
                             )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                PresenceEvent (Phoenix.State "example:lobby" state) ->
+                    let
+                        presenceState =
+                            Presence.decodeState state
+                    in
+                    ( { newModel
+                        | lobby = Lobby.presenceState presenceState newModel.lobby
+                        , room = ChatRoom.lobbyPresenceState presenceState newModel.room
+                      }
+                    , cmd
+                    )
+
+                PresenceEvent (Phoenix.State topic state) ->
+                    case Phoenix.topicParts topic of
+                        [ "example", "room", id ] ->
+                            ( { newModel | room = ChatRoom.presenceState id (Presence.decodeState state) newModel.room }, cmd )
 
                         _ ->
                             ( newModel, cmd )
