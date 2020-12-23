@@ -11,9 +11,8 @@ module Example.MultiRoomChat exposing
 import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig)
-import Element as El exposing (Device, Element)
+import Element as El exposing (Color, Device, Element)
 import Example.MultiRoomChat.Lobby as Lobby
-import Example.MultiRoomChat.Registration as Registration
 import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
 import Json.Decode as JD
 import Json.Encode as JE
@@ -22,10 +21,13 @@ import Route
 import Task
 import Type.ChatMessage as ChatMessage
 import Type.Presence as Presence
+import Type.Registration as Registration exposing (Registration)
 import Type.Room as Room exposing (Room)
 import Type.RoomInvite as RoomInvite
+import Type.TwoTrack exposing (TwoTrack(..))
 import Type.User as User exposing (User)
 import Utils exposing (updatePhoenixWith)
+import View.MultiRoomChat.Lobby.Registration as RegistrationView
 
 
 
@@ -36,7 +38,7 @@ init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
     , state = Unregistered
-    , registration = Registration.init phoenix
+    , registration = Registration.init
     , lobby = Lobby.init phoenix
     , room = ChatRoom.init phoenix
     }
@@ -49,7 +51,7 @@ init phoenix =
 type alias Model =
     { phoenix : Phoenix.Model
     , state : State
-    , registration : Registration.Model
+    , registration : Registration
     , lobby : Lobby.Model
     , room : ChatRoom.Model
     }
@@ -67,9 +69,13 @@ type State
 
 type Msg
     = NoOp
+      -- Registration --
+    | GotBackgroundColorSelection Color
+    | GotForegroundColorSelection Color
+    | GotUsernameChange String
+    | GotJoinLobby
     | PhoenixMsg Phoenix.Msg
     | LobbyMsg Lobby.Msg
-    | RegistrationMsg Registration.Msg
     | RoomMsg ChatRoom.Msg
 
 
@@ -79,27 +85,46 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        RegistrationMsg subMsg ->
-            let
-                ( registration, registrationCmd, outMsg ) =
-                    Registration.update subMsg model.registration
-            in
-            case outMsg of
-                Registration.JoinLobby phoenix user ->
-                    ( { model
-                        | lobby = Lobby.enter user phoenix
-                        , phoenix = phoenix
-                        , state = InLobby user
-                      }
-                    , Cmd.map RegistrationMsg registrationCmd
-                    )
+        GotUsernameChange name ->
+            ( { model | registration = Registration.usernameChanged name model.registration }
+            , Cmd.none
+            )
 
-                Registration.Empty ->
-                    ( { model
-                        | registration = registration
-                        , phoenix = Registration.toPhoenix registration
-                      }
-                    , Cmd.map RegistrationMsg registrationCmd
+        GotBackgroundColorSelection color ->
+            ( { model | registration = Registration.bgColorSelected color model.registration }
+            , Cmd.none
+            )
+
+        GotForegroundColorSelection color ->
+            ( { model | registration = Registration.fgColorSelected color model.registration }
+            , Cmd.none
+            )
+
+        GotJoinLobby ->
+            case Registration.validate model.registration of
+                Success fields ->
+                    updatePhoenixWith PhoenixMsg model <|
+                        Phoenix.join "example:lobby" <|
+                            Phoenix.setJoinConfig
+                                { joinConfig
+                                    | topic = "example:lobby"
+                                    , events =
+                                        [ "room_closed"
+                                        , "room_list"
+                                        , "room_invite"
+                                        , "invite_accepted"
+                                        , "invite_declined"
+                                        , "invite_expired"
+                                        , "invite_revoked"
+                                        , "occupant_left_room"
+                                        ]
+                                    , payload = Registration.encode fields
+                                }
+                                model.phoenix
+
+                Failure errors ->
+                    ( { model | registration = Registration.processErrors errors model.registration }
+                    , Cmd.none
                     )
 
         LobbyMsg subMsg ->
@@ -341,7 +366,7 @@ update msg model =
                 ChannelResponse (LeaveOk "example:lobby") ->
                     ( { newModel
                         | state = Unregistered
-                        , registration = Registration.init newModel.phoenix
+                        , registration = Registration.init
                       }
                     , cmd
                     )
@@ -442,16 +467,26 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device model =
-    case model.state of
+view device { state, registration, lobby, room } =
+    case state of
         Unregistered ->
-            Registration.view device model.registration
-                |> El.map RegistrationMsg
+            RegistrationView.init
+                |> RegistrationView.username registration.username
+                |> RegistrationView.usernameError registration.usernameError
+                |> RegistrationView.backgroundColor registration.backgroundColor
+                |> RegistrationView.backgroundColorError registration.backgroundColorError
+                |> RegistrationView.foregroundColor registration.foregroundColor
+                |> RegistrationView.foregroundColorError registration.foregroundColorError
+                |> RegistrationView.onChange GotUsernameChange
+                |> RegistrationView.onBackgroundColorChange GotBackgroundColorSelection
+                |> RegistrationView.onForegroundColorChange GotForegroundColorSelection
+                |> RegistrationView.onSubmit GotJoinLobby
+                |> RegistrationView.view device
 
         InLobby _ ->
-            Lobby.view device model.lobby
+            Lobby.view device lobby
                 |> El.map LobbyMsg
 
         InRoom _ _ ->
-            ChatRoom.view device model.room
+            ChatRoom.view device room
                 |> El.map RoomMsg
