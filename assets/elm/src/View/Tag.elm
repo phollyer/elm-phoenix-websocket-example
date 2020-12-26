@@ -9,13 +9,6 @@ import Type.User as User exposing (RegisteredUser)
 
 view : Device -> RegisteredUser -> RegisteredUser -> Element msg
 view device currentUser user =
-    let
-        _ =
-            Debug.log "currentUser" currentUser
-
-        _ =
-            Debug.log "user" user
-    in
     El.paragraph
         [ padding device
         , roundedBorders device
