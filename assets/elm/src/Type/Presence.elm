@@ -1,32 +1,13 @@
-module Type.Presence exposing
-    ( Presence
-    , decodeState
-    )
+module Type.Presence exposing (Presence)
 
-import Phoenix
-import Type.User as User exposing (User)
+import Type.User exposing (RegisteredUser)
 
 
 type alias Presence =
     { id : String
-    , user : User
+    , user : RegisteredUser
     }
 
 
 
 {- Decode -}
-
-
-decode : Phoenix.Presence -> Presence
-decode presence =
-    { id = presence.id
-    , user =
-        User.decode presence.user
-            |> Result.toMaybe
-            |> Maybe.withDefault User.init
-    }
-
-
-decodeState : List Phoenix.Presence -> List Presence
-decodeState presences =
-    List.map decode presences

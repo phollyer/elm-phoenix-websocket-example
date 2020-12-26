@@ -9,77 +9,61 @@ module Example.MultiRoomChat exposing
     )
 
 import Browser.Dom as Dom
+import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig)
-import Element as El exposing (Color, Device, Element)
-import Example.MultiRoomChat.Room as ChatRoom exposing (OutMsg(..))
-import Json.Decode as JD
+import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element, Orientation(..))
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events as Event
+import Element.Font as Font
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
 import Type.Lobby as Lobby exposing (Lobby)
-import Type.Presence as Presence
-import Type.Registration as Registration exposing (Registration)
 import Type.Room as Room exposing (Room)
-import Type.RoomInvite as RoomInvite exposing (RoomInvite)
 import Type.TwoTrack exposing (TwoTrack(..))
-import Type.User as User exposing (User)
+import Type.User as User exposing (RegisteredUser, RoomInvite, UnregisteredUser, User(..))
+import UI.Padding as Padding
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as LobbyView
 import View.MultiRoomChat.Lobby.Registration as RegistrationView
+import View.MultiRoomChat.Room.Chat as Chat
+import View.Panel as Panel
+import View.Tag as Tag
 
 
 
-{- Init -}
-
-
-init : Phoenix.Model -> Model
-init phoenix =
-    { phoenix = phoenix
-    , state = Unregistered
-    , registration = Registration.init
-    , lobby = Lobby.init User.init []
-    , room = ChatRoom.init phoenix
-    }
-
-
-
-{- Model -}
+{- Types -}
 
 
 type alias Model =
     { phoenix : Phoenix.Model
     , state : State
-    , registration : Registration
     , lobby : Lobby
-    , room : ChatRoom.Model
+    , layoutHeight : Float
     }
 
 
 type State
-    = Unregistered
-    | InLobby User
-    | InRoom User Room
+    = Unregistered UnregisteredUser
+    | InLobby RegisteredUser
+    | InRoom RegisteredUser Room
 
 
-toUser : Model -> User
-toUser { state } =
-    case state of
-        Unregistered ->
-            User.init
 
-        InLobby user ->
-            user
-
-        InRoom user _ ->
-            user
+{- Build -}
 
 
-toUserId : Model -> String
-toUserId model =
-    model |> toUser |> .id
+init : Phoenix.Model -> Model
+init phoenix =
+    { phoenix = phoenix
+    , state = Unregistered User.init
+    , lobby = Lobby.init []
+    , layoutHeight = 0
+    }
 
 
 
@@ -88,21 +72,29 @@ toUserId model =
 
 type Msg
     = NoOp
+    | OnResize Int Int
+    | GotLayoutHeight (Result Dom.Error Dom.Element)
       -- Registration --
-    | GotBackgroundColorSelection Color
-    | GotForegroundColorSelection Color
-    | GotUsernameChange String
-    | GotJoinLobby
+    | GotBackgroundColorSelection UnregisteredUser Color
+    | GotForegroundColorSelection UnregisteredUser Color
+    | GotUsernameChange UnregisteredUser String
+    | GotJoinLobby UnregisteredUser
       -- Lobby --
-    | GotCreateRoom
-    | GotEnterRoom Room
-    | GotDeleteRoom Room
-    | GotShowRoomMembers (Maybe Room)
-    | GotAcceptRoomInvite RoomInvite
-    | GotDeclineRoomInvite RoomInvite
-    | GotInviteErrorOk RoomInvite
+    | GotCreateRoom RegisteredUser
+    | GotEnterRoom RegisteredUser Room
+    | GotDeleteRoom RegisteredUser Room
+    | GotShowRoomMembers RegisteredUser (Maybe Room)
+    | GotAcceptRoomInvite RegisteredUser RoomInvite
+    | GotDeclineRoomInvite RegisteredUser RoomInvite
+    | GotInviteErrorOk RegisteredUser
+      -- Room --
+    | GotInviteUser RegisteredUser RegisteredUser Room
+    | GotMessageChange RegisteredUser Room String
+    | GotMemberStartedTyping RegisteredUser Room
+    | GotMemberStoppedTyping RegisteredUser Room
+    | GotSendMessage RegisteredUser Room
+      -- Phoenix --
     | PhoenixMsg Phoenix.Msg
-    | RoomMsg ChatRoom.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -111,24 +103,47 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        OnResize _ _ ->
+            ( model, getLayoutHeight )
+
+        GotLayoutHeight result ->
+            case result of
+                Ok { element } ->
+                    ( { model | layoutHeight = element.height }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         {- Registration -}
-        GotUsernameChange name ->
-            ( { model | registration = Registration.usernameChanged name model.registration }
+        GotUsernameChange currentUser name ->
+            ( { model
+                | state =
+                    Unregistered <|
+                        User.usernameChanged name currentUser
+              }
             , Cmd.none
             )
 
-        GotBackgroundColorSelection color ->
-            ( { model | registration = Registration.bgColorSelected color model.registration }
+        GotBackgroundColorSelection currentUser color ->
+            ( { model
+                | state =
+                    Unregistered <|
+                        User.bgColorSelected color currentUser
+              }
             , Cmd.none
             )
 
-        GotForegroundColorSelection color ->
-            ( { model | registration = Registration.fgColorSelected color model.registration }
+        GotForegroundColorSelection currentUser color ->
+            ( { model
+                | state =
+                    Unregistered <|
+                        User.fgColorSelected color currentUser
+              }
             , Cmd.none
             )
 
-        GotJoinLobby ->
-            case Registration.validate model.registration of
+        GotJoinLobby currentUser ->
+            case User.validate currentUser of
                 Success fields ->
                     updatePhoenixWith PhoenixMsg model <|
                         Phoenix.join "example:lobby" <|
@@ -145,17 +160,21 @@ update msg model =
                                         , "invite_revoked"
                                         , "occupant_left_room"
                                         ]
-                                    , payload = Registration.encode fields
+                                    , payload = User.encodeFields fields
                                 }
                                 model.phoenix
 
                 Failure errors ->
-                    ( { model | registration = Registration.processErrors errors model.registration }
+                    ( { model
+                        | state =
+                            Unregistered <|
+                                User.processErrors errors currentUser
+                      }
                     , Cmd.none
                     )
 
         {- Lobby -}
-        GotCreateRoom ->
+        GotCreateRoom _ ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
@@ -164,7 +183,7 @@ update msg model =
                     }
                     model.phoenix
 
-        GotDeleteRoom room ->
+        GotDeleteRoom _ room ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
@@ -176,7 +195,7 @@ update msg model =
                     }
                     model.phoenix
 
-        GotEnterRoom room ->
+        GotEnterRoom currentUser room ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.join ("example:room:" ++ room.id) <|
                     Phoenix.setJoinConfig
@@ -189,97 +208,106 @@ update msg model =
                                 , "room_closed"
                                 , "room_deleted"
                                 ]
-                            , payload =
-                                JE.object
-                                    [ ( "id", JE.string (toUserId model) ) ]
+                            , payload = User.encode currentUser
                         }
                         model.phoenix
 
-        GotAcceptRoomInvite invite ->
+        GotAcceptRoomInvite _ invite ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
                         , event = "invite_accepted"
-                        , payload =
-                            JE.object
-                                [ ( "from", User.encode invite.from )
-                                , ( "room_id", JE.string invite.roomId )
-                                ]
+                        , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
 
-        GotDeclineRoomInvite invite ->
+        GotDeclineRoomInvite _ invite ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
                         , event = "invite_declined"
-                        , payload =
-                            JE.object
-                                [ ( "from", User.encode invite.from )
-                                , ( "room_id", JE.string invite.roomId )
-                                ]
+                        , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
 
-        GotShowRoomMembers maybeRoom ->
+        GotInviteErrorOk currentUser ->
+            ( { model
+                | state =
+                    InLobby <|
+                        User.cancelInviteError currentUser
+              }
+            , Cmd.none
+            )
+
+        GotShowRoomMembers _ maybeRoom ->
             ( { model | lobby = Lobby.showOccupants maybeRoom model.lobby }
             , Cmd.none
             )
 
-        GotInviteErrorOk _ ->
-            ( { model | lobby = Lobby.inviteError Nothing model.lobby }, Cmd.none )
-
-        RoomMsg subMsg ->
+        {- Room -}
+        GotInviteUser from to room ->
             let
-                ( room, roomCmd, roomMsg ) =
-                    ChatRoom.update subMsg model.room
+                event =
+                    if User.isInvited to from then
+                        "revoke_invite"
+
+                    else
+                        "room_invite"
             in
-            case roomMsg of
-                Empty ->
-                    ( { model
-                        | room = room
-                        , phoenix = ChatRoom.toPhoenix room
-                      }
-                    , Cmd.map RoomMsg roomCmd
-                    )
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:lobby"
+                        , event = event
+                        , payload =
+                            User.encodeRoomInvite
+                                { from = from
+                                , to = to
+                                , roomId = room.id
+                                }
+                    }
+                    model.phoenix
 
-                SendMessage message room_ ->
-                    updatePhoenixWith PhoenixMsg model <|
-                        Phoenix.push
-                            { pushConfig
-                                | topic = "example:room:" ++ room_.id
-                                , event = "new_message"
-                                , payload =
-                                    JE.object
-                                        [ ( "message", JE.string message ) ]
-                            }
-                            model.phoenix
+        GotMessageChange currentUser room message ->
+            ( { model
+                | state =
+                    InRoom currentUser <|
+                        Room.updateMessage message room
+              }
+            , Cmd.none
+            )
 
-                OccupantStartedTyping user room_ ->
-                    updatePhoenixWith PhoenixMsg model <|
-                        Phoenix.push
-                            { pushConfig
-                                | topic = "example:room:" ++ room_.id
-                                , event = "member_started_typing"
-                                , payload =
-                                    JE.object
-                                        [ ( "username", JE.string user.username ) ]
-                            }
-                            model.phoenix
+        GotSendMessage currentUser room ->
+            updatePhoenixWith PhoenixMsg { model | state = InRoom currentUser <| Room.clearMessage room } <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:room:" ++ Room.id room
+                        , event = "new_message"
+                        , payload = ChatMessage.encode room.message
+                    }
+                    model.phoenix
 
-                OccupantStoppedTyping user room_ ->
-                    updatePhoenixWith PhoenixMsg model <|
-                        Phoenix.push
-                            { pushConfig
-                                | topic = "example:room:" ++ room_.id
-                                , event = "member_stopped_typing"
-                                , payload =
-                                    JE.object
-                                        [ ( "username", JE.string user.username ) ]
-                            }
-                            model.phoenix
+        GotMemberStartedTyping currentUser room ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:room:" ++ Room.id room
+                        , event = "member_started_typing"
+                        , payload = User.encode currentUser
+                    }
+                    model.phoenix
+
+        GotMemberStoppedTyping currentUser room ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:room:" ++ Room.id room
+                        , event = "member_stopped_typing"
+                        , payload = User.encode currentUser
+                    }
+                    model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -297,117 +325,191 @@ update msg model =
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "room_invite" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( { newModel | lobby = Lobby.roomInvite invite newModel.lobby }, cmd )
+                    case ( newModel.state, User.decodeRoomInvite payload ) of
+                        ( InLobby currentUser, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InLobby <|
+                                        User.inviteReceieved invite currentUser
+                              }
+                            , cmd
+                            )
 
-                        Err _ ->
-                            ( newModel, cmd )
+                        ( InRoom currentUser room, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.inviteSent invite currentUser)
+                                        room
+                              }
+                            , cmd
+                            )
 
-                ChannelEvent "example:lobby" "invite_accepted" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            if invite.toId == toUserId model then
-                                updatePhoenixWith PhoenixMsg { newModel | room = ChatRoom.inviteAccepted invite newModel.room } <|
-                                    Phoenix.join ("example:room:" ++ invite.roomId) <|
-                                        Phoenix.setJoinConfig
-                                            { joinConfig
-                                                | topic = "example:room:" ++ invite.roomId
-                                                , events =
-                                                    [ "message_list"
-                                                    , "member_started_typing"
-                                                    , "member_stopped_typing"
-                                                    , "room_closed"
-                                                    ]
-                                                , payload =
-                                                    JE.object
-                                                        [ ( "id", JE.string invite.toId ) ]
-                                            }
-                                            model.phoenix
-
-                            else
-                                ( newModel, cmd )
-
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "invite_expired" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
+                    case ( newModel.state, User.decodeRoomInvite payload ) of
+                        ( InLobby currentUser, Ok invite ) ->
                             ( { newModel
-                                | lobby = Lobby.inviteExpired invite newModel.lobby
+                                | state =
+                                    InLobby <|
+                                        User.inviteExpired invite currentUser
                               }
                             , cmd
                             )
 
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "invite_revoked" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( { newModel | lobby = Lobby.inviteRevoked invite newModel.lobby }, cmd )
-
-                        Err _ ->
-                            ( newModel, cmd )
-
-                ChannelEvent "example:lobby" "occupant_left_room" payload ->
-                    ( { newModel | lobby = Lobby.occupantLeftRoom payload newModel.lobby }, cmd )
-
-                ChannelEvent _ "invite_declined" payload ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
+                    case ( newModel.state, User.decodeRoomInvite payload ) of
+                        ( InLobby currentUser, Ok invite ) ->
                             ( { newModel
-                                | lobby = Lobby.inviteDeclined invite newModel.lobby
-                                , room = ChatRoom.inviteDeclined invite newModel.room
+                                | state =
+                                    InLobby <|
+                                        User.dropInviteReceived invite currentUser
                               }
                             , cmd
                             )
 
-                        Err _ ->
+                        ( InRoom currentUser room, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.dropInviteSent invite currentUser)
+                                        room
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent "example:lobby" "occupant_left_room" payload ->
+                    case newModel.state of
+                        InLobby user ->
+                            ( { newModel
+                                | state =
+                                    InLobby <|
+                                        User.leftRoom payload user
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent _ "invite_accepted" payload ->
+                    case ( newModel.state, User.decodeRoomInvite payload ) of
+                        ( InLobby currentUser, Ok invite ) ->
+                            updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.dropInviteReceived invite currentUser) } <|
+                                Phoenix.join ("example:room:" ++ invite.roomId) <|
+                                    Phoenix.setJoinConfig
+                                        { joinConfig
+                                            | topic = "example:room:" ++ invite.roomId
+                                            , events =
+                                                [ "message_list"
+                                                , "member_started_typing"
+                                                , "member_stopped_typing"
+                                                , "room_closed"
+                                                ]
+                                            , payload = User.encode currentUser
+                                        }
+                                        newModel.phoenix
+
+                        ( InRoom currentUser room, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.dropInviteSent invite currentUser)
+                                        room
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                ChannelEvent _ "invite_declined" payload ->
+                    case ( newModel.state, User.decodeRoomInvite payload ) of
+                        ( InRoom currentUser room, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.dropInviteSent invite currentUser)
+                                        room
+                              }
+                            , cmd
+                            )
+
+                        ( InLobby currentUser, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InLobby <|
+                                        User.dropInviteReceived invite currentUser
+                              }
+                            , cmd
+                            )
+
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "message_list" payload ->
-                    case ChatMessage.decodeList payload of
-                        Ok messages ->
-                            ( { newModel | room = ChatRoom.messageList messages newModel.room }
-                            , Cmd.batch
-                                [ cmd
-                                , scrollToBottom "message-list"
-                                ]
+                    case ( newModel.state, ChatMessage.decodeList payload ) of
+                        ( InRoom currentUser room, Ok messages ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom currentUser <|
+                                        Room.updateMessages messages room
+                              }
+                            , Cmd.batch [ cmd, scrollToBottom "message-list" ]
                             )
 
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "member_started_typing" payload ->
-                    case JD.decodeValue (JD.field "username" JD.string) payload of
-                        Ok username ->
-                            ( { newModel | room = ChatRoom.occupantIsTyping username newModel.room }, cmd )
+                    case ( newModel.state, User.decode payload ) of
+                        ( InRoom currentUser room, Ok user ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom currentUser <|
+                                        Room.addOccupantTyping currentUser user room
+                              }
+                            , cmd
+                            )
 
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent _ "member_stopped_typing" payload ->
-                    case JD.decodeValue (JD.field "username" JD.string) payload of
-                        Ok username ->
-                            ( { newModel | room = ChatRoom.occupantStoppedTyping username newModel.room }, cmd )
+                    case ( newModel.state, User.decode payload ) of
+                        ( InRoom currentUser room, Ok user ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom currentUser <|
+                                        Room.dropOccupantTyping user room
+                              }
+                            , cmd
+                            )
 
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
-                ChannelEvent topic "room_closed" payload ->
-                    case Phoenix.topicParts topic of
-                        [ "example", "lobby" ] ->
-                            case Room.decode payload of
-                                Ok room ->
-                                    ( { newModel | lobby = Lobby.roomClosed room newModel.lobby }, cmd )
+                ChannelEvent _ "room_closed" payload ->
+                    case ( newModel.state, Room.decode payload ) of
+                        ( InLobby currentUser, Ok room ) ->
+                            ( { newModel
+                                | state =
+                                    InLobby <|
+                                        User.roomClosed room.id currentUser
+                              }
+                            , cmd
+                            )
 
-                                Err _ ->
-                                    ( newModel, cmd )
-
-                        [ "example", "room", id ] ->
-                            Phoenix.leave ("example:room:" ++ id) newModel.phoenix
+                        ( InRoom _ room, _ ) ->
+                            Phoenix.leave ("example:room:" ++ room.id) newModel.phoenix
                                 |> updatePhoenixWith PhoenixMsg newModel
 
                         _ ->
@@ -415,90 +517,69 @@ update msg model =
 
                 ChannelResponse (JoinOk "example:lobby" payload) ->
                     case User.decode payload of
-                        Ok user ->
-                            ( { newModel
-                                | lobby = Lobby.init user []
-                                , state = InLobby user
-                              }
-                            , cmd
-                            )
+                        Ok currentUser ->
+                            ( { newModel | state = InLobby currentUser }, cmd )
 
                         Err _ ->
                             ( newModel, cmd )
 
                 ChannelResponse (JoinOk _ payload) ->
-                    case Room.decode payload of
-                        Ok room ->
-                            case model.state of
-                                InLobby user ->
-                                    let
-                                        ( newRoom, roomCmd ) =
-                                            ChatRoom.enter newModel.phoenix (Lobby.occupants model.lobby) user room
-                                    in
-                                    ( { newModel
-                                        | state = InRoom user room
-                                        , room = newRoom
-                                      }
-                                    , Cmd.batch
-                                        [ cmd
-                                        , Cmd.map RoomMsg roomCmd
-                                        ]
-                                    )
+                    case ( newModel.state, Room.decode payload ) of
+                        ( InLobby currentUser, Ok room ) ->
+                            ( { newModel | state = InRoom currentUser room }
+                            , Cmd.batch [ cmd, getLayoutHeight ]
+                            )
 
-                                _ ->
-                                    ( newModel, cmd )
-
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
-
-                ChannelResponse (LeaveOk "example:lobby") ->
-                    ( { newModel
-                        | state = Unregistered
-                        , registration = Registration.init
-                      }
-                    , cmd
-                    )
 
                 ChannelResponse (LeaveOk _) ->
-                    ( { newModel
-                        | state = InLobby (ChatRoom.owner model.room)
-                      }
-                    , cmd
-                    )
+                    case newModel.state of
+                        InLobby _ ->
+                            ( { newModel | state = Unregistered User.init }, cmd )
 
-                ChannelResponse (PushOk "example:lobby" "room_invite" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( { newModel | room = ChatRoom.inviteSent invite newModel.room }, cmd )
+                        InRoom currentUser room ->
+                            ( { newModel
+                                | state =
+                                    InLobby <|
+                                        User.roomClosed room.id currentUser
+                              }
+                            , cmd
+                            )
 
-                        Err _ ->
-                            ( newModel, cmd )
-
-                ChannelResponse (PushOk "example:lobby" "revoke_invite" _ payload) ->
-                    case RoomInvite.decode payload of
-                        Ok invite ->
-                            ( { newModel | room = ChatRoom.revokeInvite invite newModel.room }, cmd )
-
-                        Err _ ->
+                        _ ->
                             ( newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
-                    let
-                        presenceState =
-                            Presence.decodeState state
-                    in
                     ( { newModel
-                        | lobby = Lobby.presenceState presenceState newModel.lobby
-                        , room = ChatRoom.lobbyPresenceState presenceState newModel.room
+                        | lobby =
+                            Lobby.presenceState
+                                (User.decodePresenceState state)
+                                newModel.lobby
                       }
                     , cmd
                     )
 
                 PresenceEvent (Phoenix.State _ state) ->
-                    ( { newModel | room = ChatRoom.presenceState (Presence.decodeState state) newModel.room }, cmd )
+                    case ( newModel.state, User.decodePresenceState state ) of
+                        ( InRoom currentUser room, users ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom currentUser <|
+                                        Room.updateMembers users room
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
 
                 _ ->
                     ( newModel, cmd )
+
+
+
+{- Cmd -}
 
 
 scrollToBottom : String -> Cmd Msg
@@ -508,6 +589,11 @@ scrollToBottom id =
         |> Task.attempt (\_ -> NoOp)
 
 
+getLayoutHeight : Cmd Msg
+getLayoutHeight =
+    Task.attempt GotLayoutHeight (Dom.getElement "layout")
+
+
 
 {- Navigation -}
 
@@ -515,6 +601,9 @@ scrollToBottom id =
 back : Nav.Key -> Model -> ( Model, Cmd Msg )
 back key model =
     case model.state of
+        Unregistered _ ->
+            ( model, Route.back key )
+
         InRoom _ room ->
             Phoenix.leave ("example:room:" ++ room.id) model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
@@ -522,9 +611,6 @@ back key model =
         InLobby _ ->
             Phoenix.leave "example:lobby" model.phoenix
                 |> updatePhoenixWith PhoenixMsg model
-
-        Unregistered ->
-            ( model, Route.back key )
 
 
 
@@ -534,15 +620,9 @@ back key model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map PhoenixMsg <|
+        [ onResize OnResize
+        , Sub.map PhoenixMsg <|
             Phoenix.subscriptions model.phoenix
-        , case model.state of
-            InRoom _ _ ->
-                ChatRoom.subscriptions model.room
-                    |> Sub.map RoomMsg
-
-            _ ->
-                Sub.none
         ]
 
 
@@ -551,39 +631,244 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device { state, registration, lobby, room } =
+view device { state, lobby, layoutHeight } =
     case state of
-        Unregistered ->
+        Unregistered user ->
             RegistrationView.init
-                |> RegistrationView.username registration.username
-                |> RegistrationView.usernameError registration.usernameError
-                |> RegistrationView.backgroundColor registration.backgroundColor
-                |> RegistrationView.backgroundColorError registration.backgroundColorError
-                |> RegistrationView.foregroundColor registration.foregroundColor
-                |> RegistrationView.foregroundColorError registration.foregroundColorError
-                |> RegistrationView.onChange GotUsernameChange
-                |> RegistrationView.onBackgroundColorChange GotBackgroundColorSelection
-                |> RegistrationView.onForegroundColorChange GotForegroundColorSelection
-                |> RegistrationView.onSubmit GotJoinLobby
+                |> RegistrationView.username user.username
+                |> RegistrationView.usernameError user.usernameError
+                |> RegistrationView.backgroundColor user.backgroundColor
+                |> RegistrationView.backgroundColorError user.backgroundColorError
+                |> RegistrationView.foregroundColor user.foregroundColor
+                |> RegistrationView.foregroundColorError user.foregroundColorError
+                |> RegistrationView.onChange (GotUsernameChange user)
+                |> RegistrationView.onBackgroundColorChange (GotBackgroundColorSelection user)
+                |> RegistrationView.onForegroundColorChange (GotForegroundColorSelection user)
+                |> RegistrationView.onSubmit (GotJoinLobby user)
                 |> RegistrationView.view device
 
         InLobby user ->
-            LobbyView.init
-                |> LobbyView.user user
-                |> LobbyView.onCreateRoom GotCreateRoom
-                |> LobbyView.onEnterRoom GotEnterRoom
-                |> LobbyView.onDeleteRoom GotDeleteRoom
-                |> LobbyView.onMouseEnterRoom GotShowRoomMembers
-                |> LobbyView.onAcceptRoomInvite GotAcceptRoomInvite
-                |> LobbyView.onDeclineRoomInvite GotDeclineRoomInvite
+            LobbyView.init user
+                |> LobbyView.onCreateRoom (GotCreateRoom user)
+                |> LobbyView.onEnterRoom (GotEnterRoom user)
+                |> LobbyView.onDeleteRoom (GotDeleteRoom user)
+                |> LobbyView.onMouseEnterRoom (GotShowRoomMembers user)
+                |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
+                |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk
                 |> LobbyView.showRoomMembers lobby.showOccupants
                 |> LobbyView.members lobby.presences
                 |> LobbyView.rooms lobby.rooms
-                |> LobbyView.roomInvites lobby.roomInvites
-                |> LobbyView.inviteError lobby.inviteError
+                |> LobbyView.roomInvites (User.invitesReceived user)
+                |> LobbyView.inviteError (User.inviteError user)
                 |> LobbyView.view device
 
-        InRoom _ _ ->
-            ChatRoom.view device room
-                |> El.map RoomMsg
+        InRoom user room ->
+            container device
+                [ El.el
+                    [ chatWidth device ]
+                    (Chat.init user room
+                        |> Chat.messages room.messages
+                        |> Chat.messagesContainerMaxHeight (maxHeight layoutHeight)
+                        |> Chat.membersTyping room.occupantsTyping
+                        |> Chat.userText room.message
+                        |> Chat.onChange (GotMessageChange user room)
+                        |> Chat.onFocus (GotMemberStartedTyping user room)
+                        |> Chat.onLoseFocus (GotMemberStoppedTyping user room)
+                        |> Chat.onSubmit (GotSendMessage user room)
+                        |> Chat.view device
+                    )
+                , panelContainer device
+                    [ roomOccupants device user room.members
+                    , El.column
+                        [ El.height El.fill
+                        , El.width El.fill
+                        ]
+                        [ Panel.init
+                            |> Panel.title "Lobby Occupants"
+                            |> Panel.description
+                                [ [ El.text "Click on a user to invite them into the room. "
+                                  , El.text "Click them again to revoke the invitation."
+                                  ]
+                                ]
+                            |> Panel.element
+                                (occupantsView device user room lobby.presences)
+                            |> Panel.view device
+                        ]
+                    ]
+                ]
+
+
+occupantsView : Device -> RegisteredUser -> Room -> List RegisteredUser -> Element Msg
+occupantsView device currentUser room occupants =
+    El.column
+        [ padding device
+        , spacing device
+        , El.width El.fill
+        ]
+        (List.filter (\presence -> not <| List.member presence room.members) occupants
+            |> List.map (occupantView device room currentUser)
+        )
+
+
+occupantView : Device -> Room -> RegisteredUser -> RegisteredUser -> Element Msg
+occupantView device room currentUser user =
+    El.paragraph
+        [ padding device
+        , roundedBorders device
+        , Background.color (User.bgColor user)
+        , Border.color (User.fgColor user)
+        , Border.width 1
+        , El.mouseOver
+            [ Border.color (User.bgColor user)
+            , Border.shadow
+                { size = 1
+                , blur = 5
+                , color = User.bgColor user
+                , offset = ( 0, 0 )
+                }
+            ]
+        , El.pointer
+        , El.width El.fill
+        , Event.onClick (GotInviteUser currentUser user room)
+        , Font.color (User.fgColor user)
+        ]
+        [ El.text <|
+            User.username user
+                ++ (if User.isInvited user currentUser then
+                        " (Invited)"
+
+                    else
+                        ""
+                   )
+        ]
+
+
+container : Device -> List (Element Msg) -> Element Msg
+container { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, _ ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        ( Tablet, Portrait ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        _ ->
+            El.row
+                [ El.height El.fill
+                , El.width El.fill
+                , El.spacing 10
+                , Padding.right 10
+                ]
+
+
+panelContainer : Device -> List (Element Msg) -> Element Msg
+panelContainer ({ class, orientation } as device) =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 10
+                ]
+
+        _ ->
+            El.row
+                [ panelWidth device
+                , El.height El.fill
+                , El.spacing 10
+                ]
+
+
+roomOccupants : Device -> RegisteredUser -> List RegisteredUser -> Element Msg
+roomOccupants device currentUser occupants =
+    Panel.init
+        |> Panel.title "Room Occupants"
+        |> Panel.element
+            (El.column
+                [ padding device
+                , spacing device
+                , El.width El.fill
+                ]
+                (List.map (Tag.view device currentUser) occupants)
+            )
+        |> Panel.view device
+
+
+maxHeight : Float -> Int
+maxHeight layoutHeight =
+    floor <|
+        (layoutHeight - 20)
+
+
+
+{- Attributes -}
+
+
+chatWidth : Device -> Attribute Msg
+chatWidth { class } =
+    El.width <|
+        case class of
+            Phone ->
+                El.fill
+
+            _ ->
+                El.fillPortion 3
+
+
+panelWidth : Device -> Attribute Msg
+panelWidth { class } =
+    El.width <|
+        case class of
+            Phone ->
+                El.fill
+
+            _ ->
+                El.fillPortion 2
+
+
+padding : Device -> Attribute Msg
+padding { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+spacing : Device -> Attribute Msg
+spacing { class } =
+    El.spacing <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+roundedBorders : Device -> Attribute Msg
+roundedBorders { class } =
+    Border.rounded <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10

@@ -5,7 +5,6 @@ module View.MultiRoomChat.Lobby.Rooms exposing
     , onMouseEnter
     , rooms
     , showRoomMembers
-    , user
     , view
     )
 
@@ -17,10 +16,11 @@ import Element.Font as Font
 import Json.Decode.Extra exposing (combine)
 import List.Extra as List
 import Type.Room exposing (Room)
-import Type.User as User exposing (User)
+import Type.User as User exposing (RegisteredUser, User)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import View.Button as Button
+import View.Tag as Tag
 
 
 
@@ -30,7 +30,7 @@ import View.Button as Button
 type Config msg
     = Config
         { rooms : List Room
-        , user : User
+        , user : RegisteredUser
         , onClick : Maybe (Room -> msg)
         , onDelete : Maybe (Room -> msg)
         , onMouseEnter : Maybe (Maybe Room -> msg)
@@ -38,11 +38,11 @@ type Config msg
         }
 
 
-init : Config msg
-init =
+init : RegisteredUser -> Config msg
+init user =
     Config
         { rooms = []
-        , user = User.init
+        , user = user
         , onClick = Nothing
         , onDelete = Nothing
         , onMouseEnter = Nothing
@@ -53,11 +53,6 @@ init =
 rooms : List Room -> Config msg -> Config msg
 rooms rooms_ (Config config) =
     Config { config | rooms = rooms_ }
-
-
-user : User -> Config msg -> Config msg
-user user_ (Config config) =
-    Config { config | user = user_ }
 
 
 onClick : Maybe (Room -> msg) -> Config msg -> Config msg
@@ -137,21 +132,7 @@ toRoomList device (Config config) rooms_ =
                 [ El.spacing 10
                 , El.width El.fill
                 ]
-                [ El.el
-                    [ padding device
-                    , roundedBorders device
-                    , Background.color room.owner.backgroundColor
-                    , Border.width 1
-                    , Border.color room.owner.foregroundColor
-                    , Font.color room.owner.foregroundColor
-                    ]
-                    (El.text <|
-                        if config.user == room.owner then
-                            "You"
-
-                        else
-                            room.owner.username
-                    )
+                [ El.el [] (Tag.view device config.user room.owner)
                 , List.map (toRoom device (Config config)) rooms_
                     |> El.wrappedRow
                         [ El.spacing 10
@@ -160,8 +141,8 @@ toRoomList device (Config config) rooms_ =
                 ]
 
 
-occupantsView : Device -> Maybe Room -> Room -> List (Attribute msg)
-occupantsView device maybeForRoom room =
+occupantsView : Device -> RegisteredUser -> Maybe Room -> Room -> List (Attribute msg)
+occupantsView device currentUser maybeForRoom room =
     case maybeForRoom of
         Nothing ->
             []
@@ -172,7 +153,7 @@ occupantsView device maybeForRoom room =
                     El.el
                         [ El.width El.fill
                         , El.above <|
-                            occupantsList device room
+                            occupantsList device currentUser room
                         ]
                         El.none
                 ]
@@ -193,7 +174,7 @@ toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
         (List.append defaultAttrs (roomAttrs room config.onMouseEnter)
-            |> List.append (occupantsView device config.showRoomMembers room)
+            |> List.append (occupantsView device config.user config.showRoomMembers room)
         )
         [ El.text <|
             "Occupants: "
@@ -210,8 +191,8 @@ toRoom device (Config config) room =
         ]
 
 
-occupantsList : Device -> Room -> Element msg
-occupantsList device room =
+occupantsList : Device -> RegisteredUser -> Room -> Element msg
+occupantsList device currentUser room =
     case room.members of
         [] ->
             El.none
@@ -220,23 +201,12 @@ occupantsList device room =
             El.wrappedRow
                 [ padding device
                 , roundedBorders device
-                , Background.color room.owner.backgroundColor
-                , Border.color room.owner.foregroundColor
+                , Background.color (User.bgColor room.owner)
+                , Border.color (User.fgColor room.owner)
                 , Border.width 1
                 ]
-                [ List.sortBy .username room.members
-                    |> List.map
-                        (\member ->
-                            El.el
-                                [ padding device
-                                , roundedBorders device
-                                , Background.color member.backgroundColor
-                                , Border.width 1
-                                , Border.color member.foregroundColor
-                                , Font.color member.foregroundColor
-                                ]
-                                (El.text member.username)
-                        )
+                [ User.sortByUsername room.members
+                    |> List.map (Tag.view device currentUser)
                     |> El.wrappedRow
                         [ El.spacing 10
                         , El.width El.fill
@@ -251,7 +221,7 @@ occupantsList device room =
 
 byOwner : Room -> Room -> Order
 byOwner roomA roomB =
-    case compare roomA.owner.username roomB.owner.username of
+    case compare (User.username roomA.owner) (User.username roomB.owner) of
         LT ->
             LT
 
@@ -279,9 +249,9 @@ mostMembers roomA roomB =
 {- Buttons -}
 
 
-maybeDeleteBtn : Device -> Maybe (Room -> msg) -> User -> Room -> Element msg
+maybeDeleteBtn : Device -> Maybe (Room -> msg) -> RegisteredUser -> Room -> Element msg
 maybeDeleteBtn device maybeToOnDelete currentUser room =
-    if currentUser == room.owner then
+    if User.match currentUser room.owner then
         case maybeToOnDelete of
             Nothing ->
                 El.none
@@ -297,9 +267,9 @@ maybeDeleteBtn device maybeToOnDelete currentUser room =
         El.none
 
 
-maybeEnterBtn : Device -> Maybe (Room -> msg) -> User -> Room -> Element msg
+maybeEnterBtn : Device -> Maybe (Room -> msg) -> RegisteredUser -> Room -> Element msg
 maybeEnterBtn device maybeToOnClick currentUser room =
-    if currentUser == room.owner || List.member room.owner room.members then
+    if User.match currentUser room.owner || List.member room.owner room.members then
         case maybeToOnClick of
             Nothing ->
                 El.none
@@ -336,21 +306,21 @@ roomAttrs room maybeOnMouseEnter =
             []
 
         Just onMouseEnter_ ->
-            [ Background.color room.owner.backgroundColor
-            , Border.color room.owner.foregroundColor
+            [ Background.color (User.bgColor room.owner)
+            , Border.color (User.fgColor room.owner)
             , El.mouseOver
-                [ Border.color room.owner.backgroundColor
+                [ Border.color (User.bgColor room.owner)
                 , Border.shadow
                     { size = 1
                     , blur = 5
-                    , color = room.owner.backgroundColor
+                    , color = User.bgColor room.owner
                     , offset = ( 0, 0 )
                     }
                 ]
             , El.width El.fill
             , Event.onMouseEnter (onMouseEnter_ (Just room))
             , Event.onMouseLeave (onMouseEnter_ Nothing)
-            , Font.color room.owner.foregroundColor
+            , Font.color (User.fgColor room.owner)
             ]
 
 

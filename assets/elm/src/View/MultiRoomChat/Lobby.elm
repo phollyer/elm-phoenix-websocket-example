@@ -12,7 +12,6 @@ module View.MultiRoomChat.Lobby exposing
     , roomInvites
     , rooms
     , showRoomMembers
-    , user
     , view
     )
 
@@ -21,11 +20,9 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Type.ErrorMessage exposing (ErrorMessage(..))
-import Type.Presence exposing (Presence)
+import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage(..))
 import Type.Room exposing (Room)
-import Type.RoomInvite exposing (RoomInvite)
-import Type.User as User exposing (User)
+import Type.User as User exposing (RegisteredUser, RoomInvite, User(..))
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -41,15 +38,15 @@ import View.MultiRoomChat.User as UserView
 
 type Config msg
     = Config
-        { user : User
-        , members : List Presence
+        { user : RegisteredUser
+        , members : List RegisteredUser
         , onCreateRoom : Maybe msg
         , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
         , onMouseEnterRoom : Maybe (Maybe Room -> msg)
         , onAcceptRoomInvite : Maybe (RoomInvite -> msg)
         , onDeclineRoomInvite : Maybe (RoomInvite -> msg)
-        , onInviteErrorOk : Maybe (RoomInvite -> msg)
+        , onInviteErrorOk : Maybe (RegisteredUser -> msg)
         , rooms : List Room
         , showRoomMembers : Maybe Room
         , roomInvites : List RoomInvite
@@ -57,10 +54,10 @@ type Config msg
         }
 
 
-init : Config msg
-init =
+init : RegisteredUser -> Config msg
+init user_ =
     Config
-        { user = User.init
+        { user = user_
         , members = []
         , onCreateRoom = Nothing
         , onDeleteRoom = Nothing
@@ -76,7 +73,7 @@ init =
         }
 
 
-members : List Presence -> Config msg -> Config msg
+members : List RegisteredUser -> Config msg -> Config msg
 members members_ (Config config) =
     Config { config | members = members_ }
 
@@ -111,9 +108,9 @@ onDeclineRoomInvite msg (Config config) =
     Config { config | onDeclineRoomInvite = Just msg }
 
 
-onInviteErrorOk : (RoomInvite -> msg) -> Config msg -> Config msg
-onInviteErrorOk msg (Config config) =
-    Config { config | onInviteErrorOk = Just msg }
+onInviteErrorOk : (RegisteredUser -> msg) -> Config msg -> Config msg
+onInviteErrorOk toMsg (Config config) =
+    Config { config | onInviteErrorOk = Just toMsg }
 
 
 rooms : List Room -> Config msg -> Config msg
@@ -136,11 +133,6 @@ showRoomMembers maybeRoom (Config config) =
     Config { config | showRoomMembers = maybeRoom }
 
 
-user : User -> Config msg -> Config msg
-user user_ (Config config) =
-    Config { config | user = user_ }
-
-
 
 {- View -}
 
@@ -153,7 +145,7 @@ view device (Config config) =
         , El.inFront <|
             roomInvite device (Config config)
         , El.inFront <|
-            inviteErrorView device config.inviteError config.onInviteErrorOk
+            inviteErrorView device config.user config.inviteError config.onInviteErrorOk
         ]
         [ container device
             [ El.width El.fill
@@ -202,12 +194,12 @@ roomInvite device (Config config) =
                             [ padding device
                             , spacing device
                             , roundedBorder device
-                            , Background.color invite.from.backgroundColor
-                            , Border.color invite.from.foregroundColor
+                            , Background.color (User.bgColor invite.from)
+                            , Border.color (User.fgColor invite.from)
                             , Border.width 1
                             , El.centerX
                             , El.centerY
-                            , Font.color invite.from.foregroundColor
+                            , Font.color (User.fgColor invite.from)
                             ]
                             [ El.el
                                 [ El.centerX ]
@@ -215,7 +207,7 @@ roomInvite device (Config config) =
                             , El.paragraph
                                 []
                                 [ El.text "You have received an invitation from "
-                                , El.text invite.from.username
+                                , El.text (User.username invite.from)
                                 , El.text " to join them in their room."
                                 ]
                             , El.row
@@ -243,10 +235,10 @@ roomInvite device (Config config) =
             El.none
 
 
-inviteErrorView : Device -> Maybe ErrorMessage -> Maybe (RoomInvite -> msg) -> Element msg
-inviteErrorView device maybeError maybeMsg =
+inviteErrorView : Device -> RegisteredUser -> Maybe ErrorMessage -> Maybe (RegisteredUser -> msg) -> Element msg
+inviteErrorView device user maybeError maybeMsg =
     case ( maybeError, maybeMsg ) of
-        ( Just (RoomClosed invite), Just toMsg ) ->
+        ( Just error, Just toMsg ) ->
             El.el
                 [ roundedBorder device
                 , El.height El.fill
@@ -257,23 +249,23 @@ inviteErrorView device maybeError maybeMsg =
                     [ padding device
                     , spacing device
                     , roundedBorder device
-                    , Background.color invite.from.backgroundColor
-                    , Border.color invite.from.foregroundColor
+                    , Background.color (User.bgColor user)
+                    , Border.color (User.fgColor user)
                     , Border.width 1
                     , El.centerX
                     , El.centerY
-                    , Font.color invite.from.foregroundColor
+                    , Font.color (User.fgColor user)
                     ]
                     [ El.el
                         [ El.centerX ]
                         (El.text "Error")
                     , El.paragraph
                         []
-                        [ El.text "Sorry, the room has now closed." ]
+                        [ El.text (ErrorMessage.toString error) ]
                     , Button.init
                         |> Button.setLabel "OK"
-                        |> Button.setOnPress (Just (toMsg invite))
-                        |> Button.setType (Button.User invite.from)
+                        |> Button.setOnPress (Just (toMsg user))
+                        |> Button.setType (Button.User user)
                         |> Button.view device
                     ]
                 )
@@ -286,8 +278,8 @@ inviteErrorView device maybeError maybeMsg =
 {- Lobby User -}
 
 
-userView : Device -> User -> Element msg
-userView device { username, id } =
+userView : Device -> RegisteredUser -> Element msg
+userView device currentUser =
     El.column
         [ alignFont device
         , El.alignTop
@@ -295,8 +287,7 @@ userView device { username, id } =
         , El.width El.fill
         ]
         [ UserView.init
-            |> UserView.username username
-            |> UserView.userId id
+            |> UserView.username (User.username currentUser)
             |> UserView.view device
         , El.column
             [ El.spacing 10
@@ -358,23 +349,11 @@ createRoomBtn ({ class, orientation } as device) maybeMsg =
 {- Lobby Members -}
 
 
-occupantsView : Device -> User -> List Presence -> Element msg
-occupantsView device currentUser presences =
-    El.el
-        [ El.alignTop
-        , El.width El.fill
-        ]
-        (Occupants.init
-            |> Occupants.all (toUsers presences)
-            |> Occupants.currentUser currentUser
-            |> Occupants.view device
-        )
-
-
-toUsers : List Presence -> List User
-toUsers presences =
-    List.map .user presences
-        |> List.sortBy .username
+occupantsView : Device -> RegisteredUser -> List RegisteredUser -> Element msg
+occupantsView device currentUser occupants =
+    Occupants.init currentUser
+        |> Occupants.all occupants
+        |> Occupants.view device
 
 
 
@@ -391,9 +370,8 @@ roomsView device (Config config) =
             [ El.alignTop
             , El.width El.fill
             ]
-            (Rooms.init
+            (Rooms.init config.user
                 |> Rooms.rooms config.rooms
-                |> Rooms.user config.user
                 |> Rooms.onClick config.onEnterRoom
                 |> Rooms.onDelete config.onDeleteRoom
                 |> Rooms.onMouseEnter config.onMouseEnterRoom

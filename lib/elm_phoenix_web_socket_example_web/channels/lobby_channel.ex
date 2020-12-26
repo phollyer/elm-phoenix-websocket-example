@@ -68,64 +68,38 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("room_invite", %{"to_id" => to_id, "room_id" => room_id}, socket) do
-    {:ok, user} = User.find(socket.assigns.user_id)
-
-    {:ok, room} = Room.find(room_id)
-
-    invite = 
-      %{from: user,
-        to_id: to_id,
-        room_id: room_id
-      }
-
+  def handle_in("room_invite", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
     broadcast(socket, "room_invite", invite)
 
     {:reply, {:ok, invite}, socket}
   end
 
-  def handle_in("invite_accepted", %{"from" => from, "room_id" => room_id}, socket) do
-    invite = 
-      %{from: from, 
-        to_id: socket.assigns.user_id,
-        room_id: room_id
-      }
+  def handle_in("invite_accepted", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+    case { User.find(from["id"]), Room.find(room_id)} do
+      { {:ok, from}, {:ok, room} } ->
+        if Enum.member?(room.members, from) do
+          broadcast(socket, "invite_accepted", invite)
 
-    case { User.find(from["id"]), Room.find(room_id) } do
-      { {:ok, user}, {:ok, room} } ->
-
-        broadcast(socket, "invite_accepted", invite)
-
-        {:reply, :ok, socket}
+        else
+          push(socket, "invite_expired", invite)
+        
+        end
 
       _ ->
         push(socket, "invite_expired", invite)
 
-        {:reply, :ok, socket}
     end
+
+    {:reply, :ok, socket}
   end
 
-  def handle_in("invite_declined", %{"from" => from, "room_id" => room_id}, socket) do
-    invite = 
-      %{from: from, 
-        to_id: socket.assigns.user_id,
-        room_id: room_id
-      }
-
+  def handle_in("invite_declined", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
     broadcast(socket, "invite_declined", invite)
 
     {:reply, :ok, socket}
   end
 
-  def handle_in("revoke_invite", %{"to_id" => to_id, "room_id" => room_id}, socket) do
-    {:ok, user} = User.find(socket.assigns.user_id)
-
-    invite = 
-      %{from: user,
-        to_id: to_id,
-        room_id: room_id
-      }
-
+  def handle_in("revoke_invite", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
       broadcast(socket, "invite_revoked", invite)
 
       {:reply, {:ok, invite}, socket}

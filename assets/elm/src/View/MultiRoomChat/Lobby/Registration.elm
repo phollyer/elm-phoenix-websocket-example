@@ -242,7 +242,7 @@ colorsView device (Config config) =
         , case ( config.foregroundColor, config.backgroundColor, not <| String.isEmpty config.username ) of
             ( Just fgColor, Just bgColor, True ) ->
                 El.column
-                    [ El.width El.fill
+                    [ El.centerX
                     , El.spacing 10
                     ]
                     [ El.el
@@ -251,16 +251,16 @@ colorsView device (Config config) =
                         , FontSize.title device
                         ]
                         (El.text "Preview")
-                    , El.el
+                    , El.paragraph
                         [ padding device
                         , roundedBorder device
                         , Background.color bgColor
                         , Border.color fgColor
                         , Border.width 1
-                        , El.centerX
+                        , Font.center
                         , Font.color fgColor
                         ]
-                        (El.text config.username)
+                        [ El.text config.username ]
                     ]
 
             _ ->

@@ -3,18 +3,26 @@ module Type.ChatMessage exposing
     , decode
     , decodeList
     , decoder
+    , encode
     )
 
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
-import Type.User as User exposing (User)
+import Json.Encode as JE
+import Type.User as User exposing (RegisteredUser)
 
 
 type alias ChatMessage =
     { text : String
-    , owner : User
+    , owner : RegisteredUser
     , createdAt : Int
     }
+
+
+encode : String -> Value
+encode text =
+    JE.object
+        [ ( "message", JE.string text ) ]
 
 
 decode : Value -> Result JD.Error ChatMessage

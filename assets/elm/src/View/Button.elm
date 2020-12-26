@@ -16,7 +16,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Type.User exposing (User)
+import Type.User as User exposing (RegisteredUser, User)
 import UI.Align as Align exposing (X(..), Y(..))
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -52,7 +52,7 @@ init =
 
 type Type
     = Default
-    | User User
+    | User RegisteredUser
 
 
 setEnabled : Bool -> Config msg -> Config msg
@@ -128,18 +128,18 @@ attrs type_ enabled =
 
         User user ->
             if enabled then
-                [ Background.color user.backgroundColor
-                , Border.color user.foregroundColor
+                [ Background.color (User.bgColor user)
+                , Border.color (User.fgColor user)
                 , Border.width 1
                 , El.mouseOver <|
                     [ Border.shadow
                         { size = 1
                         , blur = 3
-                        , color = user.foregroundColor
+                        , color = User.fgColor user
                         , offset = ( 0, 0 )
                         }
                     ]
-                , Font.color user.foregroundColor
+                , Font.color (User.fgColor user)
                 ]
 
             else

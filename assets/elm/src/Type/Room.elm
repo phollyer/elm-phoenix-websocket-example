@@ -1,33 +1,43 @@
 module Type.Room exposing
     ( Room
+    , addOccupantTyping
+    , clearMessage
     , decode
     , decodeList
+    , dropOccupantTyping
     , encode
+    , id
     , init
     , updateMembers
+    , updateMessage
+    , updateMessages
     )
 
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 import Type.ChatMessage as ChatMessage exposing (ChatMessage)
-import Type.User as User exposing (User)
+import Type.User as User exposing (RegisteredUser)
 
 
 type alias Room =
     { id : String
-    , owner : User
-    , members : List User
+    , owner : RegisteredUser
+    , members : List RegisteredUser
+    , message : String
     , messages : List ChatMessage
+    , occupantsTyping : List RegisteredUser
     }
 
 
-init : Room
-init =
+init : RegisteredUser -> Room
+init owner =
     { id = ""
-    , owner = User.init
+    , owner = owner
     , members = []
+    , message = ""
     , messages = []
+    , occupantsTyping = []
     }
 
 
@@ -35,9 +45,47 @@ init =
 {- Build -}
 
 
-updateMembers : List User -> Room -> Room
+updateMembers : List RegisteredUser -> Room -> Room
 updateMembers users room =
     { room | members = users }
+
+
+updateMessage : String -> Room -> Room
+updateMessage message room =
+    { room | message = message }
+
+
+updateMessages : List ChatMessage -> Room -> Room
+updateMessages messages room =
+    { room | messages = messages }
+
+
+clearMessage : Room -> Room
+clearMessage room =
+    { room | message = "" }
+
+
+addOccupantTyping : RegisteredUser -> RegisteredUser -> Room -> Room
+addOccupantTyping currentUser user room =
+    if not <| User.match currentUser user && (not <| List.member user room.occupantsTyping) then
+        { room | occupantsTyping = user :: room.occupantsTyping }
+
+    else
+        room
+
+
+dropOccupantTyping : RegisteredUser -> Room -> Room
+dropOccupantTyping user room =
+    { room | occupantsTyping = List.filter (\user_ -> not <| User.match user_ user) room.occupantsTyping }
+
+
+
+{- Query -}
+
+
+id : Room -> String
+id room =
+    room.id
 
 
 
@@ -71,4 +119,6 @@ decoder =
         |> andMap (JD.field "id" JD.string)
         |> andMap (JD.field "owner" User.decoder)
         |> andMap (JD.field "members" (JD.list User.decoder))
+        |> andMap (JD.succeed "")
         |> andMap (JD.field "messages" (JD.list ChatMessage.decoder))
+        |> andMap (JD.succeed [])

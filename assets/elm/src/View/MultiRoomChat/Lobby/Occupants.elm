@@ -1,17 +1,15 @@
 module View.MultiRoomChat.Lobby.Occupants exposing
     ( all
-    , currentUser
     , init
     , view
     )
 
-import Element as El exposing (Attribute, Device, DeviceClass(..), Element)
-import Element.Background as Background
+import Element as El exposing (Device, DeviceClass(..), Element)
 import Element.Border as Border
-import Element.Font as Font
-import Type.User as User exposing (User)
+import Type.User exposing (RegisteredUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
+import View.Tag as Tag
 
 
 
@@ -20,27 +18,22 @@ import UI.FontColor as FontColor
 
 type Config
     = Config
-        { all : List User
-        , currentUser : User
+        { all : List RegisteredUser
+        , currentUser : RegisteredUser
         }
 
 
-init : Config
-init =
+init : RegisteredUser -> Config
+init user =
     Config
         { all = []
-        , currentUser = User.init
+        , currentUser = user
         }
 
 
-all : List User -> Config -> Config
+all : List RegisteredUser -> Config -> Config
 all users (Config config) =
     Config { config | all = users }
-
-
-currentUser : User -> Config -> Config
-currentUser users (Config config) =
-    Config { config | currentUser = users }
 
 
 
@@ -63,9 +56,7 @@ view device config =
             ]
             (El.text "Occupants")
         , El.wrappedRow
-            [ El.width El.fill
-            , El.spacing 10
-            ]
+            [ El.spacing 10 ]
             (toOccupants device config)
         ]
 
@@ -76,61 +67,17 @@ toOccupants device (Config config) =
         |> Tuple.mapFirst
             (List.map (toOccupant device config.currentUser))
         |> Tuple.mapSecond
-            (List.map (toOccupant device config.currentUser))
+            (List.map (Tag.view device config.currentUser))
         |> combine List.append
 
 
-toOccupant : Device -> User -> User -> Element msg
-toOccupant device currentUser_ user =
-    El.el
-        [ padding device
-        , roundedBorder device
-        , Background.color user.backgroundColor
-        , Border.color user.foregroundColor
-        , Border.width 1
-        , Font.color user.foregroundColor
-        ]
-        (El.text <|
-            if currentUser_ == user then
-                "You"
-
-            else
-                user.username
-        )
+toOccupant : Device -> RegisteredUser -> RegisteredUser -> Element msg
+toOccupant device currentUser user =
+    El.row
+        []
+        [ Tag.view device currentUser user ]
 
 
 combine : (a -> b -> c) -> ( a, b ) -> c
 combine func ( a, b ) =
     func a b
-
-
-
-{- Attributes -}
-
-
-padding : Device -> Attribute msg
-padding { class } =
-    El.padding <|
-        case class of
-            Phone ->
-                10
-
-            Tablet ->
-                14
-
-            _ ->
-                20
-
-
-roundedBorder : Device -> Attribute msg
-roundedBorder { class } =
-    Border.rounded <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10

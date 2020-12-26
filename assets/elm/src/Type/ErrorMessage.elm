@@ -3,15 +3,14 @@ module Type.ErrorMessage exposing
     , toString
     )
 
-import Type.RoomInvite exposing (RoomInvite)
-
 
 type ErrorMessage
     = UsernameCannotBeBlank
-    | UsernamePartsCannotBeLongerThan12Chars
+    | UsernamePartsCannotBeMoreThan12Chars
+    | UsernameCannotBeMoreThan25Chars
     | BackgroundColorNotSelected
     | ForegroundColorNotSelected
-    | RoomClosed RoomInvite
+    | RoomClosed
 
 
 toString : ErrorMessage -> String
@@ -26,8 +25,11 @@ toString error =
         UsernameCannotBeBlank ->
             "Username can not be empty"
 
-        UsernamePartsCannotBeLongerThan12Chars ->
+        UsernamePartsCannotBeMoreThan12Chars ->
             "Username parts can not be longer than 12 chars"
 
-        RoomClosed _ ->
+        UsernameCannotBeMoreThan25Chars ->
+            "Username can not be longer than 25 chars"
+
+        RoomClosed ->
             "That room has now closed"

@@ -7,8 +7,6 @@ module View.MultiRoomChat.Room.Chat exposing
     , onFocus
     , onLoseFocus
     , onSubmit
-    , room
-    , user
     , userText
     , view
     )
@@ -18,13 +16,14 @@ import Element.Border as Border
 import Element.Font as Font
 import Html.Attributes as Attr
 import Type.ChatMessage exposing (ChatMessage)
-import Type.Room as Room exposing (Room)
-import Type.User as User exposing (User)
+import Type.Room exposing (Room)
+import Type.User exposing (RegisteredUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.Padding as Padding
 import View.MultiRoomChat.Room.Form as MessageForm
 import View.MultiRoomChat.Room.Messages as Messages
+import View.Tag as Tag
 
 
 
@@ -33,10 +32,10 @@ import View.MultiRoomChat.Room.Messages as Messages
 
 type Config msg
     = Config
-        { user : User
+        { user : RegisteredUser
         , room : Room
         , userText : String
-        , membersTyping : List String
+        , membersTyping : List RegisteredUser
         , messages : List ChatMessage
         , messagesContainerMaxHeight : Int
         , onChange : Maybe (String -> msg)
@@ -46,11 +45,11 @@ type Config msg
         }
 
 
-init : Config msg
-init =
+init : RegisteredUser -> Room -> Config msg
+init user room =
     Config
-        { user = User.init
-        , room = Room.init
+        { user = user
+        , room = room
         , userText = ""
         , membersTyping = []
         , messages = []
@@ -62,22 +61,12 @@ init =
         }
 
 
-user : User -> Config msg -> Config msg
-user user_ (Config config) =
-    Config { config | user = user_ }
-
-
-room : Room -> Config msg -> Config msg
-room room_ (Config config) =
-    Config { config | room = room_ }
-
-
 userText : String -> Config msg -> Config msg
 userText text (Config config) =
     Config { config | userText = text }
 
 
-membersTyping : List String -> Config msg -> Config msg
+membersTyping : List RegisteredUser -> Config msg -> Config msg
 membersTyping members (Config config) =
     Config { config | membersTyping = members }
 
@@ -124,31 +113,28 @@ view device (Config config) =
         , El.width El.fill
         ]
         [ messagesView device (Config config)
-        , membersTypingView config.membersTyping
+        , membersTypingView device config.user config.membersTyping
         , form device (Config config)
         ]
 
 
-membersTypingView : List String -> Element msg
-membersTypingView membersTyping_ =
+membersTypingView : Device -> RegisteredUser -> List RegisteredUser -> Element msg
+membersTypingView device currentUser membersTyping_ =
     if membersTyping_ == [] then
         El.none
 
     else
-        El.paragraph
+        El.wrappedRow
             [ El.width El.fill
-            , Font.alignLeft
             , Padding.top 10
             ]
-            [ El.el
+        <|
+            El.el
                 [ Font.bold
                 , FontColor.label
                 ]
                 (El.text "Members Typing: ")
-            , List.intersperse ", " membersTyping_
-                |> String.concat
-                |> El.text
-            ]
+                :: List.map (Tag.view device currentUser) membersTyping_
 
 
 
@@ -167,8 +153,7 @@ messagesView device (Config config) =
         , El.height El.fill
         , El.width El.fill
         ]
-        (Messages.init
-            |> Messages.user config.user
+        (Messages.init config.user
             |> Messages.messages config.messages
             |> Messages.view device
         )

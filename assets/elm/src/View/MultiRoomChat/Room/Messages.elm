@@ -1,7 +1,6 @@
 module View.MultiRoomChat.Room.Messages exposing
     ( init
     , messages
-    , user
     , view
     )
 
@@ -10,7 +9,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Type.ChatMessage exposing (ChatMessage)
-import Type.User as User exposing (User)
+import Type.User as User exposing (RegisteredUser)
+import View.Tag as Tag
 
 
 
@@ -19,22 +19,17 @@ import Type.User as User exposing (User)
 
 type Config
     = Config
-        { user : User
+        { user : RegisteredUser
         , messages : List ChatMessage
         }
 
 
-init : Config
-init =
+init : RegisteredUser -> Config
+init user =
     Config
-        { user = User.init
+        { user = user
         , messages = []
         }
-
-
-user : User -> Config -> Config
-user user_ (Config config) =
-    Config { config | user = user_ }
 
 
 messages : List ChatMessage -> Config -> Config
@@ -58,31 +53,34 @@ view device (Config config) =
         List.map (toMessage device config.user) config.messages
 
 
-toMessage : Device -> User -> ChatMessage -> Element msg
+toMessage : Device -> RegisteredUser -> ChatMessage -> Element msg
 toMessage device currentUser message =
-    if currentUser.id == message.owner.id then
-        userMessage device message
+    if User.match currentUser message.owner then
+        userMessage device currentUser message
 
     else
-        othersMessage device message
+        othersMessage device currentUser message
 
 
-userMessage : Device -> ChatMessage -> Element msg
-userMessage device { owner, text } =
+userMessage : Device -> RegisteredUser -> ChatMessage -> Element msg
+userMessage device currentUser { text } =
     row
         [ emptySpace
         , column
-            [ username device El.alignRight owner
-            , messageContent device El.alignRight owner text
+            [ El.el
+                [ El.alignRight ]
+                (Tag.view device currentUser currentUser)
+            , messageContent device El.alignRight currentUser text
             ]
         ]
 
 
-othersMessage : Device -> ChatMessage -> Element msg
-othersMessage device { owner, text } =
+othersMessage : Device -> RegisteredUser -> ChatMessage -> Element msg
+othersMessage device currentUser { owner, text } =
     row
         [ column
-            [ username device El.alignLeft owner
+            [ El.el [] <|
+                Tag.view device currentUser owner
             , messageContent device El.alignLeft owner text
             ]
         , emptySpace
@@ -114,38 +112,20 @@ emptySpace =
 
 
 
-{- Username -}
-
-
-username : Device -> Attribute msg -> User -> Element msg
-username device alignment user_ =
-    El.el
-        [ alignment
-        , padding device
-        , roundedBorders device
-        , Background.color user_.backgroundColor
-        , Border.color user_.foregroundColor
-        , Border.width 1
-        , Font.color user_.foregroundColor
-        ]
-        (El.text user_.username)
-
-
-
 {- Message -}
 
 
-messageContent : Device -> Attribute msg -> User -> String -> Element msg
+messageContent : Device -> Attribute msg -> RegisteredUser -> String -> Element msg
 messageContent device alignment owner text =
     El.column
         [ alignment
         , padding device
         , spacing device
         , roundedBorders device
-        , Background.color owner.backgroundColor
-        , Border.color owner.foregroundColor
+        , Background.color (User.bgColor owner)
+        , Border.color (User.fgColor owner)
         , Border.width 1
-        , Font.color owner.foregroundColor
+        , Font.color (User.fgColor owner)
         ]
         (toParagraphs text)
 
