@@ -18,7 +18,7 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
+import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
@@ -61,6 +61,36 @@ init phoenix =
     , state = Unregistered User.init
     , lobby = Lobby.init
     , layoutHeight = 0
+    }
+
+
+lobbyJoinConfig : JoinConfig
+lobbyJoinConfig =
+    { joinConfig
+        | topic = "example:lobby"
+        , events =
+            [ "room_closed"
+            , "room_list"
+            , "room_invite"
+            , "invite_accepted"
+            , "invite_declined"
+            , "invite_expired"
+            , "invite_revoked"
+            , "occupant_left_room"
+            ]
+    }
+
+
+roomJoinConfig : JoinConfig
+roomJoinConfig =
+    { joinConfig
+        | events =
+            [ "message_list"
+            , "member_started_typing"
+            , "member_stopped_typing"
+            , "room_closed"
+            , "room_deleted"
+            ]
     }
 
 
@@ -146,20 +176,7 @@ update msg model =
                     updatePhoenixWith PhoenixMsg model <|
                         Phoenix.join "example:lobby" <|
                             Phoenix.setJoinConfig
-                                { joinConfig
-                                    | topic = "example:lobby"
-                                    , events =
-                                        [ "room_closed"
-                                        , "room_list"
-                                        , "room_invite"
-                                        , "invite_accepted"
-                                        , "invite_declined"
-                                        , "invite_expired"
-                                        , "invite_revoked"
-                                        , "occupant_left_room"
-                                        ]
-                                    , payload = User.encodeFields fields
-                                }
+                                { lobbyJoinConfig | payload = User.encodeFields fields }
                                 model.phoenix
 
                 Failure errors ->
@@ -197,15 +214,8 @@ update msg model =
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.join ("example:room:" ++ room.id) <|
                     Phoenix.setJoinConfig
-                        { joinConfig
+                        { roomJoinConfig
                             | topic = "example:room:" ++ room.id
-                            , events =
-                                [ "message_list"
-                                , "member_started_typing"
-                                , "member_stopped_typing"
-                                , "room_closed"
-                                , "room_deleted"
-                                ]
                             , payload = User.encode currentUser
                         }
                         model.phoenix
@@ -408,14 +418,8 @@ update msg model =
                                 updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.dropInviteReceived invite currentUser) } <|
                                     Phoenix.join ("example:room:" ++ invite.roomId) <|
                                         Phoenix.setJoinConfig
-                                            { joinConfig
+                                            { roomJoinConfig
                                                 | topic = "example:room:" ++ invite.roomId
-                                                , events =
-                                                    [ "message_list"
-                                                    , "member_started_typing"
-                                                    , "member_stopped_typing"
-                                                    , "room_closed"
-                                                    ]
                                                 , payload = User.encode currentUser
                                             }
                                             newModel.phoenix
