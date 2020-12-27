@@ -15,6 +15,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
+import Html.Attributes as Attr
 import Type.ChatMessage exposing (ChatMessage)
 import Type.Room exposing (Room)
 import Type.User as User exposing (RegisteredUser)
@@ -172,6 +173,8 @@ messagesView : Device -> Config msg -> Element msg
 messagesView device (Config config) =
     El.el
         [ BackgroundColor.messages
+        , El.htmlAttribute <|
+            Attr.id "message-list"
         , El.clipY
         , El.scrollbarY
         , El.height El.fill

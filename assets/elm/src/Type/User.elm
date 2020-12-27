@@ -13,6 +13,7 @@ module Type.User exposing
     , decodeRoomInvite
     , decoder
     , drop
+    , dropInviteForRoom
     , dropInviteReceived
     , dropInviteSent
     , encode
@@ -303,6 +304,14 @@ dropInviteSent invite (RegisteredUser user) =
 
     else
         RegisteredUser user
+
+
+dropInviteForRoom : String -> RegisteredUser -> RegisteredUser
+dropInviteForRoom roomId (RegisteredUser user) =
+    RegisteredUser
+        { user
+            | receivedInvites = dropWith (\invite -> invite.roomId == roomId) user.receivedInvites
+        }
 
 
 inviteExpired : RoomInvite -> RegisteredUser -> RegisteredUser

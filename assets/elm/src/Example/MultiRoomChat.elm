@@ -59,6 +59,10 @@ init phoenix =
     }
 
 
+
+{- Configs -}
+
+
 lobbyJoinConfig : JoinConfig
 lobbyJoinConfig =
     { joinConfig
@@ -250,10 +254,10 @@ update msg model =
             )
 
         {- Room -}
-        GotInviteUser from room to ->
+        GotInviteUser currentUser room toUser ->
             let
                 event =
-                    if User.isInvited to from then
+                    if User.isInvited toUser currentUser then
                         "revoke_invite"
 
                     else
@@ -266,8 +270,8 @@ update msg model =
                         , event = event
                         , payload =
                             User.encodeRoomInvite
-                                { from = from
-                                , to = to
+                                { from = currentUser
+                                , to = toUser
                                 , roomId = room.id
                                 }
                     }
@@ -312,6 +316,7 @@ update msg model =
                     }
                     model.phoenix
 
+        -- Incoming --
         PhoenixMsg subMsg ->
             let
                 ( newModel, cmd, phoenixMsg ) =
@@ -319,6 +324,15 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
+                -- Lobby Channel --
+                ChannelResponse (JoinOk "example:lobby" payload) ->
+                    case User.decode payload of
+                        Ok currentUser ->
+                            ( { newModel | state = InLobby currentUser }, cmd )
+
+                        Err _ ->
+                            ( newModel, cmd )
+
                 ChannelEvent "example:lobby" "room_list" payload ->
                     case ( newModel.state, Room.decodeList payload ) of
                         ( InLobby currentUser, Ok rooms ) ->
@@ -406,11 +420,11 @@ update msg model =
                         _ ->
                             ( newModel, cmd )
 
-                ChannelEvent _ "invite_accepted" payload ->
+                ChannelEvent "example:lobby" "invite_accepted" payload ->
                     case ( newModel.state, User.decodeRoomInvite payload ) of
                         ( InLobby currentUser, Ok invite ) ->
                             if User.match currentUser invite.to then
-                                updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.dropInviteReceived invite currentUser) } <|
+                                updatePhoenixWith PhoenixMsg newModel <|
                                     Phoenix.join ("example:room:" ++ invite.roomId) <|
                                         Phoenix.setJoinConfig
                                             { roomJoinConfig
@@ -435,7 +449,7 @@ update msg model =
                         _ ->
                             ( newModel, cmd )
 
-                ChannelEvent _ "invite_declined" payload ->
+                ChannelEvent "example:lobby" "invite_declined" payload ->
                     case ( newModel.state, User.decodeRoomInvite payload ) of
                         ( InRoom currentUser room, Ok invite ) ->
                             ( { newModel
@@ -459,6 +473,47 @@ update msg model =
                         _ ->
                             ( newModel, cmd )
 
+                PresenceEvent (Phoenix.State "example:lobby" state) ->
+                    case newModel.state of
+                        InLobby currentUser ->
+                            ( { newModel
+                                | lobby =
+                                    Lobby.occupantsState currentUser
+                                        (User.decodePresenceState state)
+                                        newModel.lobby
+                              }
+                            , cmd
+                            )
+
+                        InRoom currentUser _ ->
+                            ( { newModel
+                                | lobby =
+                                    Lobby.occupantsState currentUser
+                                        (User.decodePresenceState state)
+                                        newModel.lobby
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
+                -- Room Channel --
+                ChannelResponse (JoinOk _ payload) ->
+                    case ( newModel.state, Room.decode payload ) of
+                        ( InLobby currentUser, Ok room ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.dropInviteForRoom room.id currentUser)
+                                        room
+                              }
+                            , Cmd.batch [ cmd, getLayoutHeight ]
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
+
                 ChannelEvent _ "message_list" payload ->
                     case ( newModel.state, ChatMessage.decodeList payload ) of
                         ( InRoom currentUser room, Ok messages ) ->
@@ -467,7 +522,10 @@ update msg model =
                                     InRoom currentUser <|
                                         Room.updateMessages messages room
                               }
-                            , Cmd.batch [ cmd, scrollToBottom "message-list" ]
+                            , Cmd.batch
+                                [ cmd
+                                , scrollToBottom "message-list"
+                                ]
                             )
 
                         _ ->
@@ -523,24 +581,21 @@ update msg model =
                         _ ->
                             ( newModel, cmd )
 
-                ChannelResponse (JoinOk "example:lobby" payload) ->
-                    case User.decode payload of
-                        Ok currentUser ->
-                            ( { newModel | state = InLobby currentUser }, cmd )
-
-                        Err _ ->
-                            ( newModel, cmd )
-
-                ChannelResponse (JoinOk _ payload) ->
-                    case ( newModel.state, Room.decode payload ) of
-                        ( InLobby currentUser, Ok room ) ->
-                            ( { newModel | state = InRoom currentUser room }
-                            , Cmd.batch [ cmd, getLayoutHeight ]
+                PresenceEvent (Phoenix.State _ state) ->
+                    case ( newModel.state, User.decodePresenceState state ) of
+                        ( InRoom currentUser room, users ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom currentUser <|
+                                        Room.updateMembers users room
+                              }
+                            , cmd
                             )
 
                         _ ->
                             ( newModel, cmd )
 
+                -- Lobby and Room Channels --
                 ChannelResponse (LeaveOk _) ->
                     case newModel.state of
                         InLobby _ ->
@@ -551,45 +606,6 @@ update msg model =
                                 | state =
                                     InLobby <|
                                         User.roomClosed room.id currentUser
-                              }
-                            , cmd
-                            )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                PresenceEvent (Phoenix.State "example:lobby" state) ->
-                    case newModel.state of
-                        InLobby currentUser ->
-                            ( { newModel
-                                | lobby =
-                                    Lobby.occupantsState currentUser
-                                        (User.decodePresenceState state)
-                                        newModel.lobby
-                              }
-                            , cmd
-                            )
-
-                        InRoom currentUser _ ->
-                            ( { newModel
-                                | lobby =
-                                    Lobby.occupantsState currentUser
-                                        (User.decodePresenceState state)
-                                        newModel.lobby
-                              }
-                            , cmd
-                            )
-
-                        _ ->
-                            ( newModel, cmd )
-
-                PresenceEvent (Phoenix.State _ state) ->
-                    case ( newModel.state, User.decodePresenceState state ) of
-                        ( InRoom currentUser room, users ) ->
-                            ( { newModel
-                                | state =
-                                    InRoom currentUser <|
-                                        Room.updateMembers users room
                               }
                             , cmd
                             )
@@ -682,12 +698,12 @@ view device { state, lobby, layoutHeight } =
                 |> RoomView.onFocusMessage (GotMemberStartedTyping user room)
                 |> RoomView.onLoseFocusMessage (GotMemberStoppedTyping user room)
                 |> RoomView.onClickUser (GotInviteUser user room)
-                |> RoomView.chatMaxHeight (maxHeight layoutHeight)
+                |> RoomView.chatMaxHeight (chatMaxHeight layoutHeight)
                 |> RoomView.inviteableUsers lobby.inviteableUsers
                 |> RoomView.view device
 
 
-maxHeight : Float -> Int
-maxHeight layoutHeight =
+chatMaxHeight : Float -> Int
+chatMaxHeight layoutHeight =
     floor <|
         (layoutHeight - 20)
