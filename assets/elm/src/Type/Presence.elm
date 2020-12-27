@@ -7,7 +7,3 @@ type alias Presence =
     { id : String
     , user : RegisteredUser
     }
-
-
-
-{- Decode -}

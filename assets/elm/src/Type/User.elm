@@ -5,7 +5,9 @@ module Type.User exposing
     , User(..)
     , bgColor
     , bgColorSelected
+    , byUsername
     , cancelInviteError
+    , currentUserFirst
     , decode
     , decodePresenceState
     , decodeRoomInvite
@@ -29,7 +31,7 @@ module Type.User exposing
     , match
     , processErrors
     , roomClosed
-    , sortByUsername
+    , sortWith
     , username
     , usernameChanged
     , validate
@@ -244,7 +246,7 @@ fgColorSelected color registration =
 
 inviteReceieved : RoomInvite -> RegisteredUser -> RegisteredUser
 inviteReceieved invite (RegisteredUser user) =
-    if matchID invite.to (RegisteredUser user) then
+    if match invite.to (RegisteredUser user) then
         RegisteredUser { user | receivedInvites = List.append user.receivedInvites [ invite ] }
 
     else
@@ -253,7 +255,7 @@ inviteReceieved invite (RegisteredUser user) =
 
 dropInviteReceived : RoomInvite -> RegisteredUser -> RegisteredUser
 dropInviteReceived invite (RegisteredUser user) =
-    if matchID invite.to (RegisteredUser user) then
+    if match invite.to (RegisteredUser user) then
         RegisteredUser { user | receivedInvites = List.filter (\invite_ -> invite_ /= invite) user.receivedInvites }
 
     else
@@ -280,7 +282,7 @@ dropInviteSent invite (RegisteredUser user) =
 
 inviteExpired : RoomInvite -> RegisteredUser -> RegisteredUser
 inviteExpired invite (RegisteredUser user) =
-    if matchID invite.to (RegisteredUser user) then
+    if match invite.to (RegisteredUser user) then
         dropInviteReceived invite <|
             RegisteredUser { user | inviteError = Just RoomClosed }
 
@@ -393,9 +395,20 @@ isInvited user (RegisteredUser currentUser) =
 {- Sorting -}
 
 
-sortByUsername : List RegisteredUser -> List RegisteredUser
-sortByUsername users =
-    List.sortWith byUsername users
+currentUserFirst : RegisteredUser -> List RegisteredUser -> List RegisteredUser
+currentUserFirst currentUser allUsers =
+    List.partition (match currentUser) allUsers
+        |> combine
+
+
+combine : ( List a, List a ) -> List a
+combine ( a, b ) =
+    List.append a b
+
+
+sortWith : (RegisteredUser -> RegisteredUser -> Order) -> List RegisteredUser -> List RegisteredUser
+sortWith sortFunc users =
+    List.sortWith sortFunc users
 
 
 byUsername : RegisteredUser -> RegisteredUser -> Order
@@ -417,11 +430,6 @@ byUsername (RegisteredUser user1) (RegisteredUser user2) =
 
 match : RegisteredUser -> RegisteredUser -> Bool
 match (RegisteredUser userA) (RegisteredUser userB) =
-    userA.id == userB.id
-
-
-matchID : RegisteredUser -> RegisteredUser -> Bool
-matchID (RegisteredUser userA) (RegisteredUser userB) =
     userA.id == userB.id
 
 
@@ -509,16 +517,9 @@ decoder =
             (field "id" string
                 |> andThen toID
             )
-        |> andMap
-            (field "username" string)
-        |> andMap
-            (field "background_color" Color.decoder
-                |> andThen Color.fromRgbaDecoder
-            )
-        |> andMap
-            (field "foreground_color" Color.decoder
-                |> andThen Color.fromRgbaDecoder
-            )
+        |> andMap (field "username" string)
+        |> andMap (field "background_color" Color.decoder)
+        |> andMap (field "foreground_color" Color.decoder)
         |> andMap (succeed [])
         |> andMap (succeed [])
         |> andMap (succeed Nothing)

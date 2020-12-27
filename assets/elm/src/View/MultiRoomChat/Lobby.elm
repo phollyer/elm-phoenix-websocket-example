@@ -466,8 +466,7 @@ occupantsList device currentUser room =
                 , Border.width 1
                 , RoundedBorder.small device
                 ]
-                [ User.sortByUsername room.members
-                    |> List.map (Tag.view device currentUser)
+                [ List.map (Tag.view device currentUser) room.members
                     |> El.wrappedRow
                         [ El.spacing 10
                         , El.width El.fill

@@ -16,12 +16,6 @@ type ErrorMessage
 toString : ErrorMessage -> String
 toString error =
     case error of
-        BackgroundColorNotSelected ->
-            "A Background Color must be seleceted"
-
-        ForegroundColorNotSelected ->
-            "A Foreground Color must be selected"
-
         UsernameCannotBeBlank ->
             "Username can not be empty"
 
@@ -30,6 +24,12 @@ toString error =
 
         UsernameCannotBeMoreThan25Chars ->
             "Username can not be longer than 25 chars"
+
+        BackgroundColorNotSelected ->
+            "A Background Color must be seleceted"
+
+        ForegroundColorNotSelected ->
+            "A Foreground Color must be selected"
 
         RoomClosed ->
             "That room has now closed"

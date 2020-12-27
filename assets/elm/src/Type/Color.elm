@@ -1,11 +1,10 @@
 module Type.Color exposing
     ( decoder
     , encode
-    , fromRgbaDecoder
     )
 
 import Element as El exposing (Color)
-import Json.Decode as JD exposing (Value)
+import Json.Decode as JD exposing (Value, andThen)
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 
@@ -32,7 +31,7 @@ encode color =
         ]
 
 
-decoder : JD.Decoder RGBA
+decoder : JD.Decoder Color
 decoder =
     JD.succeed
         RGBA
@@ -40,6 +39,7 @@ decoder =
         |> andMap (JD.field "green" JD.float)
         |> andMap (JD.field "blue" JD.float)
         |> andMap (JD.field "alpha" JD.float)
+        |> andThen fromRgbaDecoder
 
 
 fromRgbaDecoder : RGBA -> JD.Decoder Color

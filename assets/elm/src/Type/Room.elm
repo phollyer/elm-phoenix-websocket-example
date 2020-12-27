@@ -6,9 +6,12 @@ module Type.Room exposing
     , decodeList
     , dropOccupantTyping
     , encode
+    , groupByOwnerWith
     , id
     , init
     , isOccupant
+    , mostMembers
+    , partition
     , updateMembers
     , updateMessage
     , updateMessages
@@ -17,8 +20,13 @@ module Type.Room exposing
 import Json.Decode as JD exposing (Value)
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
+import List.Extra as List
 import Type.ChatMessage as ChatMessage exposing (ChatMessage)
 import Type.User as User exposing (RegisteredUser)
+
+
+
+{- Type -}
 
 
 type alias Room =
@@ -29,6 +37,10 @@ type alias Room =
     , messages : List ChatMessage
     , occupantsTyping : List RegisteredUser
     }
+
+
+
+{- Build -}
 
 
 init : RegisteredUser -> Room
@@ -43,12 +55,12 @@ init owner =
 
 
 
-{- Build -}
+{- Transform -}
 
 
 updateMembers : List RegisteredUser -> Room -> Room
 updateMembers users room =
-    { room | members = users }
+    { room | members = User.sortWith User.byUsername users }
 
 
 updateMessage : String -> Room -> Room
@@ -80,6 +92,23 @@ dropOccupantTyping user room =
     { room | occupantsTyping = List.filter (\user_ -> not <| User.match user_ user) room.occupantsTyping }
 
 
+partition : RegisteredUser -> List Room -> ( List Room, List Room )
+partition currentUser rooms =
+    List.partition (\room -> User.match currentUser room.owner) rooms
+
+
+groupByOwnerWith : (Room -> Room -> Order) -> List Room -> List ( RegisteredUser, List Room )
+groupByOwnerWith sortFunc rooms =
+    List.sortWith byOwner rooms
+        |> List.groupWhile matchOwner
+        |> List.map (toOwnerWith sortFunc)
+
+
+toOwnerWith : (Room -> Room -> Order) -> ( Room, List Room ) -> ( RegisteredUser, List Room )
+toOwnerWith sortFunc ( room, rooms ) =
+    ( room.owner, List.sortWith sortFunc (room :: rooms) )
+
+
 
 {- Query -}
 
@@ -91,9 +120,53 @@ id room =
 
 isOccupant : RegisteredUser -> Room -> Bool
 isOccupant user room =
-    List.filter (\occupant -> User.match occupant user) room.members
+    List.filter (User.match user) room.members
         |> List.isEmpty
         |> not
+
+
+
+{- Sorting -}
+
+
+byOwner : Room -> Room -> Order
+byOwner roomA roomB =
+    byUsername roomA.owner roomB.owner
+
+
+byUsername : RegisteredUser -> RegisteredUser -> Order
+byUsername userA userB =
+    case compare (User.username userA) (User.username userB) of
+        LT ->
+            LT
+
+        EQ ->
+            EQ
+
+        GT ->
+            GT
+
+
+mostMembers : Room -> Room -> Order
+mostMembers roomA roomB =
+    case compare (List.length roomA.members) (List.length roomB.members) of
+        LT ->
+            GT
+
+        EQ ->
+            EQ
+
+        GT ->
+            LT
+
+
+
+{- Predicates -}
+
+
+matchOwner : Room -> Room -> Bool
+matchOwner roomA roomB =
+    User.match roomA.owner roomB.owner
 
 
 
