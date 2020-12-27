@@ -48,7 +48,7 @@ occupantsState currentUser state lobby =
     in
     { lobby
         | occupants = occupants_
-        , inviteableUsers = isNotInARoom lobby.rooms occupants_
+        , inviteableUsers = inviteableUsers lobby.rooms occupants_
     }
 
 
@@ -66,7 +66,7 @@ roomList currentUser rooms lobby =
     in
     { lobby
         | rooms = rooms_
-        , inviteableUsers = isNotInARoom rooms_ lobby.occupants
+        , inviteableUsers = inviteableUsers rooms_ lobby.occupants
     }
 
 
@@ -84,6 +84,26 @@ occupants lobby =
     lobby.occupants
 
 
+inviteableUsers : ( List Room, List ( RegisteredUser, List Room ) ) -> List RegisteredUser -> List RegisteredUser
+inviteableUsers allRooms users =
+    List.filter (isInviteable allRooms) users
+
+
+allOccupants : ( List Room, List ( RegisteredUser, List Room ) ) -> List RegisteredUser
+allOccupants ( ownRooms, othersRooms ) =
+    List.map Tuple.second othersRooms
+        |> List.concat
+        |> List.append ownRooms
+        |> List.map .members
+        |> List.concat
+
+
+isInviteable : ( List Room, List ( RegisteredUser, List Room ) ) -> RegisteredUser -> Bool
+isInviteable allRooms user =
+    List.filter (User.match user) (allOccupants allRooms)
+        |> List.isEmpty
+
+
 
 {- Sort -}
 
@@ -91,13 +111,18 @@ occupants lobby =
 sortOtherRooms : List Room -> List ( RegisteredUser, List Room )
 sortOtherRooms rooms_ =
     List.sortWith byOwner rooms_
-        |> List.groupWhile (\roomA roomB -> roomA.owner == roomB.owner)
+        |> List.groupWhile roomOwnersMatch
         |> List.map
             (\( a, b ) ->
                 ( a.owner
                 , List.sortWith mostMembers (a :: b)
                 )
             )
+
+
+byOwner : Room -> Room -> Order
+byOwner roomA roomB =
+    byUsername roomA.owner roomB.owner
 
 
 byUsername : RegisteredUser -> RegisteredUser -> Order
@@ -111,11 +136,6 @@ byUsername userA userB =
 
         GT ->
             GT
-
-
-byOwner : Room -> Room -> Order
-byOwner roomA roomB =
-    byUsername roomA.owner roomB.owner
 
 
 mostMembers : Room -> Room -> Order
@@ -135,22 +155,6 @@ mostMembers roomA roomB =
 {- Predicates -}
 
 
-isNotInARoom : ( List Room, List ( RegisteredUser, List Room ) ) -> List RegisteredUser -> List RegisteredUser
-isNotInARoom allRooms users =
-    List.filter
-        (\user ->
-            List.filter
-                (\occupant -> User.match user occupant)
-                (allOccupants allRooms)
-                |> List.isEmpty
-        )
-        users
-
-
-allOccupants : ( List Room, List ( RegisteredUser, List Room ) ) -> List RegisteredUser
-allOccupants ( ownRooms, othersRooms ) =
-    List.map Tuple.second othersRooms
-        |> List.concat
-        |> List.append ownRooms
-        |> List.map (\room -> room.members)
-        |> List.concat
+roomOwnersMatch : Room -> Room -> Bool
+roomOwnersMatch roomA roomB =
+    User.match roomA.owner roomB.owner
