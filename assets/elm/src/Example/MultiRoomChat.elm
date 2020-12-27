@@ -29,10 +29,8 @@ import Type.User as User exposing (RegisteredUser, RoomInvite, UnregisteredUser,
 import UI.Padding as Padding
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as LobbyView
-import View.MultiRoomChat.Lobby.Registration as RegistrationView
-import View.MultiRoomChat.Room.Chat as Chat
-import View.Panel as Panel
-import View.Tag as Tag
+import View.MultiRoomChat.Registration as RegistrationView
+import View.MultiRoomChat.Room as RoomView
 
 
 
@@ -61,7 +59,7 @@ init : Phoenix.Model -> Model
 init phoenix =
     { phoenix = phoenix
     , state = Unregistered User.init
-    , lobby = Lobby.init []
+    , lobby = Lobby.init
     , layoutHeight = 0
     }
 
@@ -88,7 +86,7 @@ type Msg
     | GotDeclineRoomInvite RegisteredUser RoomInvite
     | GotInviteErrorOk RegisteredUser
       -- Room --
-    | GotInviteUser RegisteredUser RegisteredUser Room
+    | GotInviteUser RegisteredUser Room RegisteredUser
     | GotMessageChange RegisteredUser Room String
     | GotMemberStartedTyping RegisteredUser Room
     | GotMemberStoppedTyping RegisteredUser Room
@@ -242,12 +240,12 @@ update msg model =
             )
 
         GotShowRoomMembers _ maybeRoom ->
-            ( { model | lobby = Lobby.showOccupants maybeRoom model.lobby }
+            ( { model | lobby = Lobby.selectedRoom maybeRoom model.lobby }
             , Cmd.none
             )
 
         {- Room -}
-        GotInviteUser from to room ->
+        GotInviteUser from room to ->
             let
                 event =
                     if User.isInvited to from then
@@ -317,11 +315,14 @@ update msg model =
             in
             case phoenixMsg of
                 ChannelEvent "example:lobby" "room_list" payload ->
-                    case Room.decodeList payload of
-                        Ok rooms ->
-                            ( { newModel | lobby = Lobby.roomList rooms newModel.lobby }, cmd )
+                    case ( newModel.state, Room.decodeList payload ) of
+                        ( InLobby currentUser, Ok rooms ) ->
+                            ( { newModel | lobby = Lobby.roomList currentUser rooms newModel.lobby }, cmd )
 
-                        Err _ ->
+                        ( InRoom currentUser _, Ok rooms ) ->
+                            ( { newModel | lobby = Lobby.roomList currentUser rooms newModel.lobby }, cmd )
+
+                        _ ->
                             ( newModel, cmd )
 
                 ChannelEvent "example:lobby" "room_invite" payload ->
@@ -551,14 +552,29 @@ update msg model =
                             ( newModel, cmd )
 
                 PresenceEvent (Phoenix.State "example:lobby" state) ->
-                    ( { newModel
-                        | lobby =
-                            Lobby.presenceState
-                                (User.decodePresenceState state)
-                                newModel.lobby
-                      }
-                    , cmd
-                    )
+                    case newModel.state of
+                        InLobby currentUser ->
+                            ( { newModel
+                                | lobby =
+                                    Lobby.occupantsState currentUser
+                                        (User.decodePresenceState state)
+                                        newModel.lobby
+                              }
+                            , cmd
+                            )
+
+                        InRoom currentUser _ ->
+                            ( { newModel
+                                | lobby =
+                                    Lobby.occupantsState currentUser
+                                        (User.decodePresenceState state)
+                                        newModel.lobby
+                              }
+                            , cmd
+                            )
+
+                        _ ->
+                            ( newModel, cmd )
 
                 PresenceEvent (Phoenix.State _ state) ->
                     case ( newModel.state, User.decodePresenceState state ) of
@@ -634,13 +650,7 @@ view : Device -> Model -> Element Msg
 view device { state, lobby, layoutHeight } =
     case state of
         Unregistered user ->
-            RegistrationView.init
-                |> RegistrationView.username user.username
-                |> RegistrationView.usernameError user.usernameError
-                |> RegistrationView.backgroundColor user.backgroundColor
-                |> RegistrationView.backgroundColorError user.backgroundColorError
-                |> RegistrationView.foregroundColor user.foregroundColor
-                |> RegistrationView.foregroundColorError user.foregroundColorError
+            RegistrationView.init user
                 |> RegistrationView.onChange (GotUsernameChange user)
                 |> RegistrationView.onBackgroundColorChange (GotBackgroundColorSelection user)
                 |> RegistrationView.onForegroundColorChange (GotForegroundColorSelection user)
@@ -648,7 +658,7 @@ view device { state, lobby, layoutHeight } =
                 |> RegistrationView.view device
 
         InLobby user ->
-            LobbyView.init user
+            LobbyView.init user lobby
                 |> LobbyView.onCreateRoom (GotCreateRoom user)
                 |> LobbyView.onEnterRoom (GotEnterRoom user)
                 |> LobbyView.onDeleteRoom (GotDeleteRoom user)
@@ -656,219 +666,21 @@ view device { state, lobby, layoutHeight } =
                 |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
                 |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk
-                |> LobbyView.showRoomMembers lobby.showOccupants
-                |> LobbyView.members lobby.presences
-                |> LobbyView.rooms lobby.rooms
-                |> LobbyView.roomInvites (User.invitesReceived user)
-                |> LobbyView.inviteError (User.inviteError user)
                 |> LobbyView.view device
 
         InRoom user room ->
-            container device
-                [ El.el
-                    [ chatWidth device ]
-                    (Chat.init user room
-                        |> Chat.messages room.messages
-                        |> Chat.messagesContainerMaxHeight (maxHeight layoutHeight)
-                        |> Chat.membersTyping room.occupantsTyping
-                        |> Chat.userText room.message
-                        |> Chat.onChange (GotMessageChange user room)
-                        |> Chat.onFocus (GotMemberStartedTyping user room)
-                        |> Chat.onLoseFocus (GotMemberStoppedTyping user room)
-                        |> Chat.onSubmit (GotSendMessage user room)
-                        |> Chat.view device
-                    )
-                , panelContainer device
-                    [ roomOccupants device user room.members
-                    , El.column
-                        [ El.height El.fill
-                        , El.width El.fill
-                        ]
-                        [ Panel.init
-                            |> Panel.title "Lobby Occupants"
-                            |> Panel.description
-                                [ [ El.text "Click on a user to invite them into the room. "
-                                  , El.text "Click them again to revoke the invitation."
-                                  ]
-                                ]
-                            |> Panel.element
-                                (occupantsView device user room lobby.presences)
-                            |> Panel.view device
-                        ]
-                    ]
-                ]
-
-
-occupantsView : Device -> RegisteredUser -> Room -> List RegisteredUser -> Element Msg
-occupantsView device currentUser room occupants =
-    El.column
-        [ padding device
-        , spacing device
-        , El.width El.fill
-        ]
-        (List.filter (\presence -> not <| List.member presence room.members) occupants
-            |> List.map (occupantView device room currentUser)
-        )
-
-
-occupantView : Device -> Room -> RegisteredUser -> RegisteredUser -> Element Msg
-occupantView device room currentUser user =
-    El.paragraph
-        [ padding device
-        , roundedBorders device
-        , Background.color (User.bgColor user)
-        , Border.color (User.fgColor user)
-        , Border.width 1
-        , El.mouseOver
-            [ Border.color (User.bgColor user)
-            , Border.shadow
-                { size = 1
-                , blur = 5
-                , color = User.bgColor user
-                , offset = ( 0, 0 )
-                }
-            ]
-        , El.pointer
-        , El.width El.fill
-        , Event.onClick (GotInviteUser currentUser user room)
-        , Font.color (User.fgColor user)
-        ]
-        [ El.text <|
-            User.username user
-                ++ (if User.isInvited user currentUser then
-                        " (Invited)"
-
-                    else
-                        ""
-                   )
-        ]
-
-
-container : Device -> List (Element Msg) -> Element Msg
-container { class, orientation } =
-    case ( class, orientation ) of
-        ( Phone, _ ) ->
-            El.column
-                [ El.width El.fill
-                , El.spacing 10
-                ]
-
-        ( Tablet, Portrait ) ->
-            El.column
-                [ El.width El.fill
-                , El.spacing 10
-                ]
-
-        _ ->
-            El.row
-                [ El.height El.fill
-                , El.width El.fill
-                , El.spacing 10
-                , Padding.right 10
-                ]
-
-
-panelContainer : Device -> List (Element Msg) -> Element Msg
-panelContainer ({ class, orientation } as device) =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            El.column
-                [ El.width El.fill
-                , El.spacing 10
-                ]
-
-        _ ->
-            El.row
-                [ panelWidth device
-                , El.height El.fill
-                , El.spacing 10
-                ]
-
-
-roomOccupants : Device -> RegisteredUser -> List RegisteredUser -> Element Msg
-roomOccupants device currentUser occupants =
-    Panel.init
-        |> Panel.title "Room Occupants"
-        |> Panel.element
-            (El.column
-                [ padding device
-                , spacing device
-                , El.width El.fill
-                ]
-                (List.map (Tag.view device currentUser) occupants)
-            )
-        |> Panel.view device
+            RoomView.init user room
+                |> RoomView.onChangeMessage (GotMessageChange user room)
+                |> RoomView.onSubmitMessage (GotSendMessage user room)
+                |> RoomView.onFocusMessage (GotMemberStartedTyping user room)
+                |> RoomView.onLoseFocusMessage (GotMemberStoppedTyping user room)
+                |> RoomView.onClickUser (GotInviteUser user room)
+                |> RoomView.chatMaxHeight (maxHeight layoutHeight)
+                |> RoomView.inviteableUsers lobby.inviteableUsers
+                |> RoomView.view device
 
 
 maxHeight : Float -> Int
 maxHeight layoutHeight =
     floor <|
         (layoutHeight - 20)
-
-
-
-{- Attributes -}
-
-
-chatWidth : Device -> Attribute Msg
-chatWidth { class } =
-    El.width <|
-        case class of
-            Phone ->
-                El.fill
-
-            _ ->
-                El.fillPortion 3
-
-
-panelWidth : Device -> Attribute Msg
-panelWidth { class } =
-    El.width <|
-        case class of
-            Phone ->
-                El.fill
-
-            _ ->
-                El.fillPortion 2
-
-
-padding : Device -> Attribute Msg
-padding { class } =
-    El.padding <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
-
-
-spacing : Device -> Attribute Msg
-spacing { class } =
-    El.spacing <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
-
-
-roundedBorders : Device -> Attribute Msg
-roundedBorders { class } =
-    Border.rounded <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10

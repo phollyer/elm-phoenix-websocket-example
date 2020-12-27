@@ -8,6 +8,7 @@ module Type.Room exposing
     , encode
     , id
     , init
+    , isOccupant
     , updateMembers
     , updateMessage
     , updateMessages
@@ -86,6 +87,13 @@ dropOccupantTyping user room =
 id : Room -> String
 id room =
     room.id
+
+
+isOccupant : RegisteredUser -> Room -> Bool
+isOccupant user room =
+    List.filter (\occupant -> User.match occupant user) room.members
+        |> List.isEmpty
+        |> not
 
 
 

@@ -1,15 +1,9 @@
-module View.MultiRoomChat.Lobby.Registration exposing
-    ( backgroundColor
-    , backgroundColorError
-    , foregroundColor
-    , foregroundColorError
-    , init
+module View.MultiRoomChat.Registration exposing
+    ( init
     , onBackgroundColorChange
     , onChange
     , onForegroundColorChange
     , onSubmit
-    , username
-    , usernameError
     , view
     )
 
@@ -21,6 +15,7 @@ import Element.Events as Event
 import Element.Font as Font
 import List.Extra exposing (greedyGroupsOf)
 import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage)
+import Type.User exposing (UnregisteredUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
@@ -35,12 +30,7 @@ import View.InputField as InputField
 
 type Config msg
     = Config
-        { username : String
-        , usernameError : Maybe ErrorMessage
-        , backgroundColor : Maybe Color
-        , backgroundColorError : Maybe ErrorMessage
-        , foregroundColor : Maybe Color
-        , foregroundColorError : Maybe ErrorMessage
+        { currentUser : UnregisteredUser
         , onChange : Maybe (String -> msg)
         , onBackgroundColorChange : Maybe (Color -> msg)
         , onForegroundColorChange : Maybe (Color -> msg)
@@ -48,50 +38,15 @@ type Config msg
         }
 
 
-init : Config msg
-init =
+init : UnregisteredUser -> Config msg
+init user =
     Config
-        { username = ""
-        , usernameError = Nothing
-        , backgroundColor = Nothing
-        , backgroundColorError = Nothing
-        , foregroundColor = Nothing
-        , foregroundColorError = Nothing
+        { currentUser = user
         , onChange = Nothing
         , onBackgroundColorChange = Nothing
         , onForegroundColorChange = Nothing
         , onSubmit = Nothing
         }
-
-
-username : String -> Config msg -> Config msg
-username name (Config config) =
-    Config { config | username = name }
-
-
-usernameError : Maybe ErrorMessage -> Config msg -> Config msg
-usernameError maybeError (Config config) =
-    Config { config | usernameError = maybeError }
-
-
-backgroundColor : Maybe Color -> Config msg -> Config msg
-backgroundColor color (Config config) =
-    Config { config | backgroundColor = color }
-
-
-backgroundColorError : Maybe ErrorMessage -> Config msg -> Config msg
-backgroundColorError maybeError (Config config) =
-    Config { config | backgroundColorError = maybeError }
-
-
-foregroundColor : Maybe Color -> Config msg -> Config msg
-foregroundColor color (Config config) =
-    Config { config | foregroundColor = color }
-
-
-foregroundColorError : Maybe ErrorMessage -> Config msg -> Config msg
-foregroundColorError maybeError (Config config) =
-    Config { config | foregroundColorError = maybeError }
 
 
 onChange : (String -> msg) -> Config msg -> Config msg
@@ -157,7 +112,7 @@ form device (Config config) =
         ]
         [ section device
             [ inputField device (Config config)
-            , errorView config.usernameError
+            , errorView config.currentUser.usernameError
             ]
         , colorsView device (Config config)
         , submitButton device (Config config)
@@ -188,7 +143,7 @@ inputField : Device -> Config msg -> Element msg
 inputField device (Config config) =
     InputField.init
         |> InputField.label "Username"
-        |> InputField.text config.username
+        |> InputField.text config.currentUser.username
         |> InputField.onChange config.onChange
         |> InputField.view device
 
@@ -218,10 +173,10 @@ colorsView device (Config config) =
                 [ El.width El.fill
                 , El.spacing 10
                 ]
-                (colorRows device config.onBackgroundColorChange config.backgroundColor config.foregroundColor)
+                (colorRows device config.onBackgroundColorChange config.currentUser.backgroundColor config.currentUser.foregroundColor)
             , El.el
                 [ El.centerX ]
-                (errorView config.backgroundColorError)
+                (errorView config.currentUser.backgroundColorError)
             ]
         , section device
             [ El.el
@@ -234,12 +189,12 @@ colorsView device (Config config) =
                 [ El.width El.fill
                 , El.spacing 10
                 ]
-                (colorRows device config.onForegroundColorChange config.foregroundColor config.backgroundColor)
+                (colorRows device config.onForegroundColorChange config.currentUser.foregroundColor config.currentUser.backgroundColor)
             , El.el
                 [ El.centerX ]
-                (errorView config.foregroundColorError)
+                (errorView config.currentUser.foregroundColorError)
             ]
-        , case ( config.foregroundColor, config.backgroundColor, not <| String.isEmpty config.username ) of
+        , case ( config.currentUser.foregroundColor, config.currentUser.backgroundColor, not <| String.isEmpty config.currentUser.username ) of
             ( Just fgColor, Just bgColor, True ) ->
                 El.column
                     [ El.centerX
@@ -260,7 +215,7 @@ colorsView device (Config config) =
                         , Font.center
                         , Font.color fgColor
                         ]
-                        [ El.text config.username ]
+                        [ El.text config.currentUser.username ]
                     ]
 
             _ ->
