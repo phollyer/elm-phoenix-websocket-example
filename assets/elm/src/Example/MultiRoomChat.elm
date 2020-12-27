@@ -404,20 +404,24 @@ update msg model =
                 ChannelEvent _ "invite_accepted" payload ->
                     case ( newModel.state, User.decodeRoomInvite payload ) of
                         ( InLobby currentUser, Ok invite ) ->
-                            updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.dropInviteReceived invite currentUser) } <|
-                                Phoenix.join ("example:room:" ++ invite.roomId) <|
-                                    Phoenix.setJoinConfig
-                                        { joinConfig
-                                            | topic = "example:room:" ++ invite.roomId
-                                            , events =
-                                                [ "message_list"
-                                                , "member_started_typing"
-                                                , "member_stopped_typing"
-                                                , "room_closed"
-                                                ]
-                                            , payload = User.encode currentUser
-                                        }
-                                        newModel.phoenix
+                            if User.match currentUser invite.to then
+                                updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.dropInviteReceived invite currentUser) } <|
+                                    Phoenix.join ("example:room:" ++ invite.roomId) <|
+                                        Phoenix.setJoinConfig
+                                            { joinConfig
+                                                | topic = "example:room:" ++ invite.roomId
+                                                , events =
+                                                    [ "message_list"
+                                                    , "member_started_typing"
+                                                    , "member_stopped_typing"
+                                                    , "room_closed"
+                                                    ]
+                                                , payload = User.encode currentUser
+                                            }
+                                            newModel.phoenix
+
+                            else
+                                ( newModel, cmd )
 
                         ( InRoom currentUser room, Ok invite ) ->
                             ( { newModel
