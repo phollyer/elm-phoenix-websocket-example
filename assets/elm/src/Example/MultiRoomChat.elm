@@ -509,9 +509,13 @@ update msg model =
                             , cmd
                             )
 
-                        ( InRoom _ room, _ ) ->
-                            Phoenix.leave ("example:room:" ++ room.id) newModel.phoenix
-                                |> updatePhoenixWith PhoenixMsg newModel
+                        ( InRoom _ room, Ok roomClosed ) ->
+                            if room.id == roomClosed.id then
+                                Phoenix.leave ("example:room:" ++ roomClosed.id) newModel.phoenix
+                                    |> updatePhoenixWith PhoenixMsg newModel
+
+                            else
+                                ( newModel, cmd )
 
                         _ ->
                             ( newModel, cmd )
