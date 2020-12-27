@@ -306,7 +306,11 @@ leftRoom : Value -> RegisteredUser -> RegisteredUser
 leftRoom payload (RegisteredUser user) =
     case decodeOccupant payload of
         Ok occupant ->
-            RegisteredUser { user | receivedInvites = List.filter (\invite -> (invite.from |> userId |> id) /= occupant.id && invite.roomId /= occupant.roomId) user.receivedInvites }
+            RegisteredUser
+                { user
+                    | receivedInvites =
+                        List.filter (\invite -> (invite.from |> userId |> id) /= occupant.id && invite.roomId /= occupant.roomId) user.receivedInvites
+                }
 
         Err _ ->
             RegisteredUser user
@@ -375,6 +379,16 @@ inviteError (RegisteredUser user) =
     user.inviteError
 
 
+isInvited : RegisteredUser -> RegisteredUser -> Bool
+isInvited user (RegisteredUser currentUser) =
+    case List.filter (\{ to } -> match to user) currentUser.sentInvites of
+        [] ->
+            False
+
+        _ ->
+            True
+
+
 
 {- Sorting -}
 
@@ -409,16 +423,6 @@ match (RegisteredUser userA) (RegisteredUser userB) =
 matchID : RegisteredUser -> RegisteredUser -> Bool
 matchID (RegisteredUser userA) (RegisteredUser userB) =
     userA.id == userB.id
-
-
-isInvited : RegisteredUser -> RegisteredUser -> Bool
-isInvited (RegisteredUser user) (RegisteredUser currentUser) =
-    case List.filter (\{ to } -> (to |> userId) == user.id) currentUser.sentInvites of
-        [] ->
-            False
-
-        _ ->
-            True
 
 
 
