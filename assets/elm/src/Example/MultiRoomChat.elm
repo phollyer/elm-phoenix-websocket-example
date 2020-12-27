@@ -12,11 +12,7 @@ import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig)
-import Element as El exposing (Attribute, Color, Device, DeviceClass(..), Element, Orientation(..))
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Event
-import Element.Font as Font
+import Element exposing (Color, Device, DeviceClass(..), Element, Orientation(..))
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), pushConfig)
 import Route
@@ -26,7 +22,6 @@ import Type.Lobby as Lobby exposing (Lobby)
 import Type.Room as Room exposing (Room)
 import Type.TwoTrack exposing (TwoTrack(..))
 import Type.User as User exposing (RegisteredUser, RoomInvite, UnregisteredUser, User(..))
-import UI.Padding as Padding
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as LobbyView
 import View.MultiRoomChat.Registration as RegistrationView

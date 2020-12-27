@@ -347,21 +347,21 @@ roomsView device ((Config c) as config) =
             El.none
 
         ( currentUserRooms, [] ) ->
-            roomsContainer device <|
+            roomsContainer
                 [ toRoomList device config ( c.user, currentUserRooms ) ]
 
         ( [], othersRooms ) ->
-            roomsContainer device <|
+            roomsContainer <|
                 List.map (toRoomList device config) othersRooms
 
         ( currentUserRooms, othersRooms ) ->
-            roomsContainer device <|
+            roomsContainer <|
                 toRoomList device config ( c.user, currentUserRooms )
                     :: List.map (toRoomList device config) othersRooms
 
 
-roomsContainer : Device -> List (Element msg) -> Element msg
-roomsContainer device rooms_ =
+roomsContainer : List (Element msg) -> Element msg
+roomsContainer rooms_ =
     El.el
         [ El.alignTop
         , El.width El.fill

@@ -15,7 +15,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Html.Attributes as Attr
 import Type.ChatMessage exposing (ChatMessage)
 import Type.Room exposing (Room)
 import Type.User as User exposing (RegisteredUser)
@@ -142,7 +141,7 @@ container { class, orientation } =
 
 
 occupantsContainer : Device -> List (Element msg) -> Element msg
-occupantsContainer ({ class, orientation } as device) =
+occupantsContainer { class, orientation } =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             El.column

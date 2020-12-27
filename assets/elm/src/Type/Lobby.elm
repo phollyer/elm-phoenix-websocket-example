@@ -7,7 +7,6 @@ module Type.Lobby exposing
     , selectedRoom
     )
 
-import Json.Decode.Extra exposing (combine)
 import Type.Room as Room exposing (Room)
 import Type.User as User exposing (RegisteredUser)
 
