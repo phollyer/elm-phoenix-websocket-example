@@ -42,7 +42,9 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
         else
           Room.delete_member(room, socket.assigns.user_id)
 
-          ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "occupant_left_room", %{user_id: socket.assigns.user_id, room_id: room.id})
+          {:ok, user} = User.find(socket.assigns.user_id)
+
+          ElmPhoenixWebSocketExampleWeb.Endpoint.broadcast("example:lobby", "occupant_left_room", %{occupant: user , room_id: room.id})
         end
 
       :not_found ->

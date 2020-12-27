@@ -7,7 +7,6 @@ module Type.Room exposing
     , dropOccupantTyping
     , encode
     , groupByOwnerWith
-    , id
     , init
     , isOccupant
     , mostMembers
@@ -80,7 +79,7 @@ clearMessage room =
 
 addOccupantTyping : RegisteredUser -> RegisteredUser -> Room -> Room
 addOccupantTyping currentUser user room =
-    if not <| User.match currentUser user && (not <| List.member user room.occupantsTyping) then
+    if not <| User.match currentUser user && (not <| User.member user room.occupantsTyping) then
         { room | occupantsTyping = user :: room.occupantsTyping }
 
     else
@@ -89,7 +88,7 @@ addOccupantTyping currentUser user room =
 
 dropOccupantTyping : RegisteredUser -> Room -> Room
 dropOccupantTyping user room =
-    { room | occupantsTyping = List.filter (\user_ -> not <| User.match user_ user) room.occupantsTyping }
+    { room | occupantsTyping = User.drop user room.occupantsTyping }
 
 
 partition : RegisteredUser -> List Room -> ( List Room, List Room )
@@ -113,16 +112,9 @@ toOwnerWith sortFunc ( room, rooms ) =
 {- Query -}
 
 
-id : Room -> String
-id room =
-    room.id
-
-
 isOccupant : RegisteredUser -> Room -> Bool
 isOccupant user room =
-    List.filter (User.match user) room.members
-        |> List.isEmpty
-        |> not
+    User.member user room.members
 
 
 

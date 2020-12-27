@@ -291,7 +291,7 @@ update msg model =
             updatePhoenixWith PhoenixMsg { model | state = InRoom currentUser <| Room.clearMessage room } <|
                 Phoenix.push
                     { pushConfig
-                        | topic = "example:room:" ++ Room.id room
+                        | topic = "example:room:" ++ room.id
                         , event = "new_message"
                         , payload = ChatMessage.encode room.message
                     }
@@ -301,7 +301,7 @@ update msg model =
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
-                        | topic = "example:room:" ++ Room.id room
+                        | topic = "example:room:" ++ room.id
                         , event = "member_started_typing"
                         , payload = User.encode currentUser
                     }
@@ -311,7 +311,7 @@ update msg model =
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
                     { pushConfig
-                        | topic = "example:room:" ++ Room.id room
+                        | topic = "example:room:" ++ room.id
                         , event = "member_stopped_typing"
                         , payload = User.encode currentUser
                     }

@@ -12,6 +12,7 @@ module Type.User exposing
     , decodePresenceState
     , decodeRoomInvite
     , decoder
+    , drop
     , dropInviteReceived
     , dropInviteSent
     , encode
@@ -29,6 +30,7 @@ module Type.User exposing
     , isInvited
     , leftRoom
     , match
+    , member
     , processErrors
     , roomClosed
     , sortWith
@@ -216,12 +218,12 @@ processErrors errors user =
 
 
 usernameChanged : String -> UnregisteredUser -> UnregisteredUser
-usernameChanged name registration =
-    { registration
+usernameChanged name user =
+    { user
         | username = name
         , usernameError =
             if String.trim name == "" then
-                registration.usernameError
+                user.usernameError
 
             else
                 Nothing
@@ -229,34 +231,39 @@ usernameChanged name registration =
 
 
 bgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
-bgColorSelected color registration =
-    { registration
+bgColorSelected color user =
+    { user
         | backgroundColor = Just color
         , backgroundColorError = Nothing
     }
 
 
 fgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
-fgColorSelected color registration =
-    { registration
+fgColorSelected color user =
+    { user
         | foregroundColor = Just color
         , foregroundColorError = Nothing
     }
 
 
+currentUserFirst : RegisteredUser -> List RegisteredUser -> List RegisteredUser
+currentUserFirst currentUser allUsers =
+    List.partition (match currentUser) allUsers
+        |> combine
+
+
+combine : ( List a, List a ) -> List a
+combine ( a, b ) =
+    List.append a b
+
+
 inviteReceieved : RoomInvite -> RegisteredUser -> RegisteredUser
 inviteReceieved invite (RegisteredUser user) =
     if match invite.to (RegisteredUser user) then
-        RegisteredUser { user | receivedInvites = List.append user.receivedInvites [ invite ] }
-
-    else
-        RegisteredUser user
-
-
-dropInviteReceived : RoomInvite -> RegisteredUser -> RegisteredUser
-dropInviteReceived invite (RegisteredUser user) =
-    if match invite.to (RegisteredUser user) then
-        RegisteredUser { user | receivedInvites = List.filter (\invite_ -> invite_ /= invite) user.receivedInvites }
+        RegisteredUser
+            { user
+                | receivedInvites = List.append user.receivedInvites [ invite ]
+            }
 
     else
         RegisteredUser user
@@ -264,27 +271,48 @@ dropInviteReceived invite (RegisteredUser user) =
 
 inviteSent : RoomInvite -> RegisteredUser -> RegisteredUser
 inviteSent invite (RegisteredUser user) =
-    if List.member invite user.sentInvites then
+    if inviteIsMember invite user.sentInvites then
         RegisteredUser user
 
     else
-        RegisteredUser { user | sentInvites = invite :: user.sentInvites }
+        RegisteredUser
+            { user
+                | sentInvites = invite :: user.sentInvites
+            }
+
+
+dropInviteReceived : RoomInvite -> RegisteredUser -> RegisteredUser
+dropInviteReceived invite (RegisteredUser user) =
+    if match invite.to (RegisteredUser user) then
+        RegisteredUser
+            { user
+                | receivedInvites = dropInvite invite user.receivedInvites
+            }
+
+    else
+        RegisteredUser user
 
 
 dropInviteSent : RoomInvite -> RegisteredUser -> RegisteredUser
 dropInviteSent invite (RegisteredUser user) =
-    RegisteredUser
-        { user
-            | sentInvites =
-                List.filter (\invite_ -> invite_ /= invite) user.sentInvites
-        }
+    if match invite.from (RegisteredUser user) then
+        RegisteredUser
+            { user
+                | sentInvites = dropInvite invite user.sentInvites
+            }
+
+    else
+        RegisteredUser user
 
 
 inviteExpired : RoomInvite -> RegisteredUser -> RegisteredUser
 inviteExpired invite (RegisteredUser user) =
     if match invite.to (RegisteredUser user) then
-        dropInviteReceived invite <|
-            RegisteredUser { user | inviteError = Just RoomClosed }
+        RegisteredUser
+            { user
+                | receivedInvites = dropInvite invite user.receivedInvites
+                , inviteError = Just RoomClosed
+            }
 
     else
         RegisteredUser user
@@ -299,42 +327,41 @@ roomClosed : String -> RegisteredUser -> RegisteredUser
 roomClosed roomId (RegisteredUser user) =
     RegisteredUser
         { user
-            | receivedInvites = List.filter (\invite -> invite.roomId /= roomId) user.receivedInvites
-            , sentInvites = List.filter (\invite -> invite.roomId /= roomId) user.sentInvites
+            | receivedInvites = dropWith (\invite -> invite.roomId == roomId) user.receivedInvites
+            , sentInvites = dropWith (\invite -> invite.roomId == roomId) user.sentInvites
         }
 
 
 leftRoom : Value -> RegisteredUser -> RegisteredUser
 leftRoom payload (RegisteredUser user) =
-    case decodeOccupant payload of
-        Ok occupant ->
+    case decodeTempRoom payload of
+        Ok { occupant, roomId } ->
             RegisteredUser
                 { user
                     | receivedInvites =
-                        List.filter (\invite -> (invite.from |> userId |> id) /= occupant.id && invite.roomId /= occupant.roomId) user.receivedInvites
+                        dropWith
+                            (\invite -> match invite.from occupant && invite.roomId == roomId)
+                            user.receivedInvites
                 }
 
         Err _ ->
             RegisteredUser user
 
 
-type alias Occupant =
-    { id : String
-    , roomId : String
-    }
+drop : RegisteredUser -> List RegisteredUser -> List RegisteredUser
+drop user =
+    dropWith (match user)
 
 
-decodeOccupant : Value -> Result JD.Error Occupant
-decodeOccupant payload =
-    JD.decodeValue occupantDecoder payload
+dropInvite : RoomInvite -> List RoomInvite -> List RoomInvite
+dropInvite invite =
+    dropWith (matchInvite invite)
 
 
-occupantDecoder : JD.Decoder Occupant
-occupantDecoder =
-    JD.succeed
-        Occupant
-        |> andMap (JD.field "user_id" JD.string)
-        |> andMap (JD.field "room_id" JD.string)
+dropWith : (a -> Bool) -> List a -> List a
+dropWith compareFunc entities =
+    List.partition compareFunc entities
+        |> Tuple.second
 
 
 
@@ -344,11 +371,6 @@ occupantDecoder =
 id : ID -> String
 id (ID id_) =
     id_
-
-
-userId : RegisteredUser -> ID
-userId (RegisteredUser user) =
-    user.id
 
 
 username : RegisteredUser -> String
@@ -383,32 +405,44 @@ inviteError (RegisteredUser user) =
 
 isInvited : RegisteredUser -> RegisteredUser -> Bool
 isInvited user (RegisteredUser currentUser) =
-    case List.filter (\{ to } -> match to user) currentUser.sentInvites of
-        [] ->
-            False
+    isMemberWith (\{ to } -> match to user) currentUser.sentInvites
 
-        _ ->
-            True
+
+match : RegisteredUser -> RegisteredUser -> Bool
+match (RegisteredUser userA) (RegisteredUser userB) =
+    userA.id == userB.id
+
+
+matchInvite : RoomInvite -> RoomInvite -> Bool
+matchInvite inviteA inviteB =
+    match inviteA.to inviteB.to && match inviteA.from inviteB.from
+
+
+inviteIsMember : RoomInvite -> List RoomInvite -> Bool
+inviteIsMember invite =
+    isMemberWith (matchInvite invite)
+
+
+member : RegisteredUser -> List RegisteredUser -> Bool
+member user =
+    isMemberWith (match user)
+
+
+isMemberWith : (a -> Bool) -> List a -> Bool
+isMemberWith compareFunc list =
+    List.partition compareFunc list
+        |> Tuple.first
+        |> List.isEmpty
+        |> not
 
 
 
 {- Sorting -}
 
 
-currentUserFirst : RegisteredUser -> List RegisteredUser -> List RegisteredUser
-currentUserFirst currentUser allUsers =
-    List.partition (match currentUser) allUsers
-        |> combine
-
-
-combine : ( List a, List a ) -> List a
-combine ( a, b ) =
-    List.append a b
-
-
 sortWith : (RegisteredUser -> RegisteredUser -> Order) -> List RegisteredUser -> List RegisteredUser
-sortWith sortFunc users =
-    List.sortWith sortFunc users
+sortWith sortFunc =
+    List.sortWith sortFunc
 
 
 byUsername : RegisteredUser -> RegisteredUser -> Order
@@ -422,15 +456,6 @@ byUsername (RegisteredUser user1) (RegisteredUser user2) =
 
         GT ->
             GT
-
-
-
-{- Predicates -}
-
-
-match : RegisteredUser -> RegisteredUser -> Bool
-match (RegisteredUser userA) (RegisteredUser userB) =
-    userA.id == userB.id
 
 
 
@@ -547,3 +572,22 @@ tempDecoder =
         |> andMap (field "from" decoder)
         |> andMap (field "to" decoder)
         |> andMap (field "room_id" string)
+
+
+type alias TempRoom =
+    { occupant : RegisteredUser
+    , roomId : String
+    }
+
+
+decodeTempRoom : Value -> Result JD.Error TempRoom
+decodeTempRoom payload =
+    JD.decodeValue tempRoomDecoder payload
+
+
+tempRoomDecoder : JD.Decoder TempRoom
+tempRoomDecoder =
+    JD.succeed
+        TempRoom
+        |> andMap (JD.field "occupant" decoder)
+        |> andMap (JD.field "room_id" JD.string)
