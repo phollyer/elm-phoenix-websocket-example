@@ -688,12 +688,12 @@ view device { state, lobby, layoutHeight, phoenix } =
 
         InLobby user ->
             LobbyView.init user lobby
-                |> LobbyView.onCreateRoom (GotCreateRoom user)
-                |> LobbyView.onEnterRoom (GotEnterRoom user)
-                |> LobbyView.onDeleteRoom (GotDeleteRoom user)
+                |> LobbyView.onCreateRoom (maybeOnCreateRoom phoenix user)
+                |> LobbyView.onDeleteRoom (maybeOnDeleteRoom phoenix user)
+                |> LobbyView.onEnterRoom (maybeOnEnterRoom phoenix user lobby)
                 |> LobbyView.onMouseEnterRoom (GotShowRoomMembers user)
-                |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
-                |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
+                |> LobbyView.onAcceptRoomInvite (maybeAcceptRoomInvite phoenix user)
+                |> LobbyView.onDeclineRoomInvite (maybeDeclineRoomInvite phoenix user)
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk
                 |> LobbyView.view device
 
@@ -707,6 +707,56 @@ view device { state, lobby, layoutHeight, phoenix } =
                 |> RoomView.chatMaxHeight (chatMaxHeight layoutHeight)
                 |> RoomView.inviteableUsers lobby.inviteableUsers
                 |> RoomView.view device
+
+
+maybeOnCreateRoom : Phoenix.Model -> RegisteredUser -> Maybe Msg
+maybeOnCreateRoom phoenix user =
+    if Phoenix.pushWaiting (\push -> push.event == "create_room") phoenix then
+        Nothing
+
+    else
+        Just (GotCreateRoom user)
+
+
+maybeOnDeleteRoom : Phoenix.Model -> RegisteredUser -> Maybe (Room -> Msg)
+maybeOnDeleteRoom phoenix user =
+    if Phoenix.pushWaiting (\push -> push.event == "delete_room") phoenix then
+        Nothing
+
+    else
+        Just (GotDeleteRoom user)
+
+
+maybeOnEnterRoom : Phoenix.Model -> RegisteredUser -> Lobby -> Maybe (Room -> Msg)
+maybeOnEnterRoom phoenix user lobby =
+    case lobby.selectedRoom of
+        Nothing ->
+            Just (GotEnterRoom user)
+
+        Just room ->
+            if Phoenix.channelQueued ("example:room:" ++ room.id) phoenix then
+                Nothing
+
+            else
+                Just (GotEnterRoom user)
+
+
+maybeAcceptRoomInvite : Phoenix.Model -> RegisteredUser -> Maybe (RoomInvite -> Msg)
+maybeAcceptRoomInvite phoenix user =
+    if Phoenix.pushWaiting (\push -> push.event == "invite_accepted") phoenix then
+        Nothing
+
+    else
+        Just (GotAcceptRoomInvite user)
+
+
+maybeDeclineRoomInvite : Phoenix.Model -> RegisteredUser -> Maybe (RoomInvite -> Msg)
+maybeDeclineRoomInvite phoenix user =
+    if Phoenix.pushWaiting (\push -> push.event == "invite_declined") phoenix then
+        Nothing
+
+    else
+        Just (GotDeclineRoomInvite user)
 
 
 chatMaxHeight : Float -> Int

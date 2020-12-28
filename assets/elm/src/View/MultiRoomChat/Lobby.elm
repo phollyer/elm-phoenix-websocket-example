@@ -62,19 +62,19 @@ init user lobby =
         }
 
 
-onCreateRoom : msg -> Config msg -> Config msg
+onCreateRoom : Maybe msg -> Config msg -> Config msg
 onCreateRoom msg (Config config) =
-    Config { config | onCreateRoom = Just msg }
+    Config { config | onCreateRoom = msg }
 
 
-onDeleteRoom : (Room -> msg) -> Config msg -> Config msg
+onDeleteRoom : Maybe (Room -> msg) -> Config msg -> Config msg
 onDeleteRoom msg (Config config) =
-    Config { config | onDeleteRoom = Just msg }
+    Config { config | onDeleteRoom = msg }
 
 
-onEnterRoom : (Room -> msg) -> Config msg -> Config msg
+onEnterRoom : Maybe (Room -> msg) -> Config msg -> Config msg
 onEnterRoom msg (Config config) =
-    Config { config | onEnterRoom = Just msg }
+    Config { config | onEnterRoom = msg }
 
 
 onMouseEnterRoom : (Maybe Room -> msg) -> Config msg -> Config msg
@@ -82,14 +82,14 @@ onMouseEnterRoom msg (Config config) =
     Config { config | onMouseEnterRoom = Just msg }
 
 
-onAcceptRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
+onAcceptRoomInvite : Maybe (RoomInvite -> msg) -> Config msg -> Config msg
 onAcceptRoomInvite msg (Config config) =
-    Config { config | onAcceptRoomInvite = Just msg }
+    Config { config | onAcceptRoomInvite = msg }
 
 
-onDeclineRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
+onDeclineRoomInvite : Maybe (RoomInvite -> msg) -> Config msg -> Config msg
 onDeclineRoomInvite msg (Config config) =
-    Config { config | onDeclineRoomInvite = Just msg }
+    Config { config | onDeclineRoomInvite = msg }
 
 
 onInviteErrorOk : (RegisteredUser -> msg) -> Config msg -> Config msg
@@ -144,8 +144,8 @@ container { class, orientation } =
 
 roomInvite : Device -> Config msg -> Element msg
 roomInvite device (Config ({ user } as config)) =
-    case ( ( User.invitesReceived user, User.inviteError user ), ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) ) of
-        ( ( invite :: _, Nothing ), ( Just acceptMsg, Just declineMsg ) ) ->
+    case ( User.invitesReceived user, User.inviteError user ) of
+        ( invite :: _, Nothing ) ->
             El.el
                 [ roundedBorder device
                 , El.height El.fill
@@ -176,16 +176,26 @@ roomInvite device (Config ({ user } as config)) =
                         [ spacing device
                         , El.centerX
                         ]
-                        [ Button.init
-                            |> Button.setLabel "Decline"
-                            |> Button.setOnPress (Just (declineMsg invite))
-                            |> Button.setType (Button.User invite.from)
-                            |> Button.view device
-                        , Button.init
-                            |> Button.setLabel "Accept"
-                            |> Button.setOnPress (Just (acceptMsg invite))
-                            |> Button.setType (Button.User invite.from)
-                            |> Button.view device
+                        [ case config.onDeclineRoomInvite of
+                            Nothing ->
+                                El.text "Declining Invite..."
+
+                            Just declineMsg ->
+                                Button.init
+                                    |> Button.setLabel "Decline"
+                                    |> Button.setOnPress (Just (declineMsg invite))
+                                    |> Button.setType (Button.User invite.from)
+                                    |> Button.view device
+                        , case config.onAcceptRoomInvite of
+                            Nothing ->
+                                El.text "Accepting Invite..."
+
+                            Just acceptMsg ->
+                                Button.init
+                                    |> Button.setLabel "Accept"
+                                    |> Button.setOnPress (Just (acceptMsg invite))
+                                    |> Button.setType (Button.User invite.from)
+                                    |> Button.view device
                         ]
                     ]
                 )
@@ -287,21 +297,28 @@ paragraph text =
 
 createRoomBtn : Device -> Maybe msg -> Element msg
 createRoomBtn ({ class, orientation } as device) maybeMsg =
-    Button.init
-        |> Button.setLabel "Create A Room"
-        |> Button.setOnPress maybeMsg
-        |> Button.setAlignX
-            (case ( class, orientation ) of
-                ( Phone, Portrait ) ->
-                    Align.Center
+    case maybeMsg of
+        Nothing ->
+            El.el
+                [ El.centerX ]
+                (El.text "Creating Room...")
 
-                ( Phone, Landscape ) ->
-                    Align.Left
+        Just _ ->
+            Button.init
+                |> Button.setLabel "Create A Room"
+                |> Button.setOnPress maybeMsg
+                |> Button.setAlignX
+                    (case ( class, orientation ) of
+                        ( Phone, Portrait ) ->
+                            Align.Center
 
-                _ ->
-                    Align.Center
-            )
-        |> Button.view device
+                        ( Phone, Landscape ) ->
+                            Align.Left
+
+                        _ ->
+                            Align.Center
+                    )
+                |> Button.view device
 
 
 
@@ -480,7 +497,7 @@ maybeDeleteBtn device maybeToOnDelete currentUser room =
     if User.match currentUser room.owner then
         case maybeToOnDelete of
             Nothing ->
-                El.none
+                El.text "Deleting Room..."
 
             Just onDelete_ ->
                 Button.init
@@ -498,7 +515,7 @@ maybeEnterBtn device maybeToOnClick currentUser room =
     if User.match currentUser room.owner || List.member room.owner room.members then
         case maybeToOnClick of
             Nothing ->
-                El.none
+                El.text "Entering Room..."
 
             Just onClick_ ->
                 Button.init

@@ -62,7 +62,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     {:ok, room} = Room.find(room_id)
 
     Room.delete(room)
-
+    
     broadcast_room_list(socket)
 
     {:reply, :ok, socket}
@@ -75,6 +75,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   end
 
   def handle_in("invite_accepted", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+    :timer.sleep 2000
     case { User.find(from["id"]), Room.find(room_id)} do
       { {:ok, from}, {:ok, room} } ->
         if Enum.member?(room.members, from) do
