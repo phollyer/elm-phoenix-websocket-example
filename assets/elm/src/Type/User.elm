@@ -119,6 +119,61 @@ init =
     }
 
 
+drop : RegisteredUser -> List RegisteredUser -> List RegisteredUser
+drop user users =
+    List.partition (match user) users
+        |> Tuple.second
+
+
+usernameChanged : String -> UnregisteredUser -> UnregisteredUser
+usernameChanged name user =
+    { user
+        | username = name
+        , usernameError =
+            if String.trim name == "" then
+                user.usernameError
+
+            else
+                Nothing
+    }
+
+
+bgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
+bgColorSelected color user =
+    { user
+        | backgroundColor = Just color
+        , backgroundColorError = Nothing
+    }
+
+
+fgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
+fgColorSelected color user =
+    { user
+        | foregroundColor = Just color
+        , foregroundColorError = Nothing
+    }
+
+
+leftRoom : Value -> RegisteredUser -> RegisteredUser
+leftRoom payload (RegisteredUser user) =
+    case decodeTempRoom payload of
+        Ok { occupant, roomId } ->
+            RegisteredUser
+                { user | receivedInvites = deleteInviteFromRoom occupant roomId user.receivedInvites }
+
+        Err _ ->
+            RegisteredUser user
+
+
+roomClosed : String -> RegisteredUser -> RegisteredUser
+roomClosed roomId (RegisteredUser user) =
+    RegisteredUser
+        { user
+            | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites
+            , sentInvites = deleteInvitesForRoom roomId user.sentInvites
+        }
+
+
 createInvite : RegisteredUser -> String -> RegisteredUser -> RoomInvite
 createInvite toUser roomId fromUser =
     { id = createInviteId toUser roomId fromUser
@@ -131,6 +186,12 @@ createInvite toUser roomId fromUser =
 createInviteId : RegisteredUser -> String -> RegisteredUser -> String
 createInviteId (RegisteredUser toUser) roomId (RegisteredUser fromUser) =
     (toUser.id |> id) ++ ":" ++ roomId ++ ":" ++ (fromUser.id |> id)
+
+
+dropInviteForRoom : String -> RegisteredUser -> RegisteredUser
+dropInviteForRoom roomId (RegisteredUser user) =
+    RegisteredUser
+        { user | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites }
 
 
 deleteReceivedInvite : RoomInvite -> RegisteredUser -> RegisteredUser
@@ -339,35 +400,6 @@ processErrors errors user =
 {- Transform -}
 
 
-usernameChanged : String -> UnregisteredUser -> UnregisteredUser
-usernameChanged name user =
-    { user
-        | username = name
-        , usernameError =
-            if String.trim name == "" then
-                user.usernameError
-
-            else
-                Nothing
-    }
-
-
-bgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
-bgColorSelected color user =
-    { user
-        | backgroundColor = Just color
-        , backgroundColorError = Nothing
-    }
-
-
-fgColorSelected : Color -> UnregisteredUser -> UnregisteredUser
-fgColorSelected color user =
-    { user
-        | foregroundColor = Just color
-        , foregroundColorError = Nothing
-    }
-
-
 currentUserFirst : RegisteredUser -> List RegisteredUser -> List RegisteredUser
 currentUserFirst currentUser allUsers =
     List.partition (match currentUser) allUsers
@@ -377,40 +409,6 @@ currentUserFirst currentUser allUsers =
 combine : ( List a, List a ) -> List a
 combine ( a, b ) =
     List.append a b
-
-
-dropInviteForRoom : String -> RegisteredUser -> RegisteredUser
-dropInviteForRoom roomId (RegisteredUser user) =
-    RegisteredUser
-        { user
-            | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites
-        }
-
-
-roomClosed : String -> RegisteredUser -> RegisteredUser
-roomClosed roomId (RegisteredUser user) =
-    RegisteredUser
-        { user
-            | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites
-            , sentInvites = deleteInvitesForRoom roomId user.sentInvites
-        }
-
-
-leftRoom : Value -> RegisteredUser -> RegisteredUser
-leftRoom payload (RegisteredUser user) =
-    case decodeTempRoom payload of
-        Ok { occupant, roomId } ->
-            RegisteredUser
-                { user | receivedInvites = deleteInviteFromRoom occupant roomId user.receivedInvites }
-
-        Err _ ->
-            RegisteredUser user
-
-
-drop : RegisteredUser -> List RegisteredUser -> List RegisteredUser
-drop user users =
-    List.partition (match user) users
-        |> Tuple.second
 
 
 
@@ -438,8 +436,12 @@ fgColor (RegisteredUser { foregroundColor }) =
 
 
 findInviteTo : RegisteredUser -> String -> RegisteredUser -> Maybe ( InviteState, RoomInvite )
-findInviteTo (RegisteredUser toUser) roomId (RegisteredUser fromUser) =
-    Dict.get ((toUser.id |> id) ++ ":" ++ roomId ++ ":" ++ (fromUser.id |> id)) fromUser.sentInvites
+findInviteTo toUser roomId (RegisteredUser currentUser) =
+    let
+        key =
+            createInviteId toUser roomId (RegisteredUser currentUser)
+    in
+    Dict.get key currentUser.sentInvites
 
 
 match : RegisteredUser -> RegisteredUser -> Bool
@@ -549,20 +551,6 @@ decode payload =
     JD.decodeValue decoder payload
 
 
-decodePresenceState : List Phoenix.Presence -> List RegisteredUser
-decodePresenceState state =
-    List.filterMap
-        (\{ user } ->
-            case decode user of
-                Ok u ->
-                    Just u
-
-                Err _ ->
-                    Nothing
-        )
-        state
-
-
 decoder : JD.Decoder RegisteredUser
 decoder =
     succeed
@@ -588,13 +576,27 @@ toID id_ =
         succeed (ID id_)
 
 
+decodePresenceState : List Phoenix.Presence -> List RegisteredUser
+decodePresenceState state =
+    List.filterMap
+        (\{ user } ->
+            case decode user of
+                Ok u ->
+                    Just u
+
+                Err _ ->
+                    Nothing
+        )
+        state
+
+
 decodeRoomInvite : Value -> Result JD.Error RoomInvite
 decodeRoomInvite payload =
-    JD.decodeValue tempDecoder payload
+    JD.decodeValue roomInviteDecoder payload
 
 
-tempDecoder : JD.Decoder RoomInvite
-tempDecoder =
+roomInviteDecoder : JD.Decoder RoomInvite
+roomInviteDecoder =
     succeed
         RoomInvite
         |> andMap (field "id" string)
