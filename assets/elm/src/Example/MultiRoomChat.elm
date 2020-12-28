@@ -678,7 +678,7 @@ view device { state, lobby, layoutHeight, phoenix } =
                 |> RegistrationView.onBackgroundColorChange (GotBackgroundColorSelection user)
                 |> RegistrationView.onForegroundColorChange (GotForegroundColorSelection user)
                 |> RegistrationView.onSubmit
-                    (if List.member "example:lobby" (Phoenix.queuedChannels phoenix) then
+                    (if Phoenix.channelQueued "example:lobby" phoenix then
                         Nothing
 
                      else
