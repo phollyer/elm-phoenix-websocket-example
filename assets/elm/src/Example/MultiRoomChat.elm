@@ -700,10 +700,10 @@ view device { state, lobby, layoutHeight, phoenix } =
         InRoom user room ->
             RoomView.init user room
                 |> RoomView.onChangeMessage (GotMessageChange user room)
-                |> RoomView.onSubmitMessage (GotSendMessage user room)
+                |> RoomView.onSubmitMessage (maybeOnSubmitMessage phoenix user room)
                 |> RoomView.onFocusMessage (GotMemberStartedTyping user room)
                 |> RoomView.onLoseFocusMessage (GotMemberStoppedTyping user room)
-                |> RoomView.onClickUser (GotInviteUser user room)
+                |> RoomView.onClickUser (maybeInviteUser phoenix user room)
                 |> RoomView.chatMaxHeight (chatMaxHeight layoutHeight)
                 |> RoomView.inviteableUsers lobby.inviteableUsers
                 |> RoomView.view device
@@ -757,6 +757,24 @@ maybeDeclineRoomInvite phoenix user =
 
     else
         Just (GotDeclineRoomInvite user)
+
+
+maybeOnSubmitMessage : Phoenix.Model -> RegisteredUser -> Room -> Maybe Msg
+maybeOnSubmitMessage phoenix user room =
+    if Phoenix.pushWaiting (\push -> push.event == "new_message") phoenix then
+        Nothing
+
+    else
+        Just (GotSendMessage user room)
+
+
+maybeInviteUser : Phoenix.Model -> RegisteredUser -> Room -> Maybe (RegisteredUser -> Msg)
+maybeInviteUser phoenix user room =
+    if Phoenix.pushWaiting (\push -> push.event == "room_invite") phoenix then
+        Nothing
+
+    else
+        Just (GotInviteUser user room)
 
 
 chatMaxHeight : Float -> Int

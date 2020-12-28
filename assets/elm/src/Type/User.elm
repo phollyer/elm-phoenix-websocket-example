@@ -24,10 +24,12 @@ module Type.User exposing
     , init
     , inviteError
     , inviteExpired
+    , inviteInFlight
     , inviteReceieved
     , inviteSent
     , invitesReceived
     , invitesSent
+    , isBeingInvited
     , isInvited
     , leftRoom
     , match
@@ -282,6 +284,11 @@ inviteSent invite (RegisteredUser user) =
             }
 
 
+inviteInFlight : RoomInvite -> RegisteredUser -> RegisteredUser
+inviteInFlight invite (RegisteredUser user) =
+    RegisteredUser user
+
+
 dropInviteReceived : RoomInvite -> RegisteredUser -> RegisteredUser
 dropInviteReceived invite (RegisteredUser user) =
     if match invite.to (RegisteredUser user) then
@@ -415,6 +422,11 @@ inviteError (RegisteredUser user) =
 isInvited : RegisteredUser -> RegisteredUser -> Bool
 isInvited user (RegisteredUser currentUser) =
     isMemberWith (\{ to } -> match to user) currentUser.sentInvites
+
+
+isBeingInvited : RegisteredUser -> RegisteredUser -> Bool
+isBeingInvited user (RegisteredUser currentUser) =
+    False
 
 
 match : RegisteredUser -> RegisteredUser -> Bool

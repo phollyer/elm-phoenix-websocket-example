@@ -63,9 +63,9 @@ onChangeMessage toMsg (Config config) =
     Config { config | maybeOnChange = Just toMsg }
 
 
-onClickUser : (RegisteredUser -> msg) -> Config msg -> Config msg
+onClickUser : Maybe (RegisteredUser -> msg) -> Config msg -> Config msg
 onClickUser toMsg (Config config) =
-    Config { config | maybeOnClick = Just toMsg }
+    Config { config | maybeOnClick = toMsg }
 
 
 onFocusMessage : msg -> Config msg -> Config msg
@@ -78,9 +78,9 @@ onLoseFocusMessage msg (Config config) =
     Config { config | maybeOnLoseFocus = Just msg }
 
 
-onSubmitMessage : msg -> Config msg -> Config msg
+onSubmitMessage : Maybe msg -> Config msg -> Config msg
 onSubmitMessage msg (Config config) =
-    Config { config | maybeOnSubmit = Just msg }
+    Config { config | maybeOnSubmit = msg }
 
 
 inviteableUsers : List RegisteredUser -> Config msg -> Config msg
@@ -341,16 +341,21 @@ inputField device (Config config) =
 
 submitButton : Device -> Config msg -> Element msg
 submitButton device (Config config) =
-    El.el
-        [ El.alignBottom
-        , El.centerX
-        ]
-        (Button.init
-            |> Button.setLabel "Send Message"
-            |> Button.setOnPress config.maybeOnSubmit
-            |> Button.setEnabled (String.trim config.room.message /= "")
-            |> Button.view device
-        )
+    case config.maybeOnSubmit of
+        Nothing ->
+            El.text "Sending..."
+
+        Just _ ->
+            El.el
+                [ El.alignBottom
+                , El.centerX
+                ]
+                (Button.init
+                    |> Button.setLabel "Send Message"
+                    |> Button.setOnPress config.maybeOnSubmit
+                    |> Button.setEnabled (String.trim config.room.message /= "")
+                    |> Button.view device
+                )
 
 
 
