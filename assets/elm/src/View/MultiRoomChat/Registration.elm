@@ -64,9 +64,9 @@ onForegroundColorChange toMsg (Config config) =
     Config { config | onForegroundColorChange = Just toMsg }
 
 
-onSubmit : msg -> Config msg -> Config msg
+onSubmit : Maybe msg -> Config msg -> Config msg
 onSubmit msg (Config config) =
-    Config { config | onSubmit = Just msg }
+    Config { config | onSubmit = msg }
 
 
 
@@ -150,10 +150,17 @@ inputField device (Config config) =
 
 submitButton : Device -> Config msg -> Element msg
 submitButton device (Config config) =
-    Button.init
-        |> Button.setLabel "Join Lobby"
-        |> Button.setOnPress config.onSubmit
-        |> Button.view device
+    case config.onSubmit of
+        Nothing ->
+            El.el
+                [ El.centerX ]
+                (El.text "Joining Lobby...")
+
+        Just _ ->
+            Button.init
+                |> Button.setLabel "Join Lobby"
+                |> Button.setOnPress config.onSubmit
+                |> Button.view device
 
 
 colorsView : Device -> Config msg -> Element msg

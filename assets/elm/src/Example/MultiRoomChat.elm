@@ -670,14 +670,20 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device { state, lobby, layoutHeight } =
+view device { state, lobby, layoutHeight, phoenix } =
     case state of
         Unregistered user ->
             RegistrationView.init user
                 |> RegistrationView.onChange (GotUsernameChange user)
                 |> RegistrationView.onBackgroundColorChange (GotBackgroundColorSelection user)
                 |> RegistrationView.onForegroundColorChange (GotForegroundColorSelection user)
-                |> RegistrationView.onSubmit (GotJoinLobby user)
+                |> RegistrationView.onSubmit
+                    (if List.member "example:lobby" (Phoenix.queuedChannels phoenix) then
+                        Nothing
+
+                     else
+                        Just (GotJoinLobby user)
+                    )
                 |> RegistrationView.view device
 
         InLobby user ->
