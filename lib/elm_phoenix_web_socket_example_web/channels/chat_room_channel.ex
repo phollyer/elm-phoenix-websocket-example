@@ -66,7 +66,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("new_message", %{"message" => message}, socket) do
+  def handle_in("new_message", %{"message" => message}, socket) do    
     {:ok, user} = User.find(socket.assigns.user_id)
 
     Room.add_message(socket.assigns.room_id, Message.create(message, user))

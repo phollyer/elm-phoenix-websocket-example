@@ -68,13 +68,13 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("room_invite", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+  def handle_in("room_invite", %{"id" => id, "from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
     broadcast(socket, "room_invite", invite)
 
     {:reply, {:ok, invite}, socket}
   end
 
-  def handle_in("invite_accepted", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+  def handle_in("invite_accepted", %{"id" => id, "from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
     case { User.find(from["id"]), Room.find(room_id)} do
       { {:ok, from}, {:ok, room} } ->
         if Enum.member?(room.members, from) do
@@ -93,13 +93,13 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("invite_declined", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+  def handle_in("invite_declined", %{"id" => id, "from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
     broadcast(socket, "invite_declined", invite)
 
     {:reply, :ok, socket}
   end
 
-  def handle_in("revoke_invite", %{"from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
+  def handle_in("revoke_invite", %{"id" => id, "from" => from, "to" => to, "room_id" => room_id} = invite, socket) do
       broadcast(socket, "invite_revoked", invite)
 
       {:reply, {:ok, invite}, socket}

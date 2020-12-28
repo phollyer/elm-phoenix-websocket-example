@@ -21,7 +21,7 @@ import Type.ChatMessage as ChatMessage
 import Type.Lobby as Lobby exposing (Lobby)
 import Type.Room as Room exposing (Room)
 import Type.TwoTrack exposing (TwoTrack(..))
-import Type.User as User exposing (RegisteredUser, RoomInvite, UnregisteredUser, User(..))
+import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, UnregisteredUser, User(..))
 import Utils exposing (updatePhoenixWith)
 import View.MultiRoomChat.Lobby as LobbyView
 import View.MultiRoomChat.Registration as RegistrationView
@@ -113,7 +113,7 @@ type Msg
     | GotShowRoomMembers RegisteredUser (Maybe Room)
     | GotAcceptRoomInvite RegisteredUser RoomInvite
     | GotDeclineRoomInvite RegisteredUser RoomInvite
-    | GotInviteErrorOk RegisteredUser
+    | GotInviteErrorOk RegisteredUser RoomInvite
       -- Room --
     | GotInviteUser RegisteredUser Room RegisteredUser
     | GotMessageChange RegisteredUser Room String
@@ -219,8 +219,8 @@ update msg model =
                         }
                         model.phoenix
 
-        GotAcceptRoomInvite _ invite ->
-            updatePhoenixWith PhoenixMsg model <|
+        GotAcceptRoomInvite currentUser invite ->
+            updatePhoenixWith PhoenixMsg { model | state = InLobby (User.updateReceivedInvites ( Accepting, invite ) currentUser) } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
@@ -229,8 +229,8 @@ update msg model =
                     }
                     model.phoenix
 
-        GotDeclineRoomInvite _ invite ->
-            updatePhoenixWith PhoenixMsg model <|
+        GotDeclineRoomInvite currentUser invite ->
+            updatePhoenixWith PhoenixMsg { model | state = InLobby (User.updateReceivedInvites ( Declining, invite ) currentUser) } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
@@ -239,11 +239,11 @@ update msg model =
                     }
                     model.phoenix
 
-        GotInviteErrorOk currentUser ->
+        GotInviteErrorOk currentUser invite ->
             ( { model
                 | state =
                     InLobby <|
-                        User.cancelInviteError currentUser
+                        User.deleteReceivedInvite invite currentUser
               }
             , Cmd.none
             )
@@ -256,24 +256,36 @@ update msg model =
         {- Room -}
         GotInviteUser currentUser room toUser ->
             let
-                event =
-                    if User.isInvited toUser currentUser then
-                        "revoke_invite"
+                ( user, event, invite ) =
+                    case User.findInviteTo toUser room.id currentUser of
+                        Just ( Invited, invite_ ) ->
+                            ( User.updateSentInvites ( Revoking, invite_ ) currentUser
+                            , "revoke_invite"
+                            , invite_
+                            )
 
-                    else
-                        "room_invite"
+                        Just ( Inviting, invite_ ) ->
+                            ( User.updateSentInvites ( Revoking, invite_ ) currentUser
+                            , "revoke_invite"
+                            , invite_
+                            )
+
+                        _ ->
+                            let
+                                invite_ =
+                                    User.createInvite toUser room.id currentUser
+                            in
+                            ( User.updateSentInvites ( Inviting, invite_ ) currentUser
+                            , "room_invite"
+                            , invite_
+                            )
             in
-            updatePhoenixWith PhoenixMsg model <|
+            updatePhoenixWith PhoenixMsg { model | state = InRoom user room } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
                         , event = event
-                        , payload =
-                            User.encodeRoomInvite
-                                { from = currentUser
-                                , to = toUser
-                                , roomId = room.id
-                                }
+                        , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
 
@@ -350,7 +362,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InLobby <|
-                                        User.inviteReceieved invite currentUser
+                                        User.updateReceivedInvites ( Invited, invite ) currentUser
                               }
                             , cmd
                             )
@@ -359,7 +371,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InRoom
-                                        (User.inviteSent invite currentUser)
+                                        (User.updateSentInvites ( Invited, invite ) currentUser)
                                         room
                               }
                             , cmd
@@ -374,7 +386,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InLobby <|
-                                        User.inviteExpired invite currentUser
+                                        User.updateReceivedInvites ( Expired, invite ) currentUser
                               }
                             , cmd
                             )
@@ -388,7 +400,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InLobby <|
-                                        User.dropInviteReceived invite currentUser
+                                        User.updateReceivedInvites ( Revoked, invite ) currentUser
                               }
                             , cmd
                             )
@@ -397,7 +409,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InRoom
-                                        (User.dropInviteSent invite currentUser)
+                                        (User.updateSentInvites ( Revoked, invite ) currentUser)
                                         room
                               }
                             , cmd
@@ -424,7 +436,7 @@ update msg model =
                     case ( newModel.state, User.decodeRoomInvite payload ) of
                         ( InLobby currentUser, Ok invite ) ->
                             if User.match currentUser invite.to then
-                                updatePhoenixWith PhoenixMsg newModel <|
+                                updatePhoenixWith PhoenixMsg { newModel | state = InLobby (User.updateReceivedInvites ( Accepted, invite ) currentUser) } <|
                                     Phoenix.join ("example:room:" ++ invite.roomId) <|
                                         Phoenix.setJoinConfig
                                             { roomJoinConfig
@@ -440,7 +452,7 @@ update msg model =
                             ( { newModel
                                 | state =
                                     InRoom
-                                        (User.dropInviteSent invite currentUser)
+                                        (User.updateSentInvites ( Accepted, invite ) currentUser)
                                         room
                               }
                             , cmd
@@ -451,21 +463,21 @@ update msg model =
 
                 ChannelEvent "example:lobby" "invite_declined" payload ->
                     case ( newModel.state, User.decodeRoomInvite payload ) of
-                        ( InRoom currentUser room, Ok invite ) ->
-                            ( { newModel
-                                | state =
-                                    InRoom
-                                        (User.dropInviteSent invite currentUser)
-                                        room
-                              }
-                            , cmd
-                            )
-
                         ( InLobby currentUser, Ok invite ) ->
                             ( { newModel
                                 | state =
                                     InLobby <|
-                                        User.dropInviteReceived invite currentUser
+                                        User.updateReceivedInvites ( Declined, invite ) currentUser
+                              }
+                            , cmd
+                            )
+
+                        ( InRoom currentUser room, Ok invite ) ->
+                            ( { newModel
+                                | state =
+                                    InRoom
+                                        (User.updateSentInvites ( Declined, invite ) currentUser)
+                                        room
                               }
                             , cmd
                             )
@@ -692,8 +704,8 @@ view device { state, lobby, layoutHeight, phoenix } =
                 |> LobbyView.onDeleteRoom (maybeOnDeleteRoom phoenix user)
                 |> LobbyView.onEnterRoom (maybeOnEnterRoom phoenix user lobby)
                 |> LobbyView.onMouseEnterRoom (GotShowRoomMembers user)
-                |> LobbyView.onAcceptRoomInvite (maybeAcceptRoomInvite phoenix user)
-                |> LobbyView.onDeclineRoomInvite (maybeDeclineRoomInvite phoenix user)
+                |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
+                |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk
                 |> LobbyView.view device
 
@@ -739,24 +751,6 @@ maybeOnEnterRoom phoenix user lobby =
 
             else
                 Just (GotEnterRoom user)
-
-
-maybeAcceptRoomInvite : Phoenix.Model -> RegisteredUser -> Maybe (RoomInvite -> Msg)
-maybeAcceptRoomInvite phoenix user =
-    if Phoenix.pushWaiting (\push -> push.event == "invite_accepted") phoenix then
-        Nothing
-
-    else
-        Just (GotAcceptRoomInvite user)
-
-
-maybeDeclineRoomInvite : Phoenix.Model -> RegisteredUser -> Maybe (RoomInvite -> Msg)
-maybeDeclineRoomInvite phoenix user =
-    if Phoenix.pushWaiting (\push -> push.event == "invite_declined") phoenix then
-        Nothing
-
-    else
-        Just (GotDeclineRoomInvite user)
 
 
 maybeOnSubmitMessage : Phoenix.Model -> RegisteredUser -> Room -> Maybe Msg

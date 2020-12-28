@@ -1,48 +1,45 @@
 module Type.User exposing
-    ( RegisteredUser
+    ( InviteState(..)
+    , RegisteredUser
     , RoomInvite
     , UnregisteredUser
     , User(..)
     , bgColor
     , bgColorSelected
     , byUsername
-    , cancelInviteError
+    , createInvite
     , currentUserFirst
     , decode
     , decodePresenceState
     , decodeRoomInvite
     , decoder
+    , deleteReceivedInvite
     , drop
     , dropInviteForRoom
-    , dropInviteReceived
-    , dropInviteSent
     , encode
     , encodeFields
     , encodeRoomInvite
     , fgColor
     , fgColorSelected
+    , findInviteTo
+    , hasInvites
     , init
-    , inviteError
-    , inviteExpired
-    , inviteInFlight
-    , inviteReceieved
-    , inviteSent
     , invitesReceived
-    , invitesSent
-    , isBeingInvited
-    , isInvited
     , leftRoom
     , match
     , member
     , processErrors
     , roomClosed
     , sortWith
+    , updateReceivedInvites
+    , updateSentInvites
     , username
     , usernameChanged
     , validate
     )
 
 import Colors.Alpha as Color
+import Dict exposing (Dict)
 import Element exposing (Color)
 import Json.Decode as JD exposing (andThen, fail, field, string, succeed)
 import Json.Decode.Extra exposing (andMap)
@@ -78,9 +75,8 @@ type RegisteredUser
         , username : String
         , backgroundColor : Color
         , foregroundColor : Color
-        , sentInvites : List RoomInvite
-        , receivedInvites : List RoomInvite
-        , inviteError : Maybe ErrorMessage
+        , sentInvites : Dict String ( InviteState, RoomInvite )
+        , receivedInvites : Dict String ( InviteState, RoomInvite )
         }
 
 
@@ -89,10 +85,23 @@ type ID
 
 
 type alias RoomInvite =
-    { from : RegisteredUser
+    { id : String
+    , from : RegisteredUser
     , to : RegisteredUser
     , roomId : String
     }
+
+
+type InviteState
+    = Accepting
+    | Accepted
+    | Declining
+    | Declined
+    | Expired
+    | Inviting
+    | Invited
+    | Revoking
+    | Revoked
 
 
 
@@ -108,6 +117,116 @@ init =
     , foregroundColor = Nothing
     , foregroundColorError = Nothing
     }
+
+
+createInvite : RegisteredUser -> String -> RegisteredUser -> RoomInvite
+createInvite toUser roomId fromUser =
+    { id = createInviteId toUser roomId fromUser
+    , from = fromUser
+    , to = toUser
+    , roomId = roomId
+    }
+
+
+createInviteId : RegisteredUser -> String -> RegisteredUser -> String
+createInviteId (RegisteredUser toUser) roomId (RegisteredUser fromUser) =
+    (toUser.id |> id) ++ ":" ++ roomId ++ ":" ++ (fromUser.id |> id)
+
+
+deleteReceivedInvite : RoomInvite -> RegisteredUser -> RegisteredUser
+deleteReceivedInvite invite (RegisteredUser user) =
+    let
+        key =
+            createInviteId invite.to invite.roomId invite.from
+    in
+    RegisteredUser
+        { user | receivedInvites = Dict.remove key user.receivedInvites }
+
+
+deleteInvitesForRoom : String -> Dict String ( InviteState, RoomInvite ) -> Dict String ( InviteState, RoomInvite )
+deleteInvitesForRoom roomId invites =
+    Dict.foldl
+        (\key val dict ->
+            case String.split ":" key of
+                [ _, roomId_, _ ] ->
+                    if roomId_ == roomId then
+                        Dict.remove key dict
+
+                    else
+                        dict
+
+                _ ->
+                    dict
+        )
+        invites
+        invites
+
+
+deleteInviteFromRoom : RegisteredUser -> String -> Dict String ( InviteState, RoomInvite ) -> Dict String ( InviteState, RoomInvite )
+deleteInviteFromRoom (RegisteredUser fromUser) roomId invites =
+    Dict.foldl
+        (\key val dict ->
+            case String.split ":" key of
+                [ _, roomId_, fromId ] ->
+                    if roomId_ == roomId && fromId == (fromUser.id |> id) then
+                        Dict.remove key dict
+
+                    else
+                        dict
+
+                _ ->
+                    dict
+        )
+        invites
+        invites
+
+
+updateReceivedInvites : ( InviteState, RoomInvite ) -> RegisteredUser -> RegisteredUser
+updateReceivedInvites ( state, invite ) (RegisteredUser user) =
+    let
+        key =
+            createInviteId invite.to invite.roomId invite.from
+    in
+    case state of
+        Accepted ->
+            RegisteredUser
+                { user | receivedInvites = Dict.remove key user.receivedInvites }
+
+        Declined ->
+            RegisteredUser
+                { user | receivedInvites = Dict.remove key user.receivedInvites }
+
+        Revoked ->
+            RegisteredUser
+                { user | receivedInvites = Dict.remove key user.receivedInvites }
+
+        _ ->
+            RegisteredUser
+                { user | receivedInvites = Dict.insert key ( state, invite ) user.receivedInvites }
+
+
+updateSentInvites : ( InviteState, RoomInvite ) -> RegisteredUser -> RegisteredUser
+updateSentInvites ( state, invite ) (RegisteredUser user) =
+    let
+        key =
+            createInviteId invite.to invite.roomId invite.from
+    in
+    case state of
+        Accepted ->
+            RegisteredUser
+                { user | sentInvites = Dict.remove key user.sentInvites }
+
+        Declined ->
+            RegisteredUser
+                { user | sentInvites = Dict.remove key user.sentInvites }
+
+        Revoked ->
+            RegisteredUser
+                { user | sentInvites = Dict.remove key user.sentInvites }
+
+        _ ->
+            RegisteredUser
+                { user | sentInvites = Dict.insert key ( state, invite ) user.sentInvites }
 
 
 
@@ -260,91 +379,20 @@ combine ( a, b ) =
     List.append a b
 
 
-inviteReceieved : RoomInvite -> RegisteredUser -> RegisteredUser
-inviteReceieved invite (RegisteredUser user) =
-    if match invite.to (RegisteredUser user) then
-        RegisteredUser
-            { user
-                | receivedInvites = List.append user.receivedInvites [ invite ]
-            }
-
-    else
-        RegisteredUser user
-
-
-inviteSent : RoomInvite -> RegisteredUser -> RegisteredUser
-inviteSent invite (RegisteredUser user) =
-    if inviteIsMember invite user.sentInvites then
-        RegisteredUser user
-
-    else
-        RegisteredUser
-            { user
-                | sentInvites = invite :: user.sentInvites
-            }
-
-
-inviteInFlight : RoomInvite -> RegisteredUser -> RegisteredUser
-inviteInFlight invite (RegisteredUser user) =
-    RegisteredUser user
-
-
-dropInviteReceived : RoomInvite -> RegisteredUser -> RegisteredUser
-dropInviteReceived invite (RegisteredUser user) =
-    if match invite.to (RegisteredUser user) then
-        RegisteredUser
-            { user
-                | receivedInvites = dropInvite invite user.receivedInvites
-            }
-
-    else
-        RegisteredUser user
-
-
-dropInviteSent : RoomInvite -> RegisteredUser -> RegisteredUser
-dropInviteSent invite (RegisteredUser user) =
-    if match invite.from (RegisteredUser user) then
-        RegisteredUser
-            { user
-                | sentInvites = dropInvite invite user.sentInvites
-            }
-
-    else
-        RegisteredUser user
-
-
 dropInviteForRoom : String -> RegisteredUser -> RegisteredUser
 dropInviteForRoom roomId (RegisteredUser user) =
     RegisteredUser
         { user
-            | receivedInvites = dropWith (\invite -> invite.roomId == roomId) user.receivedInvites
+            | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites
         }
-
-
-inviteExpired : RoomInvite -> RegisteredUser -> RegisteredUser
-inviteExpired invite (RegisteredUser user) =
-    if match invite.to (RegisteredUser user) then
-        RegisteredUser
-            { user
-                | receivedInvites = dropInvite invite user.receivedInvites
-                , inviteError = Just RoomClosed
-            }
-
-    else
-        RegisteredUser user
-
-
-cancelInviteError : RegisteredUser -> RegisteredUser
-cancelInviteError (RegisteredUser user) =
-    RegisteredUser { user | inviteError = Nothing }
 
 
 roomClosed : String -> RegisteredUser -> RegisteredUser
 roomClosed roomId (RegisteredUser user) =
     RegisteredUser
         { user
-            | receivedInvites = dropWith (\invite -> invite.roomId == roomId) user.receivedInvites
-            , sentInvites = dropWith (\invite -> invite.roomId == roomId) user.sentInvites
+            | receivedInvites = deleteInvitesForRoom roomId user.receivedInvites
+            , sentInvites = deleteInvitesForRoom roomId user.sentInvites
         }
 
 
@@ -353,30 +401,15 @@ leftRoom payload (RegisteredUser user) =
     case decodeTempRoom payload of
         Ok { occupant, roomId } ->
             RegisteredUser
-                { user
-                    | receivedInvites =
-                        dropWith
-                            (\invite -> match invite.from occupant && invite.roomId == roomId)
-                            user.receivedInvites
-                }
+                { user | receivedInvites = deleteInviteFromRoom occupant roomId user.receivedInvites }
 
         Err _ ->
             RegisteredUser user
 
 
 drop : RegisteredUser -> List RegisteredUser -> List RegisteredUser
-drop user =
-    dropWith (match user)
-
-
-dropInvite : RoomInvite -> List RoomInvite -> List RoomInvite
-dropInvite invite =
-    dropWith (matchInvite invite)
-
-
-dropWith : (a -> Bool) -> List a -> List a
-dropWith compareFunc entities =
-    List.partition compareFunc entities
+drop user users =
+    List.partition (match user) users
         |> Tuple.second
 
 
@@ -404,29 +437,9 @@ fgColor (RegisteredUser { foregroundColor }) =
     foregroundColor
 
 
-invitesReceived : RegisteredUser -> List RoomInvite
-invitesReceived (RegisteredUser { receivedInvites }) =
-    receivedInvites
-
-
-invitesSent : RegisteredUser -> List RoomInvite
-invitesSent (RegisteredUser { sentInvites }) =
-    sentInvites
-
-
-inviteError : RegisteredUser -> Maybe ErrorMessage
-inviteError (RegisteredUser user) =
-    user.inviteError
-
-
-isInvited : RegisteredUser -> RegisteredUser -> Bool
-isInvited user (RegisteredUser currentUser) =
-    isMemberWith (\{ to } -> match to user) currentUser.sentInvites
-
-
-isBeingInvited : RegisteredUser -> RegisteredUser -> Bool
-isBeingInvited user (RegisteredUser currentUser) =
-    False
+findInviteTo : RegisteredUser -> String -> RegisteredUser -> Maybe ( InviteState, RoomInvite )
+findInviteTo (RegisteredUser toUser) roomId (RegisteredUser fromUser) =
+    Dict.get ((toUser.id |> id) ++ ":" ++ roomId ++ ":" ++ (fromUser.id |> id)) fromUser.sentInvites
 
 
 match : RegisteredUser -> RegisteredUser -> Bool
@@ -434,24 +447,19 @@ match (RegisteredUser userA) (RegisteredUser userB) =
     userA.id == userB.id
 
 
-matchInvite : RoomInvite -> RoomInvite -> Bool
-matchInvite inviteA inviteB =
-    match inviteA.to inviteB.to && match inviteA.from inviteB.from
+hasInvites : RegisteredUser -> Bool
+hasInvites (RegisteredUser user) =
+    not <| Dict.isEmpty user.receivedInvites
 
 
-inviteIsMember : RoomInvite -> List RoomInvite -> Bool
-inviteIsMember invite =
-    isMemberWith (matchInvite invite)
+invitesReceived : RegisteredUser -> List ( InviteState, RoomInvite )
+invitesReceived (RegisteredUser { receivedInvites }) =
+    Dict.values receivedInvites
 
 
 member : RegisteredUser -> List RegisteredUser -> Bool
-member user =
-    isMemberWith (match user)
-
-
-isMemberWith : (a -> Bool) -> List a -> Bool
-isMemberWith compareFunc list =
-    List.partition compareFunc list
+member user users =
+    List.partition (match user) users
         |> Tuple.first
         |> List.isEmpty
         |> not
@@ -496,7 +504,8 @@ encode (RegisteredUser user) =
 encodeRoomInvite : RoomInvite -> Value
 encodeRoomInvite invite =
     JE.object
-        [ ( "from", encode invite.from )
+        [ ( "id", JE.string invite.id )
+        , ( "from", encode invite.from )
         , ( "to", encode invite.to )
         , ( "room_id", JE.string invite.roomId )
         ]
@@ -530,9 +539,8 @@ type alias TempUser =
     , username : String
     , backgroundColor : Color
     , foregroundColor : Color
-    , sentInvites : List RoomInvite
-    , receivedInvites : List RoomInvite
-    , inviteError : Maybe ErrorMessage
+    , sentInvites : Dict String ( InviteState, RoomInvite )
+    , receivedInvites : Dict String ( InviteState, RoomInvite )
     }
 
 
@@ -566,9 +574,8 @@ decoder =
         |> andMap (field "username" string)
         |> andMap (field "background_color" Color.decoder)
         |> andMap (field "foreground_color" Color.decoder)
-        |> andMap (succeed [])
-        |> andMap (succeed [])
-        |> andMap (succeed Nothing)
+        |> andMap (succeed Dict.empty)
+        |> andMap (succeed Dict.empty)
         |> andThen (\user -> succeed (RegisteredUser user))
 
 
@@ -590,6 +597,7 @@ tempDecoder : JD.Decoder RoomInvite
 tempDecoder =
     succeed
         RoomInvite
+        |> andMap (field "id" string)
         |> andMap (field "from" decoder)
         |> andMap (field "to" decoder)
         |> andMap (field "room_id" string)

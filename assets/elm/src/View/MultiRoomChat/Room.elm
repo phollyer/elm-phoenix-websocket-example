@@ -18,7 +18,7 @@ import Element.Font as Font
 import Html.Attributes as Attr
 import Type.ChatMessage exposing (ChatMessage)
 import Type.Room exposing (Room)
-import Type.User as User exposing (RegisteredUser)
+import Type.User as User exposing (InviteState(..), RegisteredUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.Padding as Padding
@@ -407,41 +407,51 @@ lobbyOccupants device (Config config) =
 
 
 occupantView : Device -> Config msg -> RegisteredUser -> Element msg
-occupantView device (Config { maybeOnClick, currentUser }) user =
-    case maybeOnClick of
-        Nothing ->
-            El.none
+occupantView device (Config { maybeOnClick, currentUser, room }) user =
+    let
+        onClickEvent =
+            case maybeOnClick of
+                Nothing ->
+                    []
 
-        Just onClick_ ->
-            El.paragraph
-                [ padding device
-                , Background.color (User.bgColor user)
-                , Border.color (User.fgColor user)
-                , Border.width 1
-                , El.mouseOver
-                    [ Border.color (User.bgColor user)
-                    , Border.shadow
-                        { size = 1
-                        , blur = 5
-                        , color = User.bgColor user
-                        , offset = ( 0, 0 )
-                        }
-                    ]
-                , El.pointer
-                , El.width El.fill
-                , Event.onClick (onClick_ user)
-                , Font.color (User.fgColor user)
-                , RoundedBorder.small device
+                Just onClick_ ->
+                    [ Event.onClick (onClick_ user) ]
+    in
+    El.paragraph
+        (List.append onClickEvent
+            [ padding device
+            , Background.color (User.bgColor user)
+            , Border.color (User.fgColor user)
+            , Border.width 1
+            , El.mouseOver
+                [ Border.color (User.bgColor user)
+                , Border.shadow
+                    { size = 1
+                    , blur = 5
+                    , color = User.bgColor user
+                    , offset = ( 0, 0 )
+                    }
                 ]
-                [ El.text <|
+            , El.pointer
+            , El.width El.fill
+            , Font.color (User.fgColor user)
+            , RoundedBorder.small device
+            ]
+        )
+        [ El.text <|
+            case User.findInviteTo user room.id currentUser of
+                Just ( Inviting, _ ) ->
+                    User.username user ++ " (Inviting...)"
+
+                Just ( Invited, _ ) ->
+                    User.username user ++ " (Invited)"
+
+                Just ( Revoking, _ ) ->
+                    User.username user ++ " (Revoking...)"
+
+                _ ->
                     User.username user
-                        ++ (if User.isInvited user currentUser then
-                                " (Invited)"
-
-                            else
-                                ""
-                           )
-                ]
+        ]
 
 
 

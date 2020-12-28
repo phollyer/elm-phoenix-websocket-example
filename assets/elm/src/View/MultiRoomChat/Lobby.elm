@@ -19,7 +19,7 @@ import Element.Font as Font
 import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage(..))
 import Type.Lobby exposing (Lobby)
 import Type.Room exposing (Room)
-import Type.User as User exposing (RegisteredUser, RoomInvite, User(..))
+import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, User(..))
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
@@ -43,7 +43,7 @@ type Config msg
         , onMouseEnterRoom : Maybe (Maybe Room -> msg)
         , onAcceptRoomInvite : Maybe (RoomInvite -> msg)
         , onDeclineRoomInvite : Maybe (RoomInvite -> msg)
-        , onInviteErrorOk : Maybe (RegisteredUser -> msg)
+        , onInviteErrorOk : Maybe (RegisteredUser -> RoomInvite -> msg)
         }
 
 
@@ -82,17 +82,17 @@ onMouseEnterRoom msg (Config config) =
     Config { config | onMouseEnterRoom = Just msg }
 
 
-onAcceptRoomInvite : Maybe (RoomInvite -> msg) -> Config msg -> Config msg
+onAcceptRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
 onAcceptRoomInvite msg (Config config) =
-    Config { config | onAcceptRoomInvite = msg }
+    Config { config | onAcceptRoomInvite = Just msg }
 
 
-onDeclineRoomInvite : Maybe (RoomInvite -> msg) -> Config msg -> Config msg
+onDeclineRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
 onDeclineRoomInvite msg (Config config) =
-    Config { config | onDeclineRoomInvite = msg }
+    Config { config | onDeclineRoomInvite = Just msg }
 
 
-onInviteErrorOk : (RegisteredUser -> msg) -> Config msg -> Config msg
+onInviteErrorOk : (RegisteredUser -> RoomInvite -> msg) -> Config msg -> Config msg
 onInviteErrorOk toMsg (Config config) =
     Config { config | onInviteErrorOk = Just toMsg }
 
@@ -107,9 +107,11 @@ view device (Config config) =
         [ El.width El.fill
         , El.spacing 15
         , El.inFront <|
-            roomInvite device (Config config)
-        , El.inFront <|
-            inviteErrorView device config.user config.onInviteErrorOk
+            if User.hasInvites config.user then
+                roomInvite device (Config config)
+
+            else
+                El.none
         ]
         [ container device
             [ El.width El.fill
@@ -143,9 +145,22 @@ container { class, orientation } =
 
 
 roomInvite : Device -> Config msg -> Element msg
-roomInvite device (Config ({ user } as config)) =
-    case ( User.invitesReceived user, User.inviteError user ) of
-        ( invite :: _, Nothing ) ->
+roomInvite device (Config config) =
+    case User.invitesReceived config.user of
+        ( Expired, invite ) :: _ ->
+            inviteErrorView device config.onInviteErrorOk invite config.user
+
+        ( state, invite ) :: _ ->
+            inviteView device state invite (Config config)
+
+        [] ->
+            El.none
+
+
+inviteView : Device -> InviteState -> RoomInvite -> Config msg -> Element msg
+inviteView device state invite (Config config) =
+    case ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) of
+        ( Just onAccept, Just onDecline ) ->
             El.el
                 [ roundedBorder device
                 , El.height El.fill
@@ -176,24 +191,24 @@ roomInvite device (Config ({ user } as config)) =
                         [ spacing device
                         , El.centerX
                         ]
-                        [ case config.onDeclineRoomInvite of
-                            Nothing ->
+                        [ case state of
+                            Declining ->
                                 El.text "Declining Invite..."
 
-                            Just declineMsg ->
+                            _ ->
                                 Button.init
                                     |> Button.setLabel "Decline"
-                                    |> Button.setOnPress (Just (declineMsg invite))
+                                    |> Button.setOnPress (Just (onDecline invite))
                                     |> Button.setType (Button.User invite.from)
                                     |> Button.view device
-                        , case config.onAcceptRoomInvite of
-                            Nothing ->
+                        , case state of
+                            Accepting ->
                                 El.text "Accepting Invite..."
 
-                            Just acceptMsg ->
+                            _ ->
                                 Button.init
                                     |> Button.setLabel "Accept"
-                                    |> Button.setOnPress (Just (acceptMsg invite))
+                                    |> Button.setOnPress (Just (onAccept invite))
                                     |> Button.setType (Button.User invite.from)
                                     |> Button.view device
                         ]
@@ -204,10 +219,10 @@ roomInvite device (Config ({ user } as config)) =
             El.none
 
 
-inviteErrorView : Device -> RegisteredUser -> Maybe (RegisteredUser -> msg) -> Element msg
-inviteErrorView device user maybeMsg =
-    case ( User.inviteError user, maybeMsg ) of
-        ( Just error, Just toMsg ) ->
+inviteErrorView : Device -> Maybe (RegisteredUser -> RoomInvite -> msg) -> RoomInvite -> RegisteredUser -> Element msg
+inviteErrorView device maybeMsg invite user =
+    case maybeMsg of
+        Just toMsg ->
             El.el
                 [ roundedBorder device
                 , El.height El.fill
@@ -230,10 +245,10 @@ inviteErrorView device user maybeMsg =
                         (El.text "Error")
                     , El.paragraph
                         []
-                        [ El.text (ErrorMessage.toString error) ]
+                        [ El.text "The invite has expired." ]
                     , Button.init
                         |> Button.setLabel "OK"
-                        |> Button.setOnPress (Just (toMsg user))
+                        |> Button.setOnPress (Just (toMsg user invite))
                         |> Button.setType (Button.User user)
                         |> Button.view device
                     ]
