@@ -59,7 +59,6 @@ defmodule ElmPhoenixWebSocketExampleWeb.LobbyChannel do
   end
 
   def handle_in("delete_room", %{"room_id" => room_id}, socket) do
-    :timer.sleep 2000
     {:ok, room} = Room.find(room_id)
 
     Room.delete(room)
