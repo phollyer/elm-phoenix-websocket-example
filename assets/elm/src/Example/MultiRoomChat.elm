@@ -110,7 +110,8 @@ type Msg
     | GotCreateRoom RegisteredUser
     | GotEnterRoom RegisteredUser Room
     | GotDeleteRoom RegisteredUser Room
-    | GotShowRoomMembers RegisteredUser (Maybe Room)
+    | GotShowRoomMembers RegisteredUser Room
+    | GotHideRoomMembers RegisteredUser Room
     | GotAcceptRoomInvite RegisteredUser RoomInvite
     | GotDeclineRoomInvite RegisteredUser RoomInvite
     | GotInviteErrorOk RegisteredUser RoomInvite
@@ -198,7 +199,7 @@ update msg model =
                     model.phoenix
 
         GotDeleteRoom _ room ->
-            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Deleting room) model.lobby } <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Deleting room) room model.lobby } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
@@ -210,7 +211,7 @@ update msg model =
                     model.phoenix
 
         GotEnterRoom currentUser room ->
-            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Entering room) model.lobby } <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Entering room) room model.lobby } <|
                 Phoenix.join ("example:room:" ++ room.id) <|
                     Phoenix.setJoinConfig
                         { roomJoinConfig
@@ -248,8 +249,13 @@ update msg model =
             , Cmd.none
             )
 
-        GotShowRoomMembers _ maybeRoom ->
-            ( { model | lobby = Lobby.updateRoomAction (Inspecting maybeRoom) model.lobby }
+        GotShowRoomMembers _ room ->
+            ( { model | lobby = Lobby.updateRoomAction (Inspecting room) room model.lobby }
+            , Cmd.none
+            )
+
+        GotHideRoomMembers _ room ->
+            ( { model | lobby = Lobby.updateRoomAction NoAction room model.lobby }
             , Cmd.none
             )
 
@@ -615,7 +621,7 @@ update msg model =
 
                         InRoom currentUser room ->
                             ( { newModel
-                                | lobby = Lobby.updateRoomAction NoAction newModel.lobby
+                                | lobby = Lobby.resetRoomAction room newModel.lobby
                                 , state =
                                     InLobby <|
                                         User.roomClosed room.id currentUser
@@ -705,6 +711,7 @@ view device { state, lobby, layoutHeight, phoenix } =
                 |> LobbyView.onDeleteRoom (GotDeleteRoom user)
                 |> LobbyView.onEnterRoom (GotEnterRoom user)
                 |> LobbyView.onMouseEnterRoom (GotShowRoomMembers user)
+                |> LobbyView.onMouseLeaveRoom (GotHideRoomMembers user)
                 |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
                 |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk

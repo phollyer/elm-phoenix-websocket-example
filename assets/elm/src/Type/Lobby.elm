@@ -5,10 +5,13 @@ module Type.Lobby exposing
     , inspectingRoom
     , occupants
     , occupantsState
+    , resetRoomAction
+    , roomAction
     , roomList
     , updateRoomAction
     )
 
+import Dict exposing (Dict)
 import Type.Room as Room exposing (Room)
 import Type.User as User exposing (RegisteredUser)
 
@@ -21,14 +24,14 @@ type alias Lobby =
     { occupants : List RegisteredUser
     , inviteableUsers : List RegisteredUser
     , rooms : ( List Room, List ( RegisteredUser, List Room ) )
-    , roomAction : RoomAction
+    , roomActions : Dict String RoomAction
     , inspectingRoom : Maybe Room
     }
 
 
 type RoomAction
     = NoAction
-    | Inspecting (Maybe Room)
+    | Inspecting Room
     | Entering Room
     | Deleting Room
 
@@ -42,22 +45,33 @@ init =
     { occupants = []
     , inviteableUsers = []
     , rooms = ( [], [] )
-    , roomAction = NoAction
+    , roomActions = Dict.empty
     , inspectingRoom = Nothing
     }
 
 
-updateRoomAction : RoomAction -> Lobby -> Lobby
-updateRoomAction roomAction lobby =
-    case ( lobby.roomAction, roomAction ) of
+updateRoomAction : RoomAction -> Room -> Lobby -> Lobby
+updateRoomAction roomAction_ room lobby =
+    case ( roomAction room lobby, roomAction_ ) of
+        ( Entering _, NoAction ) ->
+            lobby
+
         ( Entering _, Inspecting _ ) ->
+            lobby
+
+        ( Deleting _, NoAction ) ->
             lobby
 
         ( Deleting _, Inspecting _ ) ->
             lobby
 
         _ ->
-            { lobby | roomAction = roomAction }
+            { lobby | roomActions = Dict.insert room.id roomAction_ lobby.roomActions }
+
+
+resetRoomAction : Room -> Lobby -> Lobby
+resetRoomAction room lobby =
+    { lobby | roomActions = Dict.insert room.id NoAction lobby.roomActions }
 
 
 occupantsState : RegisteredUser -> List RegisteredUser -> Lobby -> Lobby
@@ -118,3 +132,9 @@ allOccupants ( ownRooms, othersRooms ) =
         |> List.append ownRooms
         |> List.map .members
         |> List.concat
+
+
+roomAction : Room -> Lobby -> RoomAction
+roomAction room lobby =
+    Dict.get room.id lobby.roomActions
+        |> Maybe.withDefault NoAction

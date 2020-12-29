@@ -7,6 +7,7 @@ module View.MultiRoomChat.Lobby exposing
     , onEnterRoom
     , onInviteErrorOk
     , onMouseEnterRoom
+    , onMouseLeaveRoom
     , view
     )
 
@@ -17,7 +18,7 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage(..))
-import Type.Lobby exposing (Lobby, RoomAction(..))
+import Type.Lobby as Lobby exposing (Lobby, RoomAction(..))
 import Type.Room as Room exposing (Room)
 import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, User(..))
 import UI.Align as Align
@@ -40,7 +41,8 @@ type Config msg
         , onCreateRoom : Maybe msg
         , onDeleteRoom : Maybe (Room -> msg)
         , onEnterRoom : Maybe (Room -> msg)
-        , onMouseEnterRoom : Maybe (Maybe Room -> msg)
+        , onMouseEnterRoom : Maybe (Room -> msg)
+        , onMouseLeaveRoom : Maybe (Room -> msg)
         , onAcceptRoomInvite : Maybe (RoomInvite -> msg)
         , onDeclineRoomInvite : Maybe (RoomInvite -> msg)
         , onInviteErrorOk : Maybe (RegisteredUser -> RoomInvite -> msg)
@@ -56,6 +58,7 @@ init user lobby =
         , onDeleteRoom = Nothing
         , onEnterRoom = Nothing
         , onMouseEnterRoom = Nothing
+        , onMouseLeaveRoom = Nothing
         , onAcceptRoomInvite = Nothing
         , onDeclineRoomInvite = Nothing
         , onInviteErrorOk = Nothing
@@ -77,9 +80,14 @@ onEnterRoom msg (Config config) =
     Config { config | onEnterRoom = Just msg }
 
 
-onMouseEnterRoom : (Maybe Room -> msg) -> Config msg -> Config msg
+onMouseEnterRoom : (Room -> msg) -> Config msg -> Config msg
 onMouseEnterRoom msg (Config config) =
     Config { config | onMouseEnterRoom = Just msg }
+
+
+onMouseLeaveRoom : (Room -> msg) -> Config msg -> Config msg
+onMouseLeaveRoom msg (Config config) =
+    Config { config | onMouseLeaveRoom = Just msg }
 
 
 onAcceptRoomInvite : (RoomInvite -> msg) -> Config msg -> Config msg
@@ -464,8 +472,8 @@ toRoom device (Config config) room =
             , El.spacing 10
             , El.width El.fill
             ]
-            (roomAttrs room config.onMouseEnterRoom)
-            |> List.append (roomOccupantsView device config.user config.lobby.roomAction room)
+            (roomAttrs room config.onMouseEnterRoom config.onMouseLeaveRoom)
+            |> List.append (roomOccupantsView device config.user room config.lobby)
         )
         [ El.text <|
             "Occupants: "
@@ -476,7 +484,7 @@ toRoom device (Config config) room =
             [ El.alignRight
             , El.spacing 10
             ]
-            [ case config.lobby.roomAction of
+            [ case Lobby.roomAction room config.lobby of
                 Entering room_ ->
                     if room_.id == room.id then
                         El.text "Entering..."
@@ -486,7 +494,7 @@ toRoom device (Config config) room =
 
                 _ ->
                     maybeEnterBtn device room (Config config)
-            , case config.lobby.roomAction of
+            , case Lobby.roomAction room config.lobby of
                 Deleting room_ ->
                     if room_.id == room.id then
                         El.text "Deleting..."
@@ -500,10 +508,10 @@ toRoom device (Config config) room =
         ]
 
 
-roomOccupantsView : Device -> RegisteredUser -> RoomAction -> Room -> List (Attribute msg)
-roomOccupantsView device currentUser roomAction room =
-    case roomAction of
-        Inspecting (Just room_) ->
+roomOccupantsView : Device -> RegisteredUser -> Room -> Lobby -> List (Attribute msg)
+roomOccupantsView device currentUser room lobby =
+    case Lobby.roomAction room lobby of
+        Inspecting room_ ->
             if room_.id == room.id then
                 [ El.inFront <|
                     El.el
@@ -584,13 +592,10 @@ maybeEnterBtn device room (Config config) =
 {- Attributes -}
 
 
-roomAttrs : Room -> Maybe (Maybe Room -> msg) -> List (Attribute msg)
-roomAttrs room maybeOnMouseEnter =
-    case maybeOnMouseEnter of
-        Nothing ->
-            []
-
-        Just onMouseEnter_ ->
+roomAttrs : Room -> Maybe (Room -> msg) -> Maybe (Room -> msg) -> List (Attribute msg)
+roomAttrs room maybeOnMouseEnter maybeOnMouseLeave =
+    case ( maybeOnMouseEnter, maybeOnMouseLeave ) of
+        ( Just onMouseEnter_, Just onMouseLeave_ ) ->
             [ Background.color (User.bgColor room.owner)
             , Border.color (User.fgColor room.owner)
             , El.mouseOver
@@ -603,10 +608,13 @@ roomAttrs room maybeOnMouseEnter =
                     }
                 ]
             , El.width El.fill
-            , Event.onMouseEnter (onMouseEnter_ (Just room))
-            , Event.onMouseLeave (onMouseEnter_ Nothing)
+            , Event.onMouseEnter (onMouseEnter_ room)
+            , Event.onMouseLeave (onMouseLeave_ room)
             , Font.color (User.fgColor room.owner)
             ]
+
+        _ ->
+            []
 
 
 alignFont : Device -> Attribute msg
