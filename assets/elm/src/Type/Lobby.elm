@@ -1,10 +1,12 @@
 module Type.Lobby exposing
     ( Lobby
+    , RoomAction(..)
     , init
+    , inspectingRoom
     , occupants
     , occupantsState
     , roomList
-    , selectedRoom
+    , updateRoomAction
     )
 
 import Type.Room as Room exposing (Room)
@@ -19,8 +21,16 @@ type alias Lobby =
     { occupants : List RegisteredUser
     , inviteableUsers : List RegisteredUser
     , rooms : ( List Room, List ( RegisteredUser, List Room ) )
-    , selectedRoom : Maybe Room
+    , roomAction : RoomAction
+    , inspectingRoom : Maybe Room
     }
+
+
+type RoomAction
+    = NoAction
+    | Inspecting (Maybe Room)
+    | Entering Room
+    | Deleting Room
 
 
 
@@ -32,12 +42,22 @@ init =
     { occupants = []
     , inviteableUsers = []
     , rooms = ( [], [] )
-    , selectedRoom = Nothing
+    , roomAction = NoAction
+    , inspectingRoom = Nothing
     }
 
 
+updateRoomAction : RoomAction -> Lobby -> Lobby
+updateRoomAction roomAction lobby =
+    case ( lobby.roomAction, roomAction ) of
+        ( Entering _, Inspecting _ ) ->
+            lobby
 
-{- Transform -}
+        ( Deleting _, Inspecting _ ) ->
+            lobby
+
+        _ ->
+            { lobby | roomAction = roomAction }
 
 
 occupantsState : RegisteredUser -> List RegisteredUser -> Lobby -> Lobby
@@ -66,9 +86,9 @@ roomList currentUser rooms lobby =
     }
 
 
-selectedRoom : Maybe Room -> Lobby -> Lobby
-selectedRoom maybeRoom lobby =
-    { lobby | selectedRoom = maybeRoom }
+inspectingRoom : Maybe Room -> Lobby -> Lobby
+inspectingRoom maybeRoom lobby =
+    { lobby | inspectingRoom = maybeRoom }
 
 
 

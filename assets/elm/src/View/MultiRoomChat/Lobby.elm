@@ -17,8 +17,8 @@ import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
 import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage(..))
-import Type.Lobby exposing (Lobby)
-import Type.Room exposing (Room)
+import Type.Lobby exposing (Lobby, RoomAction(..))
+import Type.Room as Room exposing (Room)
 import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, User(..))
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
@@ -67,14 +67,14 @@ onCreateRoom msg (Config config) =
     Config { config | onCreateRoom = msg }
 
 
-onDeleteRoom : Maybe (Room -> msg) -> Config msg -> Config msg
+onDeleteRoom : (Room -> msg) -> Config msg -> Config msg
 onDeleteRoom msg (Config config) =
-    Config { config | onDeleteRoom = msg }
+    Config { config | onDeleteRoom = Just msg }
 
 
-onEnterRoom : Maybe (Room -> msg) -> Config msg -> Config msg
+onEnterRoom : (Room -> msg) -> Config msg -> Config msg
 onEnterRoom msg (Config config) =
-    Config { config | onEnterRoom = msg }
+    Config { config | onEnterRoom = Just msg }
 
 
 onMouseEnterRoom : (Maybe Room -> msg) -> Config msg -> Config msg
@@ -465,7 +465,7 @@ toRoom device (Config config) room =
             , El.width El.fill
             ]
             (roomAttrs room config.onMouseEnterRoom)
-            |> List.append (roomOccupantsView device config.user config.lobby.selectedRoom room)
+            |> List.append (roomOccupantsView device config.user config.lobby.roomAction room)
         )
         [ El.text <|
             "Occupants: "
@@ -476,20 +476,35 @@ toRoom device (Config config) room =
             [ El.alignRight
             , El.spacing 10
             ]
-            [ maybeEnterBtn device config.onEnterRoom config.user room
-            , maybeDeleteBtn device config.onDeleteRoom config.user room
+            [ case config.lobby.roomAction of
+                Entering room_ ->
+                    if room_.id == room.id then
+                        El.text "Entering..."
+
+                    else
+                        maybeEnterBtn device room (Config config)
+
+                _ ->
+                    maybeEnterBtn device room (Config config)
+            , case config.lobby.roomAction of
+                Deleting room_ ->
+                    if room_.id == room.id then
+                        El.text "Deleting..."
+
+                    else
+                        maybeDeleteBtn device room (Config config)
+
+                _ ->
+                    maybeDeleteBtn device room (Config config)
             ]
         ]
 
 
-roomOccupantsView : Device -> RegisteredUser -> Maybe Room -> Room -> List (Attribute msg)
-roomOccupantsView device currentUser maybeForRoom room =
-    case maybeForRoom of
-        Nothing ->
-            []
-
-        Just room_ ->
-            if room_ == room then
+roomOccupantsView : Device -> RegisteredUser -> RoomAction -> Room -> List (Attribute msg)
+roomOccupantsView device currentUser roomAction room =
+    case roomAction of
+        Inspecting (Just room_) ->
+            if room_.id == room.id then
                 [ El.inFront <|
                     El.el
                         [ El.width El.fill
@@ -501,6 +516,9 @@ roomOccupantsView device currentUser maybeForRoom room =
 
             else
                 []
+
+        _ ->
+            []
 
 
 occupantsList : Device -> RegisteredUser -> Room -> Element msg
@@ -526,17 +544,17 @@ occupantsList device currentUser room =
                 ]
 
 
-maybeDeleteBtn : Device -> Maybe (Room -> msg) -> RegisteredUser -> Room -> Element msg
-maybeDeleteBtn device maybeToOnDelete currentUser room =
-    if User.match currentUser room.owner then
-        case maybeToOnDelete of
+maybeDeleteBtn : Device -> Room -> Config msg -> Element msg
+maybeDeleteBtn device room (Config config) =
+    if User.match config.user room.owner then
+        case config.onDeleteRoom of
             Nothing ->
-                El.text "Deleting Room..."
+                El.none
 
-            Just onDelete_ ->
+            Just onDelete ->
                 Button.init
                     |> Button.setLabel "Delete"
-                    |> Button.setOnPress (Just (onDelete_ room))
+                    |> Button.setOnPress (Just (onDelete room))
                     |> Button.setType (Button.User room.owner)
                     |> Button.view device
 
@@ -544,17 +562,17 @@ maybeDeleteBtn device maybeToOnDelete currentUser room =
         El.none
 
 
-maybeEnterBtn : Device -> Maybe (Room -> msg) -> RegisteredUser -> Room -> Element msg
-maybeEnterBtn device maybeToOnClick currentUser room =
-    if User.match currentUser room.owner || List.member room.owner room.members then
-        case maybeToOnClick of
+maybeEnterBtn : Device -> Room -> Config msg -> Element msg
+maybeEnterBtn device room (Config config) =
+    if User.match config.user room.owner || Room.isOpen room then
+        case config.onEnterRoom of
             Nothing ->
-                El.text "Entering Room..."
+                El.none
 
-            Just onClick_ ->
+            Just onEnter ->
                 Button.init
                     |> Button.setLabel "Enter"
-                    |> Button.setOnPress (Just (onClick_ room))
+                    |> Button.setOnPress (Just (onEnter room))
                     |> Button.setType (Button.User room.owner)
                     |> Button.view device
 

@@ -9,6 +9,7 @@ module Type.Room exposing
     , groupByOwnerWith
     , init
     , isOccupant
+    , isOpen
     , mostMembers
     , partition
     , updateMembers
@@ -115,6 +116,11 @@ toOwnerWith sortFunc ( room, rooms ) =
 isOccupant : RegisteredUser -> Room -> Bool
 isOccupant user room =
     User.member user room.members
+
+
+isOpen : Room -> Bool
+isOpen room =
+    List.member room.owner room.members
 
 
 

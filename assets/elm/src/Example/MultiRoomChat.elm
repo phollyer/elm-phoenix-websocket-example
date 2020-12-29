@@ -18,7 +18,7 @@ import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), pushCo
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
-import Type.Lobby as Lobby exposing (Lobby)
+import Type.Lobby as Lobby exposing (Lobby, RoomAction(..))
 import Type.Room as Room exposing (Room)
 import Type.TwoTrack exposing (TwoTrack(..))
 import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, UnregisteredUser, User(..))
@@ -198,7 +198,7 @@ update msg model =
                     model.phoenix
 
         GotDeleteRoom _ room ->
-            updatePhoenixWith PhoenixMsg model <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Deleting room) model.lobby } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:lobby"
@@ -210,7 +210,7 @@ update msg model =
                     model.phoenix
 
         GotEnterRoom currentUser room ->
-            updatePhoenixWith PhoenixMsg model <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Entering room) model.lobby } <|
                 Phoenix.join ("example:room:" ++ room.id) <|
                     Phoenix.setJoinConfig
                         { roomJoinConfig
@@ -249,7 +249,7 @@ update msg model =
             )
 
         GotShowRoomMembers _ maybeRoom ->
-            ( { model | lobby = Lobby.selectedRoom maybeRoom model.lobby }
+            ( { model | lobby = Lobby.updateRoomAction (Inspecting maybeRoom) model.lobby }
             , Cmd.none
             )
 
@@ -615,7 +615,8 @@ update msg model =
 
                         InRoom currentUser room ->
                             ( { newModel
-                                | state =
+                                | lobby = Lobby.updateRoomAction NoAction newModel.lobby
+                                , state =
                                     InLobby <|
                                         User.roomClosed room.id currentUser
                               }
@@ -701,8 +702,8 @@ view device { state, lobby, layoutHeight, phoenix } =
         InLobby user ->
             LobbyView.init user lobby
                 |> LobbyView.onCreateRoom (maybeOnCreateRoom phoenix user)
-                |> LobbyView.onDeleteRoom (maybeOnDeleteRoom phoenix user)
-                |> LobbyView.onEnterRoom (maybeOnEnterRoom phoenix user lobby)
+                |> LobbyView.onDeleteRoom (GotDeleteRoom user)
+                |> LobbyView.onEnterRoom (GotEnterRoom user)
                 |> LobbyView.onMouseEnterRoom (GotShowRoomMembers user)
                 |> LobbyView.onAcceptRoomInvite (GotAcceptRoomInvite user)
                 |> LobbyView.onDeclineRoomInvite (GotDeclineRoomInvite user)
@@ -728,29 +729,6 @@ maybeOnCreateRoom phoenix user =
 
     else
         Just (GotCreateRoom user)
-
-
-maybeOnDeleteRoom : Phoenix.Model -> RegisteredUser -> Maybe (Room -> Msg)
-maybeOnDeleteRoom phoenix user =
-    if Phoenix.pushWaiting (\push -> push.event == "delete_room") phoenix then
-        Nothing
-
-    else
-        Just (GotDeleteRoom user)
-
-
-maybeOnEnterRoom : Phoenix.Model -> RegisteredUser -> Lobby -> Maybe (Room -> Msg)
-maybeOnEnterRoom phoenix user lobby =
-    case lobby.selectedRoom of
-        Nothing ->
-            Just (GotEnterRoom user)
-
-        Just room ->
-            if Phoenix.channelQueued ("example:room:" ++ room.id) phoenix then
-                Nothing
-
-            else
-                Just (GotEnterRoom user)
 
 
 maybeOnSubmitMessage : Phoenix.Model -> RegisteredUser -> Room -> Maybe Msg

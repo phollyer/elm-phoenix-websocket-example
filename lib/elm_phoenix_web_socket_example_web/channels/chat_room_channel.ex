@@ -7,6 +7,7 @@ defmodule ElmPhoenixWebSocketExampleWeb.ElmPhoenixWebSocketExampleChannel do
   alias ElmPhoenixWebSocketExampleWeb.Presence
 
   def join("example:room:" <> room_id, %{"id" => user_id}, socket) do
+    :timer.sleep
     {:ok, user} = User.find(user_id)
 
     {:ok, room} = Room.find(room_id)
