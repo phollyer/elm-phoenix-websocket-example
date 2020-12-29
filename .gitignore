@@ -38,3 +38,6 @@ npm-debug.log
 
 # Elm
 elm-stuff/
+
+# VS Code
+.vscode
