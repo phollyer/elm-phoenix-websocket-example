@@ -312,28 +312,47 @@ paragraph text =
 
 createRoomBtn : Device -> Maybe msg -> Element msg
 createRoomBtn ({ class, orientation } as device) maybeMsg =
-    case maybeMsg of
-        Nothing ->
-            El.el
-                [ El.centerX ]
-                (El.text "Creating Room...")
+    El.el
+        [ El.height <|
+            El.px <|
+                case class of
+                    Phone ->
+                        20
 
-        Just _ ->
-            Button.init
-                |> Button.setLabel "Create A Room"
-                |> Button.setOnPress maybeMsg
-                |> Button.setAlignX
-                    (case ( class, orientation ) of
-                        ( Phone, Portrait ) ->
-                            Align.Center
+                    Tablet ->
+                        30
 
+                    _ ->
+                        40
+        , El.width El.fill
+        ]
+    <|
+        case maybeMsg of
+            Nothing ->
+                El.el
+                    [ case ( class, orientation ) of
                         ( Phone, Landscape ) ->
-                            Align.Left
+                            El.alignLeft
 
                         _ ->
-                            Align.Center
-                    )
-                |> Button.view device
+                            El.centerX
+                    , El.centerY
+                    ]
+                    (El.text "Creating Room...")
+
+            Just _ ->
+                Button.init
+                    |> Button.setLabel "Create A Room"
+                    |> Button.setOnPress maybeMsg
+                    |> Button.setAlignX
+                        (case ( class, orientation ) of
+                            ( Phone, Landscape ) ->
+                                Align.Left
+
+                            _ ->
+                                Align.Center
+                        )
+                    |> Button.view device
 
 
 
