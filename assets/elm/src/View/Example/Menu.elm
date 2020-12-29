@@ -12,12 +12,12 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Border as Border
 import Element.Events as Event
 import List.Extra as List
+import Type.Group as Group exposing (Group)
 import UI.BorderColor as BorderColor
 import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 import Utils exposing (andMaybeEventWithArg)
-import View.Group as Group
 
 
 
@@ -30,7 +30,7 @@ type Config msg
         , selected : String
         , onClick : Maybe (String -> msg)
         , layout : Maybe (List Int)
-        , group : Group.Config
+        , group : Group
         }
 
 
@@ -60,7 +60,7 @@ onClick msg (Config config) =
     Config { config | onClick = msg }
 
 
-group : Group.Config -> Config msg -> Config msg
+group : Group -> Config msg -> Config msg
 group group_ (Config config) =
     Config { config | group = group_ }
 

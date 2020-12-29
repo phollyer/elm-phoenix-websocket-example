@@ -16,10 +16,10 @@ import Example.SimpleConnect as SimpleConnect
 import Phoenix
 import Route
 import Session exposing (Session)
+import Type.Group as Group
 import Utils exposing (updatePhoenixSessionWith)
 import View.Example.Menu as Menu
 import View.Example.Page as ExamplePage
-import View.Group as Group
 import View.Layout as Layout
 
 

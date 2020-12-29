@@ -1,5 +1,5 @@
-module View.Group exposing
-    ( Config
+module Type.Group exposing
+    ( Group
     , init
     , layoutForDevice
     , layouts
@@ -15,42 +15,42 @@ import List.Extra as List
 {- Model -}
 
 
-type Config
-    = Config
+type Group
+    = Group
         { layouts : List ( DeviceClass, Orientation, List Int )
         , order : List ( DeviceClass, Orientation, List Int )
         }
 
 
-init : Config
+init : Group
 init =
-    Config
+    Group
         { layouts = []
         , order = []
         }
 
 
-layouts : List ( DeviceClass, Orientation, List Int ) -> Config -> Config
-layouts list (Config config) =
-    Config { config | layouts = list }
+layouts : List ( DeviceClass, Orientation, List Int ) -> Group -> Group
+layouts list (Group config) =
+    Group { config | layouts = list }
 
 
-order : List ( DeviceClass, Orientation, List Int ) -> Config -> Config
-order list (Config config) =
-    Config { config | order = list }
+order : List ( DeviceClass, Orientation, List Int ) -> Group -> Group
+order list (Group config) =
+    Group { config | order = list }
 
 
 
 {- Helpers -}
 
 
-layoutForDevice : Device -> Config -> Maybe (List Int)
-layoutForDevice device (Config config) =
+layoutForDevice : Device -> Group -> Maybe (List Int)
+layoutForDevice device (Group config) =
     findForDevice device config.layouts
 
 
-orderForDevice : Device -> List item -> Config -> List item
-orderForDevice device items (Config config) =
+orderForDevice : Device -> List item -> Group -> List item
+orderForDevice device items (Group config) =
     case findForDevice device config.order of
         Nothing ->
             items

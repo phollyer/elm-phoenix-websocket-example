@@ -17,7 +17,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Event
 import Element.Font as Font
-import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage(..))
 import Type.Lobby as Lobby exposing (Lobby, RoomAction(..))
 import Type.Room as Room exposing (Room)
 import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, User(..))

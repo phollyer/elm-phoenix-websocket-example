@@ -9,20 +9,28 @@ module Example.JoinMultipleChannels exposing
 
 import Element as El exposing (Device, Element)
 import Extra.String as String
-import Phoenix
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example
-import View.Example.ApplicableFunctions as ApplicableFunctions
-import View.Example.Controls as Controls
-import View.Example.Feedback as Feedback
-import View.Example.Feedback.Content as FeedbackContent
-import View.Example.Feedback.Info as FeedbackInfo
-import View.Example.Feedback.Panel as FeedbackPanel
-import View.Example.UsefulFunctions as UsefulFunctions
+import View.Example as Example exposing (Response(..), responses)
 
 
 
-{- Init -}
+{- Types -}
+
+
+type alias Model =
+    { phoenix : Phoenix.Model
+    , responses : List Response
+    }
+
+
+type Action
+    = Join
+    | Leave
+
+
+
+{- Build -}
 
 
 init : Phoenix.Model -> Model
@@ -30,21 +38,6 @@ init phoenix =
     { phoenix = phoenix
     , responses = []
     }
-
-
-
-{- Model -}
-
-
-type alias Model =
-    { phoenix : Phoenix.Model
-    , responses : List Phoenix.ChannelResponse
-    }
-
-
-type Action
-    = Join
-    | Leave
 
 
 
@@ -88,8 +81,8 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.ChannelResponse response ->
-                    ( { newModel | responses = response :: newModel.responses }, cmd )
+                ChannelResponse response ->
+                    ( { newModel | responses = Channel response :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -110,110 +103,20 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device model =
+view device { responses, phoenix } =
     Example.init
-        |> Example.description description
-        |> Example.controls (controls device model)
-        |> Example.feedback (feedback device model)
-        |> Example.view device
-
-
-
-{- Description -}
-
-
-description : List (List (Element msg))
-description =
-    [ [ El.text "Join multiple Channels with a single command." ] ]
-
-
-
-{- Controls -}
-
-
-controls : Device -> Model -> Element Msg
-controls device { phoenix } =
-    Controls.init
-        |> Controls.controls
-            [ Controls.Join (GotControlClick Join) ((Phoenix.joinedChannels phoenix |> List.length) == 0)
-            , Controls.Leave (GotControlClick Leave) ((Phoenix.joinedChannels phoenix |> List.length) > 0)
+        |> Example.description
+            [ [ El.text "Join multiple Channels with a single command." ] ]
+        |> Example.controls
+            [ Example.Join (GotControlClick Join) ((Phoenix.joinedChannels phoenix |> List.length) == 0)
+            , Example.Leave (GotControlClick Leave) ((Phoenix.joinedChannels phoenix |> List.length) > 0)
             ]
-        |> Controls.view device
-
-
-
-{- Feedback -}
-
-
-feedback : Device -> Model -> Element Msg
-feedback device { phoenix, responses } =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (channelResponses device responses)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix ]
-                |> FeedbackPanel.view device
-            ]
-        |> Feedback.view device
-
-
-channelResponses : Device -> List Phoenix.ChannelResponse -> List (Element Msg)
-channelResponses device responses =
-    List.map (channelResponse device) responses
-
-
-channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
-channelResponse device response =
-    case response of
-        Phoenix.JoinOk topic payload ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "JoinOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.payload payload
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        Phoenix.LeaveOk topic ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "LeaveOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        _ ->
-            El.none
-
-
-applicableFunctions : Device -> Element Msg
-applicableFunctions device =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
+        |> Example.responses responses
+        |> Example.applicableFunctions
             [ "Phoenix.batch"
             , "Phoenix.join"
             , "Phoenix.leave"
             ]
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Element Msg
-usefulFunctions device phoenix =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
+        |> Example.usefulFunctions
             [ ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList ) ]
-        |> UsefulFunctions.view device
+        |> Example.view device

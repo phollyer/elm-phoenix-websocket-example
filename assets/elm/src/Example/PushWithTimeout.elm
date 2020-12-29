@@ -11,36 +11,15 @@ import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
 import Json.Encode exposing (Value)
-import Phoenix
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), RetryStrategy)
+import Type.Group as Group
 import UI.FontColor as FontColor
-import View.Example as Example
-import View.Example.ApplicableFunctions as ApplicableFunctions
-import View.Example.Controls as Controls
-import View.Example.Feedback as Feedback
-import View.Example.Feedback.Content as FeedbackContent
-import View.Example.Feedback.Info as FeedbackInfo
-import View.Example.Feedback.Panel as FeedbackPanel
-import View.Example.UsefulFunctions as UsefulFunctions
-import View.Group as Group
+import View.Example as Example exposing (Response(..), responses)
 import View.RadioSelection as RadioSelection
 
 
 
-{- Init -}
-
-
-init : Phoenix.Model -> Model
-init phoenix =
-    { phoenix = phoenix
-    , pushConfig = pushConfig
-    , retryStrategy = Phoenix.Drop
-    , pushSent = False
-    , info = []
-    }
-
-
-
-{- Model -}
+{- Types -}
 
 
 type alias Model =
@@ -48,7 +27,7 @@ type alias Model =
     , pushConfig : Phoenix.PushConfig
     , retryStrategy : Phoenix.RetryStrategy
     , pushSent : Bool
-    , info : List Info
+    , responses : List Response
     }
 
 
@@ -58,13 +37,18 @@ type Action
     | CancelPush
 
 
-type Info
-    = Response Phoenix.ChannelResponse
-    | Event
-        { topic : String
-        , event : String
-        , payload : Value
-        }
+
+{- Build -}
+
+
+init : Phoenix.Model -> Model
+init phoenix =
+    { phoenix = phoenix
+    , pushConfig = pushConfig
+    , retryStrategy = Phoenix.Drop
+    , pushSent = False
+    , responses = []
+    }
 
 
 
@@ -135,30 +119,30 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.ChannelResponse (Phoenix.PushTimeout topic event ref payload) ->
+                ChannelResponse (PushTimeout topic event ref payload) ->
                     if model.pushConfig.retryStrategy == Phoenix.Drop then
                         ( { newModel
-                            | info = Response (Phoenix.PushTimeout topic event ref payload) :: newModel.info
+                            | responses = Channel (PushTimeout topic event ref payload) :: newModel.responses
                             , pushSent = False
                           }
                         , cmd
                         )
 
                     else
-                        ( { newModel | info = Response (Phoenix.PushTimeout topic event ref payload) :: newModel.info }, cmd )
+                        ( { newModel | responses = Channel (PushTimeout topic event ref payload) :: newModel.responses }, cmd )
 
-                Phoenix.ChannelResponse response ->
-                    ( { newModel | info = Response response :: newModel.info }, cmd )
+                ChannelResponse response ->
+                    ( { newModel | responses = Channel response :: newModel.responses }, cmd )
 
-                Phoenix.ChannelEvent topic event payload ->
+                ChannelEvent topic event payload ->
                     ( { newModel
-                        | info =
+                        | responses =
                             Event
                                 { topic = topic
                                 , event = event
                                 , payload = payload
                                 }
-                                :: newModel.info
+                                :: newModel.responses
                       }
                     , cmd
                     )
@@ -182,36 +166,21 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device model =
+view device { responses, phoenix, pushSent, retryStrategy } =
     Example.init
-        |> Example.description description
-        |> Example.controls (controls device model)
-        |> Example.feedback (feedback device model)
-        |> Example.view device
-
-
-
-{- Description -}
-
-
-description : List (List (Element msg))
-description =
-    [ [ El.text "Push an event that results in a timeout - receiving feedback until the next try." ] ]
-
-
-
-{- Controls -}
-
-
-controls : Device -> Model -> Element Msg
-controls device { phoenix, retryStrategy, pushSent } =
-    Controls.init
-        |> Controls.controls
-            [ Controls.Push (GotControlClick Push) (not <| pushSent)
-            , Controls.CancelRetry (GotControlClick CancelRetry) (Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix)
-            , Controls.CancelPush (GotControlClick CancelPush) True
+        |> Example.description
+            [ [ El.text "Push an event that results in a timeout - receiving feedback until the next try." ] ]
+        |> Example.controls
+            [ Example.Push (GotControlClick Push) (not <| pushSent)
+            , Example.CancelRetry (GotControlClick CancelRetry) <|
+                Phoenix.pushTimedOut (\push_ -> push_.ref == Just "timeout_push") phoenix
+            , Example.CancelPush (GotControlClick CancelPush) pushSent
             ]
-        |> Controls.options
+        |> Example.controlsGroup
+            (Group.init
+                |> Group.layouts [ ( Phone, Portrait, [ 1, 2 ] ) ]
+            )
+        |> Example.subControls
             (RadioSelection.init
                 |> RadioSelection.onChange GotRetryStrategy
                 |> RadioSelection.selected retryStrategy
@@ -223,46 +192,26 @@ controls device { phoenix, retryStrategy, pushSent } =
                     ]
                 |> RadioSelection.view device
             )
-        |> Controls.group
-            (Group.init
-                |> Group.layouts [ ( Phone, Portrait, [ 1, 2 ] ) ]
-            )
-        |> Controls.view device
-
-
-
-{- Feedback -}
-
-
-feedback : Device -> Model -> Element Msg
-feedback device { phoenix, info, pushSent } =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.static (timeoutCountdown phoenix pushSent)
-                |> FeedbackPanel.scrollable (infoView device info)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix ]
-                |> FeedbackPanel.view device
+        |> Example.status (timeoutCountdown phoenix pushSent)
+        |> Example.responses responses
+        |> Example.applicableFunctions
+            [ "Phoenix.push"
+            , "Phoenix.pushTimeoutCountdown"
+            , "Phoenix.dropTimeoutPush"
+            , "Phoenix.dropPush"
+            , "Phoenix.pushTimedOut"
             ]
-        |> Feedback.group
-            (Group.init
-                |> Group.layouts [ ( Tablet, Portrait, [ 1, 2 ] ) ]
-            )
-        |> Feedback.view device
+        |> Example.usefulFunctions
+            [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
+            , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+            ]
+        |> Example.view device
 
 
-timeoutCountdown : Phoenix.Model -> Bool -> List (Element Msg)
+timeoutCountdown : Phoenix.Model -> Bool -> Element Msg
 timeoutCountdown phoenix pushSent =
     if not pushSent then
-        []
+        El.none
 
     else
         let
@@ -276,7 +225,7 @@ timeoutCountdown phoenix pushSent =
                         , String.fromInt count ++ " s"
                         )
         in
-        [ El.row
+        El.row
             [ El.width El.fill
             , El.spacing 20
             ]
@@ -287,99 +236,3 @@ timeoutCountdown phoenix pushSent =
                 [ FontColor.value ]
                 (El.text countdown)
             ]
-        ]
-
-
-infoView : Device -> List Info -> List (Element Msg)
-infoView device info =
-    List.map
-        (\item ->
-            case item of
-                Response response ->
-                    channelResponse device response
-
-                Event event ->
-                    channelEvent device event
-        )
-        info
-
-
-channelResponse : Device -> Phoenix.ChannelResponse -> Element Msg
-channelResponse device response =
-    case response of
-        Phoenix.JoinOk topic payload ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "JoinOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.payload payload
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        Phoenix.LeaveOk topic ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "LeaveOk"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        Phoenix.PushTimeout topic event ref payload ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "ChannelResponse")
-                |> FeedbackContent.label "PushTimeout"
-                |> FeedbackContent.element
-                    (FeedbackInfo.init
-                        |> FeedbackInfo.topic topic
-                        |> FeedbackInfo.event event
-                        |> FeedbackInfo.ref ref
-                        |> FeedbackInfo.payload payload
-                        |> FeedbackInfo.view device
-                    )
-                |> FeedbackContent.view device
-
-        _ ->
-            El.none
-
-
-channelEvent : Device -> { topic : String, event : String, payload : Value } -> Element Msg
-channelEvent device { topic, event, payload } =
-    FeedbackContent.init
-        |> FeedbackContent.title (Just "ChannelEvent")
-        |> FeedbackContent.element
-            (FeedbackInfo.init
-                |> FeedbackInfo.topic topic
-                |> FeedbackInfo.event event
-                |> FeedbackInfo.payload payload
-                |> FeedbackInfo.view device
-            )
-        |> FeedbackContent.view device
-
-
-applicableFunctions : Device -> Element Msg
-applicableFunctions device =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
-            [ "Phoenix.push"
-            , "Phoenix.pushTimeoutCountdown"
-            , "Phoenix.dropTimeoutPush"
-            , "Phoenix.dropPush"
-            , "Phoenix.pushTimedOut"
-            ]
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Element Msg
-usefulFunctions device phoenix =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
-            [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
-            , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
-            ]
-        |> UsefulFunctions.view device

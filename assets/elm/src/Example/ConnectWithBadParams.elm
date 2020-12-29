@@ -10,30 +10,13 @@ module Example.ConnectWithBadParams exposing
 import Element as El exposing (Device, Element)
 import Extra.String as String
 import Json.Encode as JE
-import Phoenix
+import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example
-import View.Example.ApplicableFunctions as ApplicableFunctions
-import View.Example.Controls as Controls
-import View.Example.Feedback as Feedback
-import View.Example.Feedback.Content as FeedbackContent
-import View.Example.Feedback.Panel as FeedbackPanel
-import View.Example.UsefulFunctions as UsefulFunctions
+import View.Example as Example exposing (Response(..))
 
 
 
-{- Init -}
-
-
-init : Phoenix.Model -> Model
-init phoenix =
-    { phoenix = phoenix
-    , responses = []
-    }
-
-
-
-{- Model -}
+{- Types -}
 
 
 type alias Model =
@@ -46,9 +29,15 @@ type Action
     = Connect
 
 
-type Response
-    = StateChange Phoenix.SocketState
-    | Error String
+
+{- Build -}
+
+
+init : Phoenix.Model -> Model
+init phoenix =
+    { phoenix = phoenix
+    , responses = []
+    }
 
 
 
@@ -81,11 +70,11 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.SocketMessage (Phoenix.SocketError error) ->
-                    ( { newModel | responses = Error error :: newModel.responses }, cmd )
+                SocketMessage (SocketError error) ->
+                    ( { newModel | responses = Socket (SocketError error) :: newModel.responses }, cmd )
 
-                Phoenix.SocketMessage (Phoenix.StateChange state) ->
-                    ( { newModel | responses = StateChange state :: newModel.responses }, cmd )
+                SocketMessage (StateChange state) ->
+                    ( { newModel | responses = Socket (StateChange state) :: newModel.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -106,113 +95,20 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device model =
+view device { responses, phoenix } =
     Example.init
-        |> Example.description description
-        |> Example.controls (controls device model)
-        |> Example.feedback (feedback device model)
-        |> Example.view device
-
-
-
-{- Description -}
-
-
-description : List (List (Element msg))
-description =
-    [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ] ]
-
-
-
-{- Controls -}
-
-
-controls : Device -> Model -> Element Msg
-controls device { phoenix } =
-    Controls.init
-        |> Controls.controls
-            [ Controls.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix) ]
-        |> Controls.view device
-
-
-
-{- Feedback -}
-
-
-feedback : Device -> Model -> Element Msg
-feedback device { phoenix, responses } =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (info device responses)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix ]
-                |> FeedbackPanel.view device
-            ]
-        |> Feedback.view device
-
-
-info : Device -> List Response -> List (Element Msg)
-info device responses =
-    List.map
-        (\response ->
-            case response of
-                StateChange state ->
-                    FeedbackContent.init
-                        |> FeedbackContent.title (Just "SocketMessage")
-                        |> FeedbackContent.label "StateChange"
-                        |> FeedbackContent.element (El.text (socketStateToString state))
-                        |> FeedbackContent.view device
-
-                Error error ->
-                    FeedbackContent.init
-                        |> FeedbackContent.title (Just "SocketMessage")
-                        |> FeedbackContent.label "SocketError"
-                        |> FeedbackContent.element (El.text error)
-                        |> FeedbackContent.view device
-        )
-        responses
-
-
-socketStateToString : Phoenix.SocketState -> String
-socketStateToString state =
-    case state of
-        Phoenix.Connecting ->
-            "Connecting"
-
-        Phoenix.Connected ->
-            "Connected"
-
-        Phoenix.Disconnecting ->
-            "Disconnecting"
-
-        Phoenix.Disconnected _ ->
-            "Disconnected"
-
-
-applicableFunctions : Device -> Element Msg
-applicableFunctions device =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
+        |> Example.description
+            [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ] ]
+        |> Example.controls
+            [ Example.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix) ]
+        |> Example.responses responses
+        |> Example.applicableFunctions
             [ "Phoenix.setConnectParams"
             , "Phoenix.connect"
             ]
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Element Msg
-usefulFunctions device phoenix =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
+        |> Example.usefulFunctions
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
             , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
             , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
             ]
-        |> UsefulFunctions.view device
+        |> Example.view device

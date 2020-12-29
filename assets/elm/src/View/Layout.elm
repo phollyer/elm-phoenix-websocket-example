@@ -62,8 +62,8 @@ view device (Config config) =
     El.column
         [ El.htmlAttribute <|
             Attr.id "layout"
-        , El.clip
-        , El.scrollbars
+        , El.clipY
+        , El.scrollbarY
         , El.inFront (homeButton device config.homeMsg)
         , El.height El.fill
         , El.width El.fill

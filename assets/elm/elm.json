@@ -14,7 +14,7 @@
             "elm/url": "1.0.0",
             "elm-community/json-extra": "4.3.0",
             "elm-community/list-extra": "8.2.4",
-            "mdgriffith/elm-ui": "1.1.8",
+            "mdgriffith/elm-ui": "1.1.7",
             "phollyer/elm-phoenix-websocket": "3.4.0",
             "phollyer/elm-ui-colors": "3.0.0"
         },

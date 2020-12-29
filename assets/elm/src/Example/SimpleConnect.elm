@@ -9,20 +9,29 @@ module Example.SimpleConnect exposing
 
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Phoenix
+import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
+import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example
-import View.Example.ApplicableFunctions as ApplicableFunctions
-import View.Example.Controls as Controls
-import View.Example.Feedback as Feedback
-import View.Example.Feedback.Content as FeedbackContent
-import View.Example.Feedback.Panel as FeedbackPanel
-import View.Example.UsefulFunctions as UsefulFunctions
-import View.Group as Group
+import View.Example as Example exposing (Response(..), responses)
 
 
 
-{- Init -}
+{- Types -}
+
+
+type alias Model =
+    { phoenix : Phoenix.Model
+    , responses : List Response
+    }
+
+
+type Action
+    = Connect
+    | Disconnect
+
+
+
+{- Build -}
 
 
 init : Phoenix.Model -> Model
@@ -30,21 +39,6 @@ init phoenix =
     { phoenix = phoenix
     , responses = []
     }
-
-
-
-{- Model -}
-
-
-type alias Model =
-    { phoenix : Phoenix.Model
-    , responses : List Phoenix.SocketState
-    }
-
-
-type Action
-    = Connect
-    | Disconnect
 
 
 
@@ -76,8 +70,8 @@ update msg model =
                         |> Phoenix.updateWith PhoenixMsg model
             in
             case phoenixMsg of
-                Phoenix.SocketMessage (Phoenix.StateChange state) ->
-                    ( { newModel | responses = state :: model.responses }, cmd )
+                SocketMessage (StateChange state) ->
+                    ( { newModel | responses = Socket (StateChange state) :: model.responses }, cmd )
 
                 _ ->
                     ( newModel, cmd )
@@ -98,111 +92,22 @@ subscriptions model =
 
 
 view : Device -> Model -> Element Msg
-view device model =
+view device { responses, phoenix } =
     Example.init
-        |> Example.description description
-        |> Example.controls (controls device model)
-        |> Example.feedback (feedback device model)
-        |> Example.view device
-
-
-
-{- Description -}
-
-
-description : List (List (Element msg))
-description =
-    [ [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ] ]
-
-
-
-{- Controls -}
-
-
-controls : Device -> Model -> Element Msg
-controls device { phoenix } =
-    Controls.init
-        |> Controls.controls
-            [ Controls.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
-            , Controls.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
+        |> Example.description
+            [ [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ] ]
+        |> Example.controls
+            [ Example.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
+            , Example.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
             ]
-        |> Controls.group
-            (Group.init
-                |> Group.layouts
-                    [ ( Phone, Portrait, [ 2 ] ) ]
-            )
-        |> Controls.view device
-
-
-
-{- Feedback -}
-
-
-feedback : Device -> Model -> Element Msg
-feedback device { phoenix, responses } =
-    Feedback.init
-        |> Feedback.elements
-            [ FeedbackPanel.init
-                |> FeedbackPanel.title "Info"
-                |> FeedbackPanel.scrollable (info device responses)
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Applicable Functions"
-                |> FeedbackPanel.scrollable [ applicableFunctions device ]
-                |> FeedbackPanel.view device
-            , FeedbackPanel.init
-                |> FeedbackPanel.title "Useful Functions"
-                |> FeedbackPanel.scrollable [ usefulFunctions device phoenix ]
-                |> FeedbackPanel.view device
-            ]
-        |> Feedback.view device
-
-
-info : Device -> List Phoenix.SocketState -> List (Element Msg)
-info device stateList =
-    List.map
-        (\state ->
-            FeedbackContent.init
-                |> FeedbackContent.title (Just "SocketMessage")
-                |> FeedbackContent.label "StateChange"
-                |> FeedbackContent.element (El.text (socketStateToString state))
-                |> FeedbackContent.view device
-        )
-        stateList
-
-
-socketStateToString : Phoenix.SocketState -> String
-socketStateToString state =
-    case state of
-        Phoenix.Connecting ->
-            "Connecting"
-
-        Phoenix.Connected ->
-            "Connected"
-
-        Phoenix.Disconnecting ->
-            "Disconnecting"
-
-        Phoenix.Disconnected _ ->
-            "Disconnected"
-
-
-applicableFunctions : Device -> Element Msg
-applicableFunctions device =
-    ApplicableFunctions.init
-        |> ApplicableFunctions.functions
+        |> Example.responses responses
+        |> Example.applicableFunctions
             [ "Phoenix.connect"
             , "Phoenix.disconnect"
             ]
-        |> ApplicableFunctions.view device
-
-
-usefulFunctions : Device -> Phoenix.Model -> Element Msg
-usefulFunctions device phoenix =
-    UsefulFunctions.init
-        |> UsefulFunctions.functions
+        |> Example.usefulFunctions
             [ ( "Phoenix.socketState", Phoenix.socketStateToString phoenix )
             , ( "Phoenix.connectionState", Phoenix.connectionState phoenix |> String.printQuoted )
             , ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
             ]
-        |> UsefulFunctions.view device
+        |> Example.view device
