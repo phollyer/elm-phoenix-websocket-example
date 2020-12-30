@@ -133,35 +133,37 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
-    let
-        phoenix =
-            Session.phoenix model.session
-    in
     ( { model
         | example =
-            case selectedExample of
-                "Simple Join And Leave" ->
-                    SimpleJoinAndLeave <|
-                        SimpleJoinAndLeave.init phoenix
-
-                "Join With Good Params" ->
-                    JoinWithGoodParams <|
-                        JoinWithGoodParams.init phoenix
-
-                "Join With Bad Params" ->
-                    JoinWithBadParams <|
-                        JoinWithBadParams.init phoenix
-
-                "Join Multiple Channels" ->
-                    JoinMultipleChannels <|
-                        JoinMultipleChannels.init phoenix
-
-                _ ->
-                    SimpleJoinAndLeave <|
-                        SimpleJoinAndLeave.init phoenix
+            exampleFromString selectedExample <|
+                Session.phoenix model.session
       }
     , cmd
     )
+
+
+exampleFromString : String -> Phoenix.Model -> Example
+exampleFromString example phoenix =
+    case example of
+        "Simple Join And Leave" ->
+            SimpleJoinAndLeave <|
+                SimpleJoinAndLeave.init phoenix
+
+        "Join With Good Params" ->
+            JoinWithGoodParams <|
+                JoinWithGoodParams.init phoenix
+
+        "Join With Bad Params" ->
+            JoinWithBadParams <|
+                JoinWithBadParams.init phoenix
+
+        "Join Multiple Channels" ->
+            JoinMultipleChannels <|
+                JoinMultipleChannels.init phoenix
+
+        _ ->
+            SimpleJoinAndLeave <|
+                SimpleJoinAndLeave.init phoenix
 
 
 

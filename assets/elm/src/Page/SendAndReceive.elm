@@ -132,39 +132,37 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
-    let
-        example_ =
-            case selectedExample of
-                "Push One Event" ->
-                    PushOneEvent <|
-                        PushOneEvent.init
-                            (Session.phoenix model.session)
-
-                "Push Multiple Events" ->
-                    PushMultipleEvents <|
-                        PushMultipleEvents.init
-                            (Session.phoenix model.session)
-
-                "Receive Events" ->
-                    ReceiveEvents <|
-                        ReceiveEvents.init
-                            (Session.phoenix model.session)
-
-                "Push With Timeout" ->
-                    PushWithTimeout <|
-                        PushWithTimeout.init
-                            (Session.phoenix model.session)
-
-                _ ->
-                    PushOneEvent <|
-                        PushOneEvent.init
-                            (Session.phoenix model.session)
-    in
     ( { model
-        | example = example_
+        | example =
+            exampleFromString selectedExample <|
+                Session.phoenix model.session
       }
     , cmd
     )
+
+
+exampleFromString : String -> Phoenix.Model -> Example
+exampleFromString example phoenix =
+    case example of
+        "Push One Event" ->
+            PushOneEvent <|
+                PushOneEvent.init phoenix
+
+        "Push Multiple Events" ->
+            PushMultipleEvents <|
+                PushMultipleEvents.init phoenix
+
+        "Receive Events" ->
+            ReceiveEvents <|
+                ReceiveEvents.init phoenix
+
+        "Push With Timeout" ->
+            PushWithTimeout <|
+                PushWithTimeout.init phoenix
+
+        _ ->
+            PushOneEvent <|
+                PushOneEvent.init phoenix
 
 
 

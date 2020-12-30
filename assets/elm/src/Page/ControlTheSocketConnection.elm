@@ -32,8 +32,8 @@ init session =
     ( { session = session
       , example =
             SimpleConnect <|
-                SimpleConnect.init
-                    (Session.phoenix session)
+                SimpleConnect.init <|
+                    Session.phoenix session
       }
     , Cmd.none
     )
@@ -125,34 +125,33 @@ updatePhoenix model ( phoenix, phoenixCmd ) =
 
 updateExample : String -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 updateExample selectedExample ( model, cmd ) =
-    let
-        example_ =
-            case selectedExample of
-                "Simple Connect" ->
-                    SimpleConnect <|
-                        SimpleConnect.init
-                            (Session.phoenix model.session)
-
-                "Connect With Good Params" ->
-                    ConnectWithGoodParams <|
-                        ConnectWithGoodParams.init
-                            (Session.phoenix model.session)
-
-                "Connect With Bad Params" ->
-                    ConnectWithBadParams <|
-                        ConnectWithBadParams.init
-                            (Session.phoenix model.session)
-
-                _ ->
-                    SimpleConnect <|
-                        SimpleConnect.init
-                            (Session.phoenix model.session)
-    in
     ( { model
-        | example = example_
+        | example =
+            exampleFromString selectedExample <|
+                Session.phoenix model.session
       }
     , cmd
     )
+
+
+exampleFromString : String -> Phoenix.Model -> Example
+exampleFromString example phoenix =
+    case example of
+        "Simple Connect" ->
+            SimpleConnect <|
+                SimpleConnect.init phoenix
+
+        "Connect With Good Params" ->
+            ConnectWithGoodParams <|
+                ConnectWithGoodParams.init phoenix
+
+        "Connect With Bad Params" ->
+            ConnectWithBadParams <|
+                ConnectWithBadParams.init phoenix
+
+        _ ->
+            SimpleConnect <|
+                SimpleConnect.init phoenix
 
 
 

@@ -26,8 +26,8 @@ init session =
     ( { session = session
       , example =
             MultiRoom <|
-                MultiRoomChat.init
-                    (Session.phoenix session)
+                MultiRoomChat.init <|
+                    Session.phoenix session
       }
     , Cmd.none
     )
