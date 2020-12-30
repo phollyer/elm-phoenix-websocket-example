@@ -25,7 +25,6 @@ import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.RoundedBorder as RoundedBorder
 import View.Button as Button
-import View.MultiRoomChat.User as UserView
 import View.Tag as Tag
 
 
@@ -277,9 +276,17 @@ userView device currentUser =
         , El.spacing 20
         , El.width El.fill
         ]
-        [ UserView.init
-            |> UserView.username (User.username currentUser)
-            |> UserView.view device
+        [ El.paragraph
+            [ El.spacing 10 ]
+            [ El.el
+                [ Font.bold
+                , FontColor.label
+                ]
+                (El.text "Username: ")
+            , El.el
+                [ FontColor.value ]
+                (El.text (User.username currentUser))
+            ]
         , El.column
             [ El.spacing 10
             , El.width El.fill
