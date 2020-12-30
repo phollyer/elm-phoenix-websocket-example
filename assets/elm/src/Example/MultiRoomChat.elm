@@ -613,7 +613,6 @@ update msg model =
                         _ ->
                             ( newModel, cmd )
 
-                -- Lobby and Room Channels --
                 ChannelResponse (LeaveOk _) ->
                     case newModel.state of
                         InRoom currentUser room ->
