@@ -239,9 +239,7 @@ view model =
 -}
 introduction : List (List (Element Msg))
 introduction =
-    [ [ El.text "When a Join is requested, the Socket will connect automatically if it is required. "
-      ]
-    , [ El.text "Clicking on a function will take you to its documentation." ]
+    [ [ El.text "When a Join is requested, the Socket will connect automatically if it is required. " ]
     ]
 
 

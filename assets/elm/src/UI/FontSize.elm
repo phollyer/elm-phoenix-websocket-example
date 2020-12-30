@@ -4,6 +4,7 @@ module UI.FontSize exposing
     , pageNotFound
     , panelContent
     , panelHeader
+    , small
     , title
     , vsn
     )
@@ -15,20 +16,31 @@ import Element.Font as Font
 {-| General text
 -}
 default : Device -> Attribute msg
-default { class, orientation } =
+default { class } =
     Font.size <|
-        case ( class, orientation ) of
-            ( Phone, Portrait ) ->
+        case class of
+            Phone ->
                 12
 
-            ( Phone, Landscape ) ->
-                14
-
-            ( Tablet, _ ) ->
-                20
+            Tablet ->
+                18
 
             _ ->
                 24
+
+
+small : Device -> Attribute msg
+small { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                14
+
+            _ ->
+                20
 
 
 {-| Page headings

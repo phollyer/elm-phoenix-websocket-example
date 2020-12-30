@@ -230,7 +230,6 @@ introduction =
     [ [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
       , El.text "however, if you want to take manual control, here's a few examples."
       ]
-    , [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
 

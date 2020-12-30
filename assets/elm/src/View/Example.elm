@@ -178,7 +178,7 @@ view device (Config config) =
         , FontSize.default device
         , Padding.bottom 10
         ]
-        [ descriptionView config.example config.description
+        [ descriptionView device config.example config.description
         , controlsView device (Config config)
         , feedbackView device (Config config)
         ]
@@ -188,26 +188,32 @@ view device (Config config) =
 {- Description -}
 
 
-descriptionView : Example -> List (List (Element msg)) -> Element msg
-descriptionView example paragraphs =
+descriptionView : Device -> Example -> List (List (Element msg)) -> Element msg
+descriptionView device example paragraphs =
     El.column
         [ El.width El.fill
         , Font.justify
+        , spacing device.class
         ]
     <|
-        List.map (toParagraph example) paragraphs
+        List.append
+            (List.map (toParagraph example) paragraphs)
+            [ El.paragraph
+                [ El.width El.fill
+                , FontSize.small device
+                ]
+                [ El.text "The main source code for this example can be found "
+                , Link.srcLink example
+                , El.text ". Clicking on a function will take you to its documentation."
+                ]
+            ]
 
 
 toParagraph : Example -> List (Element msg) -> Element msg
 toParagraph example paragraph =
     El.paragraph
         [ El.width El.fill ]
-    <|
-        List.append paragraph
-            [ El.text " The main source code for this example can be found "
-            , Link.srcLink example
-            , El.text "."
-            ]
+        paragraph
 
 
 

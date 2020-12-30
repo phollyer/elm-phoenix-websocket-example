@@ -248,7 +248,6 @@ introduction =
     [ [ El.text "You can push to a Channel without needing to connect to the Socket or join "
       , El.text "the Channel. These processes will be taken care of automatically when you send the push."
       ]
-    , [ El.text "Clicking on a function will take you to its documentation." ]
     ]
 
 
