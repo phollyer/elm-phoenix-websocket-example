@@ -1,6 +1,14 @@
-module UI.Link exposing (function)
+module UI.Link exposing
+    ( function
+    , srcLink
+    )
 
 import Element as El exposing (Element)
+import Element.Border as Border
+import Element.Font as Font
+import Type.Example as Example exposing (Example)
+import UI.BorderColor as BorderColor
+import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 
@@ -16,6 +24,22 @@ function func =
             El.paragraph
                 []
                 (format func)
+        }
+
+
+srcLink : Example -> Element msg
+srcLink example =
+    El.newTabLink
+        []
+        { url = Example.toSrc example
+        , label =
+            El.el
+                [ Border.dashed
+                , BorderColor.link
+                , BorderWidth.bottom 1
+                , FontColor.link
+                ]
+                (El.text "here")
         }
 
 

@@ -1,6 +1,7 @@
 module UI.BorderColor exposing
     ( closedRoom
     , examplePanel
+    , link
     , mouseOverMenuItem
     , mouseOverOpenRoom
     , mouseOverOwnRoom
@@ -20,7 +21,13 @@ import Element.Border as Border
 
 none : Attribute msg
 none =
-    Border.color (Alpha.white 0)
+    Border.color <|
+        Alpha.white 0
+
+
+link : Attribute msg
+link =
+    Border.color Color.darkgray
 
 
 seperatorLight : Attribute msg

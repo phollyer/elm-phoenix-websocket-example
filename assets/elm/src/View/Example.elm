@@ -22,6 +22,7 @@ import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 import List.Extra as List
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..))
+import Type.Example exposing (Example)
 import Type.Group as Group exposing (Group)
 import UI.BackgroundColor as BackgroundColor
 import UI.BorderColor as BorderColor
@@ -40,7 +41,8 @@ import View.Button as Button
 
 type Config msg
     = Config
-        { description : List (List (Element msg))
+        { example : Example
+        , description : List (List (Element msg))
         , controls : List (Control msg)
         , controlsGroup : Group
         , subControls : Element msg
@@ -76,10 +78,11 @@ type Response
 {- Build -}
 
 
-init : Config msg
-init =
+init : Example -> Config msg
+init example =
     Config
-        { description = []
+        { example = example
+        , description = []
         , controls = []
         , controlsGroup = Group.init
         , subControls = El.none
@@ -175,7 +178,7 @@ view device (Config config) =
         , FontSize.default device
         , Padding.bottom 10
         ]
-        [ descriptionView config.description
+        [ descriptionView config.example config.description
         , controlsView device (Config config)
         , feedbackView device (Config config)
         ]
@@ -185,21 +188,26 @@ view device (Config config) =
 {- Description -}
 
 
-descriptionView : List (List (Element msg)) -> Element msg
-descriptionView paragraphs =
+descriptionView : Example -> List (List (Element msg)) -> Element msg
+descriptionView example paragraphs =
     El.column
         [ El.width El.fill
         , Font.justify
         ]
     <|
-        List.map toParagraph paragraphs
+        List.map (toParagraph example) paragraphs
 
 
-toParagraph : List (Element msg) -> Element msg
-toParagraph paragraph =
+toParagraph : Example -> List (Element msg) -> Element msg
+toParagraph example paragraph =
     El.paragraph
         [ El.width El.fill ]
-        paragraph
+    <|
+        List.append paragraph
+            [ El.text " The main source code for this example can be found "
+            , Link.srcLink example
+            , El.text "."
+            ]
 
 
 

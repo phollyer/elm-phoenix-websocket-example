@@ -11,6 +11,7 @@ import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..)
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
+import Type.Example exposing (Example(..))
 import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
 import View.Example as Example exposing (Response(..))
@@ -99,7 +100,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
-    Example.init
+    Example.init ConnectWithGoodParams
         |> Example.description
             [ [ El.text "Connect to the Socket with authentication params that are accepted." ] ]
         |> Example.controls

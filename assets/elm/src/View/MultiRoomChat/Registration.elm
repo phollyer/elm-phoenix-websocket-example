@@ -15,11 +15,13 @@ import Element.Events as Event
 import Element.Font as Font
 import List.Extra exposing (greedyGroupsOf)
 import Type.ErrorMessage as ErrorMessage exposing (ErrorMessage)
+import Type.Example exposing (Example(..))
 import Type.User exposing (UnregisteredUser)
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
+import UI.Link as Link
 import View.Button as Button
 import View.InputField as InputField
 
@@ -97,7 +99,13 @@ introduction =
             [ El.text "Welcome," ]
         , El.paragraph
             [ El.width El.fill ]
-            [ El.text "Please enter a username, and select your colors in order to join the Lobby." ]
+            [ El.text "The main source code for this example can be found "
+            , Link.srcLink MultiRoomChat
+            , El.text "."
+            ]
+        , El.paragraph
+            [ El.width El.fill ]
+            [ El.text "Please enter a username, and select your identifying colors in order to join the Lobby." ]
         ]
 
 

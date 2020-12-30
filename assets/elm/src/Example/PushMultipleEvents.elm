@@ -11,6 +11,7 @@ import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example as Example exposing (Response(..))
 
@@ -119,7 +120,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
-    Example.init
+    Example.init PushMultipleEvents
         |> Example.description
             [ [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
               , El.text "This example will make 3 simultaneous pushes."

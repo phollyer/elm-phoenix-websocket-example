@@ -10,6 +10,7 @@ module Example.SimpleConnect exposing
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
 import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
+import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example as Example exposing (Response(..))
 
@@ -92,7 +93,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
-    Example.init
+    Example.init SimpleConnect
         |> Example.description
             [ [ El.text "A simple connection to the Socket without sending any params or setting any connect options." ] ]
         |> Example.controls

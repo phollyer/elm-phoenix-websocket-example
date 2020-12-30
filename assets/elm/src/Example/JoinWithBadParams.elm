@@ -12,6 +12,7 @@ import Element as El exposing (Device, Element)
 import Extra.String as String
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Type.Example exposing (Example(..))
 import Utils exposing (batch, updatePhoenixWith)
 import View.Example as Example exposing (Response(..))
 
@@ -103,7 +104,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
-    Example.init
+    Example.init JoinWithBadParams
         |> Example.description
             [ [ El.text "Join a Channel, providing auth params that are not accepted." ] ]
         |> Example.controls

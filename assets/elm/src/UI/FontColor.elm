@@ -7,6 +7,7 @@ module UI.FontColor exposing
     , function
     , heading
     , label
+    , link
     , moduleName
     , mouseOverBackButton
     , openRoom
@@ -38,8 +39,6 @@ heading =
     Font.color Color.darkslateblue
 
 
-{-| Subject titles e.g. Socket Examples
--}
 title : Attribute msg
 title =
     Font.color Color.slateblue
@@ -58,6 +57,11 @@ vsn =
 panelHeader : Attribute msg
 panelHeader =
     Font.color Color.aliceblue
+
+
+link : Attribute msg
+link =
+    Font.color Color.dodgerblue
 
 
 

@@ -10,6 +10,7 @@ module Example.JoinMultipleChannels exposing
 import Element as El exposing (Device, Element)
 import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example as Example exposing (Response(..))
 
@@ -104,7 +105,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
-    Example.init
+    Example.init JoinMultipleChannels
         |> Example.description
             [ [ El.text "Join multiple Channels with a single command." ] ]
         |> Example.controls

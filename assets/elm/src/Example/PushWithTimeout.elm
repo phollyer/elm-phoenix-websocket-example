@@ -11,6 +11,7 @@ import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Type.Example exposing (Example(..))
 import Type.Group as Group
 import UI.FontColor as FontColor
 import View.Example as Example exposing (Response(..))
@@ -166,7 +167,7 @@ subscriptions model =
 
 view : Device -> Model -> Element Msg
 view device { responses, phoenix, pushSent, retryStrategy } =
-    Example.init
+    Example.init PushWithTimeout
         |> Example.description
             [ [ El.text "Push an event that results in a timeout - receiving feedback until the next try." ] ]
         |> Example.controls
