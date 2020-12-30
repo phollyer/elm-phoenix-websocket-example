@@ -509,7 +509,7 @@ toResponse device response =
                 }
 
         Channel (PushTimeout topic event ref payload) ->
-            channelResponse device "PushOk" <|
+            channelResponse device "PushTimeout" <|
                 { channelInfo
                     | topic = topic
                     , event = Just event

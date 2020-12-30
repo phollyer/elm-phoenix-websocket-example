@@ -18,6 +18,7 @@ import Phoenix
 import Route
 import Session exposing (Session)
 import Type.Group as Group
+import UI.FontSize as FontSize
 import Utils exposing (updatePhoenixSessionWith)
 import View.Example.Menu as Menu
 import View.Example.Page as ExamplePage
@@ -226,7 +227,7 @@ view model =
             |> Layout.title "Join And Leave Channels"
             |> Layout.body
                 (ExamplePage.init
-                    |> ExamplePage.introduction introduction
+                    |> ExamplePage.introduction (introduction device)
                     |> ExamplePage.menu (menu device model)
                     |> ExamplePage.example (viewExample device model)
                     |> ExamplePage.view device
@@ -237,9 +238,15 @@ view model =
 
 {-| Introduction
 -}
-introduction : List (List (Element Msg))
-introduction =
-    [ [ El.text "When a Join is requested, the Socket will connect automatically if it is required. " ]
+introduction : Device -> List (List (Element Msg))
+introduction device =
+    [ [ El.text "Joining a Channel is handled automatically when a Channel is pushed to. "
+      , El.text "However, if you want to take manual control here are a few examples."
+      ]
+    , [ El.el
+            [ FontSize.small device ]
+            (El.text "(Connecting to the Socket is automatic if not already connected.) ")
+      ]
     ]
 
 

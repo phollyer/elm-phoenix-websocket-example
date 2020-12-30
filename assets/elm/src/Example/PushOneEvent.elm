@@ -29,6 +29,7 @@ type alias Model =
 type Action
     = Push
     | Leave
+    | Disconnect
 
 
 
@@ -70,6 +71,10 @@ update msg model =
                     Phoenix.leave "example:send_and_receive" model.phoenix
                         |> updatePhoenixWith PhoenixMsg model
 
+                Disconnect ->
+                    Phoenix.disconnectAndReset (Just 1000) model.phoenix
+                        |> updatePhoenixWith PhoenixMsg model
+
         PhoenixMsg phxMsg ->
             let
                 ( newModel, cmd, phoenixMsg ) =
@@ -93,6 +98,9 @@ update msg model =
                     , cmd
                     )
 
+                SocketMessage response ->
+                    ( { newModel | responses = Socket response :: newModel.responses }, cmd )
+
                 _ ->
                     ( newModel, cmd )
 
@@ -115,18 +123,21 @@ view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
     Example.init PushOneEvent
         |> Example.description
-            [ [ El.text "Push an event to the Channel with no need to connect to the socket, or join the channel first." ] ]
+            [ [ El.text "Push an event to a Channel." ] ]
         |> Example.controls
             [ Example.Push (GotControlClick Push) True
             , Example.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:send_and_receive" phoenix)
+            , Example.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
             ]
         |> Example.responses responses
         |> Example.applicableFunctions
             [ "Phoenix.push"
             , "Phoenix.leave"
+            , "Phoenix.disconnectAndReset"
             ]
         |> Example.usefulFunctions
-            [ ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
+            [ ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            , ( "Phoenix.channelJoined", Phoenix.channelJoined "example:send_and_receive" phoenix |> String.printBool )
             , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
             ]
         |> Example.view device

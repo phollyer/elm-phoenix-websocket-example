@@ -227,8 +227,8 @@ view model =
 -}
 introduction : List (List (Element Msg))
 introduction =
-    [ [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to, "
-      , El.text "however, if you want to take manual control, here's a few examples."
+    [ [ El.text "Connecting to the Socket is taken care of automatically when a request to join a Channel is made, or when a Channel is pushed to. "
+      , El.text "However, if you want to take manual control, here's a few examples."
       ]
     ]
 

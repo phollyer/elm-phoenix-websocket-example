@@ -27,8 +27,7 @@ type alias Model =
 
 
 type Action
-    = Connect
-    | Disconnect
+    = Disconnect
     | Join
     | Leave
 
@@ -58,10 +57,6 @@ update msg model =
     case msg of
         GotControlClick action ->
             case action of
-                Connect ->
-                    Phoenix.connect model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
-
                 Disconnect ->
                     Phoenix.disconnect (Just 1000) model.phoenix
                         |> updatePhoenixWith PhoenixMsg model
@@ -111,24 +106,15 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "A simple Join to a Channel without sending any params. " ] ]
         |> Example.controls
-            [ Example.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
-            , Example.Join (GotControlClick Join) (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            [ Example.Join (GotControlClick Join) (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             , Example.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             , Example.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
             ]
-        |> Example.controlsGroup
-            (Group.init
-                |> Group.layouts
-                    [ ( Phone, Portrait, [ 2, 2 ] ) ]
-                |> Group.order
-                    [ ( Phone, Portrait, [ 1, 3, 4, 2 ] ) ]
-            )
         |> Example.responses responses
         |> Example.applicableFunctions
-            [ "Phoenix.connect"
-            , "Phoenix.disconnect"
-            , "Phoenix.join"
+            [ "Phoenix.join"
             , "Phoenix.leave"
+            , "Phoenix.disconnect"
             ]
         |> Example.usefulFunctions
             [ ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )

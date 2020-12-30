@@ -100,6 +100,9 @@ update msg model =
                     , cmd
                     )
 
+                SocketMessage response ->
+                    ( { newModel | responses = Socket response :: newModel.responses }, cmd )
+
                 _ ->
                     ( newModel, cmd )
 
@@ -122,7 +125,7 @@ view : Device -> Model -> Element Msg
 view device { responses, phoenix } =
     Example.init PushMultipleEvents
         |> Example.description
-            [ [ El.text "Push multiple events to the Channel with no need to connect to the socket, or join the channel first. "
+            [ [ El.text "Push multiple events to a Channel. "
               , El.text "This example will make 3 simultaneous pushes."
               ]
             ]

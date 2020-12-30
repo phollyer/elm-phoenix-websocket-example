@@ -1,6 +1,7 @@
 module UI.Link exposing
     ( function
     , srcLink
+    , type_
     )
 
 import Element as El exposing (Element)
@@ -13,17 +14,40 @@ import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 
 
+base : String
+base =
+    "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix#"
+
+
 {-| A fomratted link to a functions docs.
 -}
 function : String -> Element msg
 function func =
     El.newTabLink
         [ FontFamily.code ]
-        { url = toPackageUrl func
+        { url =
+            case String.split "." func of
+                _ :: f :: [] ->
+                    base ++ f
+
+                f :: [] ->
+                    base ++ f
+
+                _ ->
+                    base
         , label =
-            El.paragraph
-                []
-                (format func)
+            El.paragraph [] (format func)
+        }
+
+
+type_ : ( String, String ) -> Element msg
+type_ ( actual, text ) =
+    El.newTabLink
+        [ FontFamily.code ]
+        { url =
+            base ++ actual
+        , label =
+            El.paragraph [] (format text)
         }
 
 
@@ -43,23 +67,6 @@ srcLink example =
         }
 
 
-toPackageUrl : String -> String
-toPackageUrl func =
-    let
-        base =
-            "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix"
-    in
-    case String.split "." func of
-        _ :: f :: [] ->
-            base ++ "#" ++ f
-
-        f :: [] ->
-            base ++ "#" ++ f
-
-        _ ->
-            base
-
-
 format : String -> List (Element msg)
 format func =
     case String.split "." func of
@@ -69,8 +76,7 @@ format func =
             ]
 
         f :: [] ->
-            [ El.el [ FontColor.function ] (El.text ("." ++ f))
-            ]
+            [ El.el [ FontColor.function ] (El.text f) ]
 
         _ ->
             []

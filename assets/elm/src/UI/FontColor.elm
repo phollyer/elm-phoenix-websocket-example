@@ -122,7 +122,7 @@ moduleName =
 
 function : Attribute msg
 function =
-    Font.color Color.darkgrey
+    Font.color Color.dimgrey
 
 
 

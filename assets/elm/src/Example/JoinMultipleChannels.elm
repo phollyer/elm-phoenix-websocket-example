@@ -85,6 +85,9 @@ update msg model =
                 ChannelResponse response ->
                     ( { newModel | responses = Channel response :: newModel.responses }, cmd )
 
+                SocketMessage response ->
+                    ( { newModel | responses = Socket response :: newModel.responses }, cmd )
+
                 _ ->
                     ( newModel, cmd )
 
@@ -119,5 +122,7 @@ view device { responses, phoenix } =
             , "Phoenix.leave"
             ]
         |> Example.usefulFunctions
-            [ ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList ) ]
+            [ ( "Phoenix.isConnected", Phoenix.isConnected phoenix |> String.printBool )
+            , ( "Phoenix.joinedChannels", Phoenix.joinedChannels phoenix |> String.printList )
+            ]
         |> Example.view device

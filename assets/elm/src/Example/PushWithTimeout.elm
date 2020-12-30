@@ -147,6 +147,9 @@ update msg model =
                     , cmd
                     )
 
+                SocketMessage response ->
+                    ( { newModel | responses = Socket response :: newModel.responses }, cmd )
+
                 _ ->
                     ( newModel, cmd )
 
