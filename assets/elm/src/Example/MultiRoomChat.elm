@@ -667,8 +667,12 @@ back key model =
                 |> updatePhoenixWith PhoenixMsg model
 
         InLobby _ ->
-            Phoenix.leave "example:lobby" model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
+            if Phoenix.channelJoined "example:lobby" model.phoenix then
+                Phoenix.leave "example:lobby" model.phoenix
+                    |> updatePhoenixWith PhoenixMsg model
+
+            else
+                ( { model | state = Unregistered User.init }, Cmd.none )
 
 
 
