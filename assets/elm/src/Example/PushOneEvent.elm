@@ -13,7 +13,7 @@ import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -24,12 +24,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Push
-    | Leave
-    | Disconnect
 
 
 
@@ -48,32 +42,32 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotPush
+    | GotLeave
+    | GotDisconnect
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Push ->
+        GotPush ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.push
+                    { pushConfig
+                        | topic = "example:send_and_receive"
+                        , event = "example_push"
+                        , ref = Just "custom_ref"
+                    }
                     model.phoenix
-                        |> Phoenix.push
-                            { pushConfig
-                                | topic = "example:send_and_receive"
-                                , event = "example_push"
-                                , ref = Just "custom_ref"
-                            }
-                        |> updatePhoenixWith PhoenixMsg model
 
-                Leave ->
-                    Phoenix.leave "example:send_and_receive" model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotLeave ->
+            Phoenix.leave "example:send_and_receive" model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
-                Disconnect ->
-                    Phoenix.disconnectAndReset (Just 1000) model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotDisconnect ->
+            Phoenix.disconnectAndReset (Just 1000) model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg phxMsg ->
             let
@@ -125,9 +119,9 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "Push an event to a Channel." ] ]
         |> Example.controls
-            [ Example.Push (GotControlClick Push) True
-            , Example.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:send_and_receive" phoenix)
-            , Example.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
+            [ Push GotPush True
+            , Leave GotLeave (Phoenix.channelJoined "example:send_and_receive" phoenix)
+            , Disconnect GotDisconnect (Phoenix.isConnected phoenix)
             ]
         |> Example.responses responses
         |> Example.applicableFunctions

@@ -30,7 +30,7 @@ type alias Lobby =
 
 
 type RoomAction
-    = NoAction
+    = NoAction Room
     | Inspecting Room
     | Entering Room
     | Deleting Room
@@ -50,28 +50,28 @@ init =
     }
 
 
-updateRoomAction : RoomAction -> Room -> Lobby -> Lobby
+updateRoomAction : (Room -> RoomAction) -> Room -> Lobby -> Lobby
 updateRoomAction roomAction_ room lobby =
-    case ( roomAction room lobby, roomAction_ ) of
-        ( Entering _, NoAction ) ->
+    case ( roomAction room lobby, roomAction_ room ) of
+        ( Entering _, NoAction _ ) ->
             lobby
 
         ( Entering _, Inspecting _ ) ->
             lobby
 
-        ( Deleting _, NoAction ) ->
+        ( Deleting _, NoAction _ ) ->
             lobby
 
         ( Deleting _, Inspecting _ ) ->
             lobby
 
         _ ->
-            { lobby | roomActions = Dict.insert room.id roomAction_ lobby.roomActions }
+            { lobby | roomActions = Dict.insert room.id (roomAction_ room) lobby.roomActions }
 
 
 resetRoomAction : Room -> Lobby -> Lobby
 resetRoomAction room lobby =
-    { lobby | roomActions = Dict.insert room.id NoAction lobby.roomActions }
+    { lobby | roomActions = Dict.insert room.id (NoAction room) lobby.roomActions }
 
 
 occupantsState : RegisteredUser -> List RegisteredUser -> Lobby -> Lobby
@@ -137,4 +137,4 @@ allOccupants ( ownRooms, othersRooms ) =
 roomAction : Room -> Lobby -> RoomAction
 roomAction room lobby =
     Dict.get room.id lobby.roomActions
-        |> Maybe.withDefault NoAction
+        |> Maybe.withDefault (NoAction room)

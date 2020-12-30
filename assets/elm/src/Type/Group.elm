@@ -12,7 +12,7 @@ import List.Extra as List
 
 
 
-{- Model -}
+{- Types -}
 
 
 type Group
@@ -20,6 +20,10 @@ type Group
         { layouts : List ( DeviceClass, Orientation, List Int )
         , order : List ( DeviceClass, Orientation, List Int )
         }
+
+
+
+{- Build -}
 
 
 init : Group
@@ -41,12 +45,22 @@ order list (Group config) =
 
 
 
-{- Helpers -}
+{- Query -}
 
 
 layoutForDevice : Device -> Group -> Maybe (List Int)
 layoutForDevice device (Group config) =
     findForDevice device config.layouts
+
+
+findForDevice : Device -> List ( DeviceClass, Orientation, a ) -> Maybe a
+findForDevice { class, orientation } list =
+    List.find (\( class_, orientation_, _ ) -> class_ == class && orientation_ == orientation) list
+        |> Maybe.map (\( _, _, a ) -> a)
+
+
+
+{- Sort -}
 
 
 orderForDevice : Device -> List item -> Group -> List item
@@ -61,13 +75,3 @@ orderForDevice device items (Group config) =
                 |> List.sortBy Tuple.first
                 |> List.unzip
                 |> Tuple.second
-
-
-
-{- Private -}
-
-
-findForDevice : Device -> List ( DeviceClass, Orientation, a ) -> Maybe a
-findForDevice { class, orientation } list =
-    List.find (\( class_, orientation_, _ ) -> class_ == class && orientation_ == orientation) list
-        |> Maybe.map (\( _, _, a ) -> a)

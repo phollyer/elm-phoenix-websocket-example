@@ -13,7 +13,7 @@ import Json.Encode as JE
 import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -24,10 +24,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Connect
 
 
 
@@ -46,23 +42,21 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotConnect
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Connect ->
-                    model.phoenix
-                        |> Phoenix.setConnectParams
-                            (JE.object
-                                [ ( "good_params", JE.bool False ) ]
-                            )
-                        |> Phoenix.connect
-                        |> updatePhoenixWith PhoenixMsg model
+        GotConnect ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.connect <|
+                    Phoenix.setConnectParams
+                        (JE.object
+                            [ ( "good_params", JE.bool False ) ]
+                        )
+                        model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -101,7 +95,7 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "Try to connect to the Socket with authentication params that are not accepted, causing the connection to be denied." ] ]
         |> Example.controls
-            [ Example.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix) ]
+            [ Connect GotConnect (not <| Phoenix.isConnected phoenix) ]
         |> Example.responses responses
         |> Example.applicableFunctions
             [ "Phoenix.setConnectParams"

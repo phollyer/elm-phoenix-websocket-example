@@ -14,7 +14,7 @@ import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -25,11 +25,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Join
-    | Leave
 
 
 
@@ -48,32 +43,31 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotJoin
+    | GotLeave
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Join ->
-                    model.phoenix
-                        |> Phoenix.setJoinConfig
-                            { joinConfig
-                                | topic = "example:join_and_leave_channels"
-                                , payload =
-                                    JE.object
-                                        [ ( "username", JE.string "good" )
-                                        , ( "password", JE.string "good" )
-                                        ]
-                            }
-                        |> Phoenix.join "example:join_and_leave_channels"
-                        |> updatePhoenixWith PhoenixMsg model
+        GotJoin ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.join "example:join_and_leave_channels" <|
+                    Phoenix.setJoinConfig
+                        { joinConfig
+                            | topic = "example:join_and_leave_channels"
+                            , payload =
+                                JE.object
+                                    [ ( "username", JE.string "good" )
+                                    , ( "password", JE.string "good" )
+                                    ]
+                        }
+                        model.phoenix
 
-                Leave ->
-                    Phoenix.leave "example:join_and_leave_channels" model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotLeave ->
+            Phoenix.leave "example:join_and_leave_channels" model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
             let
@@ -112,8 +106,8 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "Join a Channel, providing auth params that are accepted." ] ]
         |> Example.controls
-            [ Example.Join (GotControlClick Join) (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
-            , Example.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            [ Join GotJoin (not <| Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
+            , Leave GotLeave (Phoenix.channelJoined "example:join_and_leave_channels" phoenix)
             ]
         |> Example.responses responses
         |> Example.applicableFunctions

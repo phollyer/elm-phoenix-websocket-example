@@ -15,7 +15,7 @@ import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Example exposing (Example(..))
 import UI.Link as Link
 import Utils exposing (batch, updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -44,26 +44,26 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick
+    = GotJoin
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick ->
-            model.phoenix
-                |> Phoenix.setJoinConfig
-                    { joinConfig
-                        | topic = "example:join_and_leave_channels"
-                        , payload =
-                            JE.object
-                                [ ( "username", JE.string "bad" )
-                                , ( "password", JE.string "bad" )
-                                ]
-                    }
-                |> Phoenix.join "example:join_and_leave_channels"
-                |> updatePhoenixWith PhoenixMsg model
+        GotJoin ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.join "example:join_and_leave_channels" <|
+                    Phoenix.setJoinConfig
+                        { joinConfig
+                            | topic = "example:join_and_leave_channels"
+                            , payload =
+                                JE.object
+                                    [ ( "username", JE.string "bad" )
+                                    , ( "password", JE.string "bad" )
+                                    ]
+                        }
+                        model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -119,7 +119,7 @@ view device { responses, phoenix } =
               ]
             ]
         |> Example.controls
-            [ Example.Join GotControlClick True ]
+            [ Join GotJoin True ]
         |> Example.responses responses
         |> Example.applicableFunctions
             [ "Phoenix.setJoinConfig"

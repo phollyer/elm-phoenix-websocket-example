@@ -12,7 +12,7 @@ import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -23,11 +23,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Join
-    | Leave
 
 
 
@@ -46,34 +41,31 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotJoin
+    | GotLeave
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Join ->
-                    let
-                        joins =
-                            List.range 0 3
-                                |> List.map
-                                    (\index -> Phoenix.join ("example:join_channel_number_" ++ String.fromInt index))
-                    in
-                    Phoenix.batch joins model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotJoin ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.batch
+                    [ Phoenix.join "example:join_channel_number_1"
+                    , Phoenix.join "example:join_channel_number_2"
+                    , Phoenix.join "example:join_channel_number_3"
+                    ]
+                    model.phoenix
 
-                Leave ->
-                    let
-                        leaves =
-                            List.range 0 3
-                                |> List.map
-                                    (\index -> Phoenix.leave ("example:join_channel_number_" ++ String.fromInt index))
-                    in
-                    Phoenix.batch leaves model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotLeave ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.batch
+                    [ Phoenix.leave "example:join_channel_number_1"
+                    , Phoenix.leave "example:join_channel_number_2"
+                    , Phoenix.leave "example:join_channel_number_3"
+                    ]
+                    model.phoenix
 
         PhoenixMsg subMsg ->
             let
@@ -112,8 +104,8 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "Join multiple Channels with a single command." ] ]
         |> Example.controls
-            [ Example.Join (GotControlClick Join) ((Phoenix.joinedChannels phoenix |> List.length) == 0)
-            , Example.Leave (GotControlClick Leave) ((Phoenix.joinedChannels phoenix |> List.length) > 0)
+            [ Join GotJoin ((Phoenix.joinedChannels phoenix |> List.length) == 0)
+            , Leave GotLeave ((Phoenix.joinedChannels phoenix |> List.length) == 3)
             ]
         |> Example.responses responses
         |> Example.applicableFunctions

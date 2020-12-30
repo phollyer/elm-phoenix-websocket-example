@@ -13,7 +13,7 @@ import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -24,11 +24,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Push
-    | Leave
 
 
 
@@ -47,35 +42,36 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotPush
+    | GotLeave
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Push ->
-                    let
-                        pushConfigs =
-                            List.range 1 3
-                                |> List.map
-                                    (\index ->
-                                        { pushConfig
-                                            | topic = "example:send_and_receive"
-                                            , event = "example_push"
-                                            , ref = Just (String.fromInt index)
-                                        }
-                                    )
-                                |> List.reverse
-                    in
-                    Phoenix.batchWithParams [ ( Phoenix.push, pushConfigs ) ] model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotPush ->
+            let
+                defaultConfig =
+                    { pushConfig
+                        | topic = "example:send_and_receive"
+                        , event = "example_push"
+                    }
+            in
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.batchWithParams
+                    [ ( Phoenix.push
+                      , [ { defaultConfig | ref = Just "1" }
+                        , { defaultConfig | ref = Just "2" }
+                        , { defaultConfig | ref = Just "3" }
+                        ]
+                      )
+                    ]
+                    model.phoenix
 
-                Leave ->
-                    Phoenix.leave "example:send_and_receive" model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotLeave ->
+            Phoenix.leave "example:send_and_receive" model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg phxMsg ->
             let
@@ -130,8 +126,8 @@ view device { responses, phoenix } =
               ]
             ]
         |> Example.controls
-            [ Example.Push (GotControlClick Push) True
-            , Example.Leave (GotControlClick Leave) (Phoenix.channelJoined "example:send_and_receive" phoenix)
+            [ Push GotPush True
+            , Leave GotLeave (Phoenix.channelJoined "example:send_and_receive" phoenix)
             ]
         |> Example.responses responses
         |> Example.applicableFunctions

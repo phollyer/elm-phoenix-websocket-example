@@ -43,8 +43,8 @@ type Config msg
         }
 
 
-init : RegisteredUser -> Room -> Config msg
-init currentUser room =
+init : Room -> RegisteredUser -> Config msg
+init room currentUser =
     Config
         { currentUser = currentUser
         , room = room
@@ -63,9 +63,9 @@ onChangeMessage toMsg (Config config) =
     Config { config | maybeOnChange = Just toMsg }
 
 
-onClickUser : Maybe (RegisteredUser -> msg) -> Config msg -> Config msg
+onClickUser : (RegisteredUser -> msg) -> Config msg -> Config msg
 onClickUser toMsg (Config config) =
-    Config { config | maybeOnClick = toMsg }
+    Config { config | maybeOnClick = Just toMsg }
 
 
 onFocusMessage : msg -> Config msg -> Config msg

@@ -535,19 +535,27 @@ occupantsList device currentUser room =
             El.none
 
         _ ->
-            El.wrappedRow
+            El.column
                 [ padding device
+                , spacing device
                 , Background.color (User.bgColor room.owner)
                 , Border.color (User.fgColor room.owner)
                 , Border.width 1
+                , Font.color (User.fgColor room.owner)
                 , RoundedBorder.small device
                 ]
-                [ List.map (Tag.view device currentUser) room.members
-                    |> El.wrappedRow
-                        [ El.spacing 10
-                        , El.width El.fill
-                        ]
-                    |> El.el [ El.width El.fill ]
+                [ El.el
+                    []
+                    (El.text "Occupants")
+                , El.wrappedRow
+                    []
+                    [ List.map (Tag.view device currentUser) room.members
+                        |> El.wrappedRow
+                            [ El.spacing 10
+                            , El.width El.fill
+                            ]
+                        |> El.el [ El.width El.fill ]
+                    ]
                 ]
 
 

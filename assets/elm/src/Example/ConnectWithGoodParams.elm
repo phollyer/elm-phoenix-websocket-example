@@ -14,7 +14,7 @@ import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
 import Type.Example exposing (Example(..))
 import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..))
+import View.Example as Example exposing (Control(..), Response(..))
 
 
 
@@ -25,11 +25,6 @@ type alias Model =
     { phoenix : Phoenix.Model
     , responses : List Response
     }
-
-
-type Action
-    = Connect
-    | Disconnect
 
 
 
@@ -48,27 +43,26 @@ init phoenix =
 
 
 type Msg
-    = GotControlClick Action
+    = GotConnect
+    | GotDisconnect
     | PhoenixMsg Phoenix.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotControlClick action ->
-            case action of
-                Connect ->
-                    model.phoenix
-                        |> Phoenix.setConnectParams
-                            (JE.object
-                                [ ( "good_params", JE.bool True ) ]
-                            )
-                        |> Phoenix.connect
-                        |> updatePhoenixWith PhoenixMsg model
+        GotConnect ->
+            updatePhoenixWith PhoenixMsg model <|
+                Phoenix.connect <|
+                    Phoenix.setConnectParams
+                        (JE.object
+                            [ ( "good_params", JE.bool True ) ]
+                        )
+                        model.phoenix
 
-                Disconnect ->
-                    Phoenix.disconnect Nothing model.phoenix
-                        |> updatePhoenixWith PhoenixMsg model
+        GotDisconnect ->
+            Phoenix.disconnect Nothing model.phoenix
+                |> updatePhoenixWith PhoenixMsg model
 
         PhoenixMsg subMsg ->
             let
@@ -104,8 +98,8 @@ view device { responses, phoenix } =
         |> Example.description
             [ [ El.text "Connect to the Socket with authentication params that are accepted." ] ]
         |> Example.controls
-            [ Example.Connect (GotControlClick Connect) (not <| Phoenix.isConnected phoenix)
-            , Example.Disconnect (GotControlClick Disconnect) (Phoenix.isConnected phoenix)
+            [ Connect GotConnect (not <| Phoenix.isConnected phoenix)
+            , Disconnect GotDisconnect (Phoenix.isConnected phoenix)
             ]
         |> Example.controlsGroup
             (Group.init

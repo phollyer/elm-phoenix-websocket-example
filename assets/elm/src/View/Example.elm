@@ -61,7 +61,6 @@ type Control msg
     | Leave msg Bool
     | Push msg Bool
     | CancelRetry msg Bool
-    | CancelPush msg Bool
 
 
 type Response
@@ -298,13 +297,6 @@ toButton device control =
         CancelRetry msg enabled ->
             Button.init
                 |> Button.setLabel "Cancel Retry"
-                |> Button.setOnPress (Just msg)
-                |> Button.setEnabled enabled
-                |> Button.view device
-
-        CancelPush msg enabled ->
-            Button.init
-                |> Button.setLabel "Cancel Push"
                 |> Button.setOnPress (Just msg)
                 |> Button.setEnabled enabled
                 |> Button.view device

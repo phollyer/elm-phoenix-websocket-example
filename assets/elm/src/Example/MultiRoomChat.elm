@@ -13,8 +13,9 @@ import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
 import Configs exposing (joinConfig)
 import Element exposing (Color, Device, DeviceClass(..), Element, Orientation(..))
+import Internal.Push exposing (Push)
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), pushConfig)
+import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), PushConfig, pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
@@ -43,7 +44,7 @@ type alias Model =
 type State
     = Unregistered UnregisteredUser
     | InLobby RegisteredUser
-    | InRoom RegisteredUser Room
+    | InRoom Room RegisteredUser
 
 
 
@@ -77,6 +78,13 @@ lobbyJoinConfig =
             , "invite_revoked"
             , "occupant_left_room"
             ]
+    }
+
+
+lobbyPushConfig : PushConfig
+lobbyPushConfig =
+    { pushConfig
+        | topic = "example:lobby"
     }
 
 
@@ -192,18 +200,14 @@ update msg model =
         GotCreateRoom _ ->
             updatePhoenixWith PhoenixMsg model <|
                 Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "create_room"
-                    }
+                    { lobbyPushConfig | event = "create_room" }
                     model.phoenix
 
         GotDeleteRoom _ room ->
-            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Deleting room) room model.lobby } <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction Deleting room model.lobby } <|
                 Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "delete_room"
+                    { lobbyPushConfig
+                        | event = "delete_room"
                         , payload =
                             JE.object
                                 [ ( "room_id", JE.string room.id ) ]
@@ -211,7 +215,7 @@ update msg model =
                     model.phoenix
 
         GotEnterRoom currentUser room ->
-            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction (Entering room) room model.lobby } <|
+            updatePhoenixWith PhoenixMsg { model | lobby = Lobby.updateRoomAction Entering room model.lobby } <|
                 Phoenix.join ("example:room:" ++ room.id) <|
                     Phoenix.setJoinConfig
                         { roomJoinConfig
@@ -223,9 +227,8 @@ update msg model =
         GotAcceptRoomInvite currentUser invite ->
             updatePhoenixWith PhoenixMsg { model | state = InLobby (User.updateReceivedInvites ( Accepting, invite ) currentUser) } <|
                 Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "invite_accepted"
+                    { lobbyPushConfig
+                        | event = "invite_accepted"
                         , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
@@ -233,9 +236,8 @@ update msg model =
         GotDeclineRoomInvite currentUser invite ->
             updatePhoenixWith PhoenixMsg { model | state = InLobby (User.updateReceivedInvites ( Declining, invite ) currentUser) } <|
                 Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = "invite_declined"
+                    { lobbyPushConfig
+                        | event = "invite_declined"
                         , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
@@ -250,7 +252,7 @@ update msg model =
             )
 
         GotShowRoomMembers _ room ->
-            ( { model | lobby = Lobby.updateRoomAction (Inspecting room) room model.lobby }
+            ( { model | lobby = Lobby.updateRoomAction Inspecting room model.lobby }
             , Cmd.none
             )
 
@@ -286,11 +288,10 @@ update msg model =
                             , invite_
                             )
             in
-            updatePhoenixWith PhoenixMsg { model | state = InRoom user room } <|
+            updatePhoenixWith PhoenixMsg { model | state = InRoom room user } <|
                 Phoenix.push
-                    { pushConfig
-                        | topic = "example:lobby"
-                        , event = event
+                    { lobbyPushConfig
+                        | event = event
                         , payload = User.encodeRoomInvite invite
                     }
                     model.phoenix
@@ -298,14 +299,13 @@ update msg model =
         GotMessageChange currentUser room message ->
             ( { model
                 | state =
-                    InRoom currentUser <|
-                        Room.updateMessage message room
+                    InRoom (Room.updateMessage message room) currentUser
               }
             , Cmd.none
             )
 
         GotSendMessage currentUser room ->
-            updatePhoenixWith PhoenixMsg { model | state = InRoom currentUser <| Room.clearMessage room } <|
+            updatePhoenixWith PhoenixMsg { model | state = InRoom (Room.clearMessage room) currentUser } <|
                 Phoenix.push
                     { pushConfig
                         | topic = "example:room:" ++ room.id
@@ -356,7 +356,7 @@ update msg model =
                         ( InLobby currentUser, Ok rooms ) ->
                             ( { newModel | lobby = Lobby.roomList currentUser rooms newModel.lobby }, cmd )
 
-                        ( InRoom currentUser _, Ok rooms ) ->
+                        ( InRoom _ currentUser, Ok rooms ) ->
                             ( { newModel | lobby = Lobby.roomList currentUser rooms newModel.lobby }, cmd )
 
                         _ ->
@@ -373,12 +373,11 @@ update msg model =
                             , cmd
                             )
 
-                        ( InRoom currentUser room, Ok invite ) ->
+                        ( InRoom room currentUser, Ok invite ) ->
                             ( { newModel
                                 | state =
-                                    InRoom
-                                        (User.updateSentInvites ( Invited, invite ) currentUser)
-                                        room
+                                    InRoom room <|
+                                        User.updateSentInvites ( Invited, invite ) currentUser
                               }
                             , cmd
                             )
@@ -411,12 +410,11 @@ update msg model =
                             , cmd
                             )
 
-                        ( InRoom currentUser room, Ok invite ) ->
+                        ( InRoom room currentUser, Ok invite ) ->
                             ( { newModel
                                 | state =
-                                    InRoom
-                                        (User.updateSentInvites ( Revoked, invite ) currentUser)
-                                        room
+                                    InRoom room <|
+                                        User.updateSentInvites ( Revoked, invite ) currentUser
                               }
                             , cmd
                             )
@@ -454,12 +452,11 @@ update msg model =
                             else
                                 ( newModel, cmd )
 
-                        ( InRoom currentUser room, Ok invite ) ->
+                        ( InRoom room currentUser, Ok invite ) ->
                             ( { newModel
                                 | state =
-                                    InRoom
-                                        (User.updateSentInvites ( Accepted, invite ) currentUser)
-                                        room
+                                    InRoom room <|
+                                        User.updateSentInvites ( Accepted, invite ) currentUser
                               }
                             , cmd
                             )
@@ -478,12 +475,11 @@ update msg model =
                             , cmd
                             )
 
-                        ( InRoom currentUser room, Ok invite ) ->
+                        ( InRoom room currentUser, Ok invite ) ->
                             ( { newModel
                                 | state =
-                                    InRoom
-                                        (User.updateSentInvites ( Declined, invite ) currentUser)
-                                        room
+                                    InRoom room <|
+                                        User.updateSentInvites ( Declined, invite ) currentUser
                               }
                             , cmd
                             )
@@ -503,7 +499,7 @@ update msg model =
                             , cmd
                             )
 
-                        InRoom currentUser _ ->
+                        InRoom _ currentUser ->
                             ( { newModel
                                 | lobby =
                                     Lobby.occupantsState currentUser
@@ -522,9 +518,8 @@ update msg model =
                         ( InLobby currentUser, Ok room ) ->
                             ( { newModel
                                 | state =
-                                    InRoom
-                                        (User.dropInviteForRoom room.id currentUser)
-                                        room
+                                    InRoom room <|
+                                        User.dropInviteForRoom room.id currentUser
                               }
                             , Cmd.batch [ cmd, getLayoutHeight ]
                             )
@@ -534,11 +529,10 @@ update msg model =
 
                 ChannelEvent _ "message_list" payload ->
                     case ( newModel.state, ChatMessage.decodeList payload ) of
-                        ( InRoom currentUser room, Ok messages ) ->
+                        ( InRoom room currentUser, Ok messages ) ->
                             ( { newModel
                                 | state =
-                                    InRoom currentUser <|
-                                        Room.updateMessages messages room
+                                    InRoom (Room.updateMessages messages room) currentUser
                               }
                             , Cmd.batch
                                 [ cmd
@@ -551,11 +545,10 @@ update msg model =
 
                 ChannelEvent _ "member_started_typing" payload ->
                     case ( newModel.state, User.decode payload ) of
-                        ( InRoom currentUser room, Ok user ) ->
+                        ( InRoom room currentUser, Ok user ) ->
                             ( { newModel
                                 | state =
-                                    InRoom currentUser <|
-                                        Room.addOccupantTyping currentUser user room
+                                    InRoom (Room.addOccupantTyping currentUser user room) currentUser
                               }
                             , cmd
                             )
@@ -565,11 +558,10 @@ update msg model =
 
                 ChannelEvent _ "member_stopped_typing" payload ->
                     case ( newModel.state, User.decode payload ) of
-                        ( InRoom currentUser room, Ok user ) ->
+                        ( InRoom room currentUser, Ok user ) ->
                             ( { newModel
                                 | state =
-                                    InRoom currentUser <|
-                                        Room.dropOccupantTyping user room
+                                    InRoom (Room.dropOccupantTyping user room) currentUser
                               }
                             , cmd
                             )
@@ -588,7 +580,7 @@ update msg model =
                             , cmd
                             )
 
-                        ( InRoom _ room, Ok roomClosed ) ->
+                        ( InRoom room _, Ok roomClosed ) ->
                             if room.id == roomClosed.id then
                                 Phoenix.leave ("example:room:" ++ roomClosed.id) newModel.phoenix
                                     |> updatePhoenixWith PhoenixMsg newModel
@@ -601,11 +593,10 @@ update msg model =
 
                 PresenceEvent (Phoenix.State _ state) ->
                     case ( newModel.state, User.decodePresenceState state ) of
-                        ( InRoom currentUser room, users ) ->
+                        ( InRoom room currentUser, users ) ->
                             ( { newModel
                                 | state =
-                                    InRoom currentUser <|
-                                        Room.updateMembers users room
+                                    InRoom (Room.updateMembers users room) currentUser
                               }
                             , cmd
                             )
@@ -615,7 +606,7 @@ update msg model =
 
                 ChannelResponse (LeaveOk _) ->
                     case newModel.state of
-                        InRoom currentUser room ->
+                        InRoom room currentUser ->
                             ( { newModel
                                 | lobby = Lobby.resetRoomAction room newModel.lobby
                                 , state =
@@ -658,9 +649,9 @@ back key model =
         Unregistered _ ->
             ( model, Route.back key )
 
-        InRoom _ room ->
+        InRoom room currentUser ->
             Phoenix.leave ("example:room:" ++ room.id) model.phoenix
-                |> updatePhoenixWith PhoenixMsg model
+                |> updatePhoenixWith PhoenixMsg { model | state = InLobby currentUser }
 
         InLobby _ ->
             Phoenix.leave "example:lobby" model.phoenix
@@ -713,13 +704,13 @@ view device { state, lobby, layoutHeight, phoenix } =
                 |> LobbyView.onInviteErrorOk GotInviteErrorOk
                 |> LobbyView.view device
 
-        InRoom user room ->
-            RoomView.init user room
+        InRoom room user ->
+            RoomView.init room user
                 |> RoomView.onChangeMessage (GotMessageChange user room)
                 |> RoomView.onSubmitMessage (maybeOnSubmitMessage phoenix user room)
                 |> RoomView.onFocusMessage (GotMemberStartedTyping user room)
                 |> RoomView.onLoseFocusMessage (GotMemberStoppedTyping user room)
-                |> RoomView.onClickUser (maybeInviteUser phoenix user room)
+                |> RoomView.onClickUser (GotInviteUser user room)
                 |> RoomView.chatMaxHeight (chatMaxHeight layoutHeight)
                 |> RoomView.inviteableUsers lobby.inviteableUsers
                 |> RoomView.view device
@@ -741,15 +732,6 @@ maybeOnSubmitMessage phoenix user room =
 
     else
         Just (GotSendMessage user room)
-
-
-maybeInviteUser : Phoenix.Model -> RegisteredUser -> Room -> Maybe (RegisteredUser -> Msg)
-maybeInviteUser phoenix user room =
-    if Phoenix.pushWaiting (\push -> push.event == "room_invite") phoenix then
-        Nothing
-
-    else
-        Just (GotInviteUser user room)
 
 
 chatMaxHeight : Float -> Int
