@@ -616,9 +616,6 @@ update msg model =
                 -- Lobby and Room Channels --
                 ChannelResponse (LeaveOk _) ->
                     case newModel.state of
-                        InLobby _ ->
-                            ( { newModel | state = Unregistered User.init }, cmd )
-
                         InRoom currentUser room ->
                             ( { newModel
                                 | lobby = Lobby.resetRoomAction room newModel.lobby
@@ -667,12 +664,8 @@ back key model =
                 |> updatePhoenixWith PhoenixMsg model
 
         InLobby _ ->
-            if Phoenix.channelJoined "example:lobby" model.phoenix then
-                Phoenix.leave "example:lobby" model.phoenix
-                    |> updatePhoenixWith PhoenixMsg model
-
-            else
-                ( { model | state = Unregistered User.init }, Cmd.none )
+            Phoenix.leave "example:lobby" model.phoenix
+                |> updatePhoenixWith PhoenixMsg { model | state = Unregistered User.init }
 
 
 
