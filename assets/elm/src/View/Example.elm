@@ -21,7 +21,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Json.Encode as JE exposing (Value)
 import List.Extra as List
-import Phoenix exposing (ChannelResponse(..), Msg, PhoenixMsg(..), SocketMessage(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..))
 import Type.Group as Group exposing (Group)
 import UI.BackgroundColor as BackgroundColor
 import UI.BorderColor as BorderColor
@@ -387,22 +387,6 @@ feedbackView ({ class, orientation } as device) (Config config) =
                 ]
 
 
-container : Device -> List (Element msg) -> Element msg
-container { class, orientation } =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            El.column
-                [ El.height El.fill
-                , El.width El.fill
-                , El.spacing 20
-                ]
-
-        _ ->
-            El.wrappedRow
-                [ El.centerX
-                ]
-
-
 titleView : Device -> String -> Element msg
 titleView device title_ =
     El.el
@@ -425,7 +409,7 @@ infoView : Device -> Element msg -> List Response -> Element msg
 infoView device status_ responseList =
     panel device
         [ titleView device "Info"
-        , statusView device status_
+        , statusView status_
         , responsesView device responseList
         ]
 
@@ -434,8 +418,8 @@ infoView device status_ responseList =
 -- Statis View --
 
 
-statusView : Device -> Element msg -> Element msg
-statusView device status_ =
+statusView : Element msg -> Element msg
+statusView status_ =
     if status_ == El.none then
         El.none
 
@@ -519,8 +503,8 @@ toResponse device response =
                     , payload = payload
                 }
 
-        Event ({ topic, event, payload } as event_) ->
-            channelEvent device "" event_
+        Event event ->
+            channelEvent device "" event
 
         _ ->
             El.none

@@ -12,7 +12,7 @@ import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..), SocketState(..))
 import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..), responses)
+import View.Example as Example exposing (Response(..))
 
 
 

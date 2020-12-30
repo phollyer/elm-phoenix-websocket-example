@@ -11,7 +11,7 @@ import Element as El exposing (Device, Element)
 import Extra.String as String
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..), responses)
+import View.Example as Example exposing (Response(..))
 
 
 

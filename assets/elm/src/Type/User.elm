@@ -207,7 +207,7 @@ deleteReceivedInvite invite (RegisteredUser user) =
 deleteInvitesForRoom : String -> Dict String ( InviteState, RoomInvite ) -> Dict String ( InviteState, RoomInvite )
 deleteInvitesForRoom roomId invites =
     Dict.foldl
-        (\key val dict ->
+        (\key _ dict ->
             case String.split ":" key of
                 [ _, roomId_, _ ] ->
                     if roomId_ == roomId then
@@ -226,7 +226,7 @@ deleteInvitesForRoom roomId invites =
 deleteInviteFromRoom : RegisteredUser -> String -> Dict String ( InviteState, RoomInvite ) -> Dict String ( InviteState, RoomInvite )
 deleteInviteFromRoom (RegisteredUser fromUser) roomId invites =
     Dict.foldl
-        (\key val dict ->
+        (\key _ dict ->
             case String.split ":" key of
                 [ _, roomId_, fromId ] ->
                     if roomId_ == roomId && fromId == (fromUser.id |> id) then

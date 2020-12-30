@@ -13,7 +13,7 @@ import Extra.String as String
 import Json.Encode as JE
 import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Utils exposing (batch, updatePhoenixWith)
-import View.Example as Example exposing (Response(..), responses)
+import View.Example as Example exposing (Response(..))
 
 
 

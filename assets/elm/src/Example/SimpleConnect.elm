@@ -10,9 +10,8 @@ module Example.SimpleConnect exposing
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
 import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
-import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Response(..), responses)
+import View.Example as Example exposing (Response(..))
 
 
 

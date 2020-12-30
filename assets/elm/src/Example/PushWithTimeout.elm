@@ -10,11 +10,10 @@ module Example.PushWithTimeout exposing
 import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Json.Encode exposing (Value)
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), RetryStrategy)
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Group as Group
 import UI.FontColor as FontColor
-import View.Example as Example exposing (Response(..), responses)
+import View.Example as Example exposing (Response(..))
 import View.RadioSelection as RadioSelection
 
 
