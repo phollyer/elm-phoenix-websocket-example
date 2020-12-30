@@ -390,15 +390,8 @@ occupantsView device currentUser occupants =
             (El.text "Occupants")
         , El.wrappedRow
             [ El.spacing 10 ]
-            (List.map (toOccupant device currentUser) occupants)
+            (List.map (Tag.view device currentUser) occupants)
         ]
-
-
-toOccupant : Device -> RegisteredUser -> RegisteredUser -> Element msg
-toOccupant device currentUser user =
-    El.row
-        []
-        [ Tag.view device currentUser user ]
 
 
 
