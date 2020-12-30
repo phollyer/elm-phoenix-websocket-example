@@ -197,7 +197,7 @@ descriptionView device example paragraphs =
         ]
     <|
         List.append
-            (List.map (toParagraph example) paragraphs)
+            (List.map toParagraph paragraphs)
             [ El.paragraph
                 [ El.width El.fill
                 , FontSize.small device
@@ -209,8 +209,8 @@ descriptionView device example paragraphs =
             ]
 
 
-toParagraph : Example -> List (Element msg) -> Element msg
-toParagraph example paragraph =
+toParagraph : List (Element msg) -> Element msg
+toParagraph paragraph =
     El.paragraph
         [ El.width El.fill ]
         paragraph
