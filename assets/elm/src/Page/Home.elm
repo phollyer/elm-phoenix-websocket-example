@@ -9,13 +9,29 @@ module Page.Home exposing
     , view
     )
 
-import Element as El exposing (Device, Element)
+import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
+import Element.Font as Font
 import Phoenix
 import Route exposing (Route(..))
 import Session exposing (Session)
-import View.Home as Home
+import UI.FontColor as FontColor
+import UI.FontFamily as FontFamily
+import UI.FontSize as FontSize
+import UI.Padding as Padding
 import View.Layout as Layout
 import View.Panel as Panel
+
+
+
+{- Types -}
+
+
+type alias Model =
+    Session
+
+
+
+{- Build -}
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -30,8 +46,13 @@ init session =
     )
 
 
-type alias Model =
-    Session
+updateSession : Session -> Model
+updateSession session =
+    session
+
+
+
+{- Update -}
 
 
 type Msg
@@ -63,9 +84,8 @@ toSession model =
     model
 
 
-updateSession : Session -> Model
-updateSession session =
-    session
+
+{- Subscriptions -}
 
 
 subscriptions : Model -> Sub Msg
@@ -75,6 +95,10 @@ subscriptions model =
             (Session.phoenix model)
 
 
+
+{- View -}
+
+
 view : Device -> { title : String, content : Element Msg }
 view device =
     { title = "Home"
@@ -82,76 +106,171 @@ view device =
         Layout.init
             |> Layout.title "Elm-Phoenix-WebSocket Examples"
             |> Layout.body
-                (Home.init
-                    |> Home.introduction introduction
-                    |> Home.socket (socketExamples device)
-                    |> Home.channels (channelsExamples device)
-                    |> Home.presence (presenceExamples device)
-                    |> Home.view device
+                (El.column
+                    [ El.spacing 20
+                    , El.width El.fill
+                    ]
+                    [ introductionView device
+                    , examplesContainer device
+                        [ exampleContainer device "Socket Examples" <|
+                            [ container
+                                (Panel.init
+                                    |> Panel.title "Control the Connection (3)"
+                                    |> Panel.description
+                                        [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
+                                        , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be denied." ]
+                                        ]
+                                    |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
+                                    |> Panel.view device
+                                )
+                            ]
+                        , exampleContainer device "Channels Examples" <|
+                            [ container
+                                (Panel.init
+                                    |> Panel.title "Joining and Leaving (4)"
+                                    |> Panel.description
+                                        [ [ El.text "Manually join and leave a Channel." ]
+                                        , [ El.text "Join with good and bad params, and multiple Channels at once." ]
+                                        ]
+                                    |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
+                                    |> Panel.view device
+                                )
+                            , container
+                                (Panel.init
+                                    |> Panel.title "Sending and Receiving (4)"
+                                    |> Panel.description
+                                        [ [ El.text "Send and receive events." ]
+                                        , [ El.text "Handle a Push that results in a timeout. Choose the retry strategy and see the countdown until the next attempt." ]
+                                        ]
+                                    |> Panel.onClick (Just (NavigateTo SendAndReceive))
+                                    |> Panel.view device
+                                )
+                            ]
+                        , exampleContainer device "Presence Example" <|
+                            [ container
+                                (Panel.init
+                                    |> Panel.title "Multi-Room Chat"
+                                    |> Panel.description
+                                        [ [ El.text "Create, delete and enter multiple rooms. Chat in each of them." ] ]
+                                    |> Panel.onClick (Just (NavigateTo ChatRooms))
+                                    |> Panel.view device
+                                )
+                            ]
+                        ]
+                    ]
                 )
             |> Layout.view device
     }
 
 
-introduction : List (List (Element Msg))
-introduction =
-    [ [ El.text "Welcome, please try the examples below. " ]
-    , [ El.text "The Socket and Channels examples provide details of the functions used, useful functions and links to docs."
-      ]
-    ]
+
+{- Introduction -}
 
 
-socketExamples : Device -> List (Element Msg)
-socketExamples device =
-    [ container
-        (Panel.init
-            |> Panel.title "Control the Connection (3)"
-            |> Panel.description
-                [ [ El.text "Manually connect and disconnect, receiving feedback on the current state of the Socket." ]
-                , [ El.text "Connect with good params that are accepted, and bad params that cause the request to be denied." ]
+introductionView : Device -> Element msg
+introductionView ({ class, orientation } as device) =
+    El.column
+        [ El.width <|
+            case ( class, orientation ) of
+                ( Phone, Portrait ) ->
+                    El.fill
+
+                ( Phone, Landscape ) ->
+                    El.maximum 400 El.fill
+
+                _ ->
+                    El.maximum 800 El.fill
+        , El.centerX
+        , El.spacing 10
+        , Font.center
+        , FontFamily.default
+        , FontSize.default device
+        ]
+        [ El.paragraph
+            [ El.width El.fill ]
+            [ El.text "Welcome, please try the examples below. " ]
+        , El.paragraph
+            [ El.width El.fill ]
+            [ El.text "The Socket and Channels examples provide details of the functions used, useful functions and links to docs." ]
+        ]
+
+
+
+{- Containers -}
+
+
+examplesContainer : Device -> List (Element msg) -> Element msg
+examplesContainer { class, orientation } examples =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.width El.fill
+                , El.spacing 20
+                , Padding.bottom 10
                 ]
-            |> Panel.onClick (Just (NavigateTo ControlTheSocketConnection))
-            |> Panel.view device
-        )
-    ]
+                examples
 
-
-channelsExamples : Device -> List (Element Msg)
-channelsExamples device =
-    [ container
-        (Panel.init
-            |> Panel.title "Joining and Leaving (4)"
-            |> Panel.description
-                [ [ El.text "Manually join and leave a Channel." ]
-                , [ El.text "Join with good and bad params, and multiple Channels at once." ]
+        ( Phone, Landscape ) ->
+            El.column
+                [ El.centerX
+                , El.spacing 20
+                , Padding.bottom 10
                 ]
-            |> Panel.onClick (Just (NavigateTo JoinAndLeaveChannels))
-            |> Panel.view device
-        )
-    , container
-        (Panel.init
-            |> Panel.title "Sending and Receiving (4)"
-            |> Panel.description
-                [ [ El.text "Send and receive events." ]
-                , [ El.text "Handle a Push that results in a timeout. Choose the retry strategy and see the countdown until the next attempt." ]
+                examples
+
+        ( Tablet, _ ) ->
+            El.column
+                [ El.centerX
+                , El.spacing 30
+                , Padding.bottom 20
                 ]
-            |> Panel.onClick (Just (NavigateTo SendAndReceive))
-            |> Panel.view device
-        )
-    ]
+                examples
+
+        _ ->
+            El.row
+                [ El.centerX
+                , El.spacing 40
+                ]
+                examples
 
 
-presenceExamples : Device -> List (Element Msg)
-presenceExamples device =
-    [ container
-        (Panel.init
-            |> Panel.title "Multi-Room Chat"
-            |> Panel.description
-                [ [ El.text "Create, delete and enter multiple rooms. Chat in each of them." ] ]
-            |> Panel.onClick (Just (NavigateTo ChatRooms))
-            |> Panel.view device
-        )
-    ]
+exampleContainer : Device -> String -> List (Element msg) -> Element msg
+exampleContainer device title panels =
+    El.column
+        [ El.alignTop
+        , El.centerX
+        , El.spacing 10
+        ]
+        [ El.el
+            [ El.centerX
+            , FontColor.title
+            , FontSize.title device
+            ]
+            (El.text title)
+        , panelsContainer device panels
+        ]
+
+
+panelsContainer : Device -> List (Element msg) -> Element msg
+panelsContainer { class, orientation } =
+    case ( class, orientation ) of
+        ( Phone, Portrait ) ->
+            El.column
+                [ El.spacing 10
+                , El.width El.fill
+                ]
+
+        ( Phone, Landscape ) ->
+            El.wrappedRow
+                [ El.spacing 10
+                , El.width El.fill
+                ]
+
+        _ ->
+            El.wrappedRow
+                [ El.centerX
+                , El.spacing 10
+                ]
 
 
 container : Element Msg -> Element Msg
