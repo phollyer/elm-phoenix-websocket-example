@@ -14,7 +14,7 @@ import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
 import Type.Example exposing (Example(..))
 import Type.Group as Group
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Control(..), Response(..))
+import View.Example.Example as Example exposing (Control(..), Response(..))
 
 
 

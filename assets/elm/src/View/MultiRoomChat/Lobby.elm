@@ -24,12 +24,13 @@ import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.RoundedBorder as RoundedBorder
+import Utils exposing (andMaybeEventWith, andMaybeEventWithArg)
 import View.Button as Button
 import View.Tag as Tag
 
 
 
-{- Model -}
+{- Types -}
 
 
 type Config msg
@@ -45,6 +46,10 @@ type Config msg
         , onDeclineRoomInvite : Maybe (RoomInvite -> msg)
         , onInviteErrorOk : Maybe (RegisteredUser -> RoomInvite -> msg)
         }
+
+
+
+{- Build -}
 
 
 init : RegisteredUser -> Lobby -> Config msg
@@ -148,6 +153,10 @@ container { class, orientation } =
 
         _ ->
             El.wrappedRow
+
+
+
+{- Received Room Invites -}
 
 
 roomInvite : Device -> Config msg -> Element msg
@@ -269,9 +278,14 @@ inviteErrorView device maybeMsg invite user =
 
 
 userView : Device -> RegisteredUser -> Element msg
-userView device currentUser =
+userView { class, orientation } currentUser =
     El.column
-        [ alignFont device
+        [ case ( class, orientation ) of
+            ( Phone, Portrait ) ->
+                Font.center
+
+            _ ->
+                Font.alignLeft
         , El.alignTop
         , El.spacing 20
         , El.width El.fill
@@ -370,7 +384,7 @@ createRoomBtn ({ class, orientation } as device) maybeMsg =
 
 
 
-{- Lobby Members -}
+{- Lobby Occupants -}
 
 
 occupantsView : Device -> RegisteredUser -> List RegisteredUser -> Element msg
@@ -464,15 +478,37 @@ toRoomList device ((Config { user }) as config) ( owner, rooms_ ) =
 toRoom : Device -> Config msg -> Room -> Element msg
 toRoom device (Config config) room =
     El.row
-        (List.append
-            [ Border.rounded 10
-            , Border.width 1
-            , El.padding 10
-            , El.spacing 10
-            , El.width El.fill
+        ([ Background.color (User.bgColor room.owner)
+         , Border.color (User.fgColor room.owner)
+         , Border.rounded 10
+         , Border.width 1
+         , El.mouseOver
+            [ Border.color (User.bgColor room.owner)
+            , Border.shadow
+                { size = 1
+                , blur = 5
+                , color = User.bgColor room.owner
+                , offset = ( 0, 0 )
+                }
             ]
-            (roomAttrs room config.onMouseEnterRoom config.onMouseLeaveRoom)
-            |> List.append (roomOccupantsView device config.user room config.lobby)
+         , El.padding 10
+         , El.spacing 10
+         , El.width El.fill
+         , Font.color (User.fgColor room.owner)
+         , El.inFront <|
+            if Lobby.showRoomOccupants room config.lobby then
+                El.el
+                    [ El.width El.fill
+                    , El.above <|
+                        occupantsList device config.user room
+                    ]
+                    El.none
+
+            else
+                El.none
+         ]
+            |> andMaybeEventWithArg config.onMouseEnterRoom room Event.onMouseEnter
+            |> andMaybeEventWithArg config.onMouseLeaveRoom room Event.onMouseLeave
         )
         [ El.text <|
             "Occupants: "
@@ -483,49 +519,18 @@ toRoom device (Config config) room =
             [ El.alignRight
             , El.spacing 10
             ]
-            [ case Lobby.roomAction room config.lobby of
-                Entering room_ ->
-                    if room_.id == room.id then
-                        El.text "Entering..."
+            [ if Lobby.isEnteringRoom room config.lobby then
+                El.text "Entering..."
 
-                    else
-                        maybeEnterBtn device room (Config config)
+              else
+                maybeEnterBtn device room (Config config)
+            , if Lobby.isDeletingRoom room config.lobby then
+                El.text "Deleting..."
 
-                _ ->
-                    maybeEnterBtn device room (Config config)
-            , case Lobby.roomAction room config.lobby of
-                Deleting room_ ->
-                    if room_.id == room.id then
-                        El.text "Deleting..."
-
-                    else
-                        maybeDeleteBtn device room (Config config)
-
-                _ ->
-                    maybeDeleteBtn device room (Config config)
+              else
+                maybeDeleteBtn device room (Config config)
             ]
         ]
-
-
-roomOccupantsView : Device -> RegisteredUser -> Room -> Lobby -> List (Attribute msg)
-roomOccupantsView device currentUser room lobby =
-    case Lobby.roomAction room lobby of
-        Inspecting room_ ->
-            if room_.id == room.id then
-                [ El.inFront <|
-                    El.el
-                        [ El.width El.fill
-                        , El.above <|
-                            occupantsList device currentUser room
-                        ]
-                        El.none
-                ]
-
-            else
-                []
-
-        _ ->
-            []
 
 
 occupantsList : Device -> RegisteredUser -> Room -> Element msg
@@ -554,7 +559,6 @@ occupantsList device currentUser room =
                             [ El.spacing 10
                             , El.width El.fill
                             ]
-                        |> El.el [ El.width El.fill ]
                     ]
                 ]
 
@@ -597,41 +601,6 @@ maybeEnterBtn device room (Config config) =
 
 
 {- Attributes -}
-
-
-roomAttrs : Room -> Maybe (Room -> msg) -> Maybe (Room -> msg) -> List (Attribute msg)
-roomAttrs room maybeOnMouseEnter maybeOnMouseLeave =
-    case ( maybeOnMouseEnter, maybeOnMouseLeave ) of
-        ( Just onMouseEnter_, Just onMouseLeave_ ) ->
-            [ Background.color (User.bgColor room.owner)
-            , Border.color (User.fgColor room.owner)
-            , El.mouseOver
-                [ Border.color (User.bgColor room.owner)
-                , Border.shadow
-                    { size = 1
-                    , blur = 5
-                    , color = User.bgColor room.owner
-                    , offset = ( 0, 0 )
-                    }
-                ]
-            , El.width El.fill
-            , Event.onMouseEnter (onMouseEnter_ room)
-            , Event.onMouseLeave (onMouseLeave_ room)
-            , Font.color (User.fgColor room.owner)
-            ]
-
-        _ ->
-            []
-
-
-alignFont : Device -> Attribute msg
-alignFont { class, orientation } =
-    case ( class, orientation ) of
-        ( Phone, Portrait ) ->
-            Font.center
-
-        _ ->
-            Font.alignLeft
 
 
 padding : Device -> Attribute msg

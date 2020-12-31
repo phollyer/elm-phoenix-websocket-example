@@ -13,7 +13,7 @@ import Json.Encode as JE
 import Phoenix exposing (PhoenixMsg(..), SocketMessage(..))
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
-import View.Example as Example exposing (Control(..), Response(..))
+import View.Example.Example as Example exposing (Control(..), Response(..))
 
 
 

@@ -3,11 +3,14 @@ module Type.Lobby exposing
     , RoomAction(..)
     , init
     , inspectingRoom
+    , isDeletingRoom
+    , isEnteringRoom
     , occupants
     , occupantsState
     , resetRoomAction
     , roomAction
     , roomList
+    , showRoomOccupants
     , updateRoomAction
     )
 
@@ -138,3 +141,33 @@ roomAction : Room -> Lobby -> RoomAction
 roomAction room lobby =
     Dict.get room.id lobby.roomActions
         |> Maybe.withDefault (NoAction room)
+
+
+showRoomOccupants : Room -> Lobby -> Bool
+showRoomOccupants room lobby =
+    case roomAction room lobby of
+        Inspecting room_ ->
+            room_.id == room.id
+
+        _ ->
+            False
+
+
+isEnteringRoom : Room -> Lobby -> Bool
+isEnteringRoom room lobby =
+    case roomAction room lobby of
+        Entering room_ ->
+            room_.id == room.id
+
+        _ ->
+            False
+
+
+isDeletingRoom : Room -> Lobby -> Bool
+isDeletingRoom room lobby =
+    case roomAction room lobby of
+        Deleting room_ ->
+            room_.id == room.id
+
+        _ ->
+            False

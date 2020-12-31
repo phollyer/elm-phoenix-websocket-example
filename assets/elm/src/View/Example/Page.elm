@@ -16,7 +16,7 @@ import UI.Padding as Padding
 
 
 
-{- Model -}
+{- Types -}
 
 
 type Config msg
@@ -25,6 +25,10 @@ type Config msg
         , menu : Element msg
         , example : Element msg
         }
+
+
+
+{- Build -}
 
 
 init : Config msg
@@ -56,7 +60,7 @@ example example_ (Config config) =
 
 
 view : Device -> Config msg -> Element msg
-view device (Config config) =
+view ({ class } as device) (Config config) =
     El.column
         [ El.height El.fill
         , El.width El.fill
@@ -65,47 +69,25 @@ view device (Config config) =
         , FontSize.default device
         , Padding.bottom 10
         ]
-        [ introductionView device config.introduction
+        [ El.column
+            [ El.spacing <|
+                case class of
+                    Phone ->
+                        18
+
+                    _ ->
+                        22
+            , Font.justify
+            , FontFamily.exampleIntro
+            ]
+          <|
+            List.map
+                (\paragraph ->
+                    El.paragraph
+                        [ El.width El.fill ]
+                        paragraph
+                )
+                config.introduction
         , config.menu
         , config.example
         ]
-
-
-
-{- Introduction -}
-
-
-introductionView : Device -> List (List (Element msg)) -> Element msg
-introductionView device intro =
-    case intro of
-        [] ->
-            El.none
-
-        _ ->
-            El.column
-                [ spacing device
-                , Font.justify
-                , FontFamily.exampleIntro
-                ]
-            <|
-                List.map
-                    (\paragraph ->
-                        El.paragraph
-                            [ El.width El.fill ]
-                            paragraph
-                    )
-                    intro
-
-
-
-{- Attributes -}
-
-
-spacing : Device -> Attribute msg
-spacing { class } =
-    case class of
-        Phone ->
-            El.spacing 18
-
-        _ ->
-            El.spacing 22

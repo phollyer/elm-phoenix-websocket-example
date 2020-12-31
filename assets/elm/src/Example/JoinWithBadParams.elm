@@ -15,7 +15,7 @@ import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
 import Type.Example exposing (Example(..))
 import UI.Link as Link
 import Utils exposing (batch, updatePhoenixWith)
-import View.Example as Example exposing (Control(..), Response(..))
+import View.Example.Example as Example exposing (Control(..), Response(..))
 
 
 

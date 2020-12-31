@@ -21,7 +21,7 @@ import Utils exposing (andMaybeEventWithArg)
 
 
 
-{- Model -}
+{- Types -}
 
 
 type Config msg
@@ -32,6 +32,10 @@ type Config msg
         , layout : Maybe (List Int)
         , group : Group
         }
+
+
+
+{- Build -}
 
 
 init : Config msg
@@ -73,69 +77,72 @@ view : Device -> Config msg -> Element msg
 view ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
-            El.column
-                (paddingEach device
-                    :: containerAttrs device
-                )
-            <|
-                List.map (stackItem config.selected config.onClick) config.options
+            column device <|
+                List.map (toStackedOption config.selected config.onClick) config.options
 
         _ ->
             case Group.layoutForDevice device config.group of
                 Nothing ->
-                    El.row
-                        (El.paddingXY 5 0
-                            :: containerAttrs device
-                        )
-                    <|
-                        List.map (rowItem config.selected config.onClick) config.options
+                    row device <|
+                        List.map (toInlineOption config.selected config.onClick) config.options
 
-                Just layout ->
-                    El.column
-                        (paddingEach device
-                            :: containerAttrs device
-                        )
-                    <|
+                Just sizes ->
+                    column device
                         (Group.orderForDevice device config.options config.group
-                            |> List.groupsOfVarying layout
-                            |> toRows config.selected config.onClick
+                            |> List.groupsOfVarying sizes
+                            |> List.map (toStackedRow config.selected config.onClick)
                         )
 
 
-toRows : String -> Maybe (String -> msg) -> List (List String) -> List (Element msg)
-toRows selected_ maybeOnClick options_ =
-    List.map (toRow selected_ maybeOnClick) options_
-
-
-toRow : String -> Maybe (String -> msg) -> List String -> Element msg
-toRow selected_ maybeOnClick options_ =
-    El.wrappedRow
-        [ El.width El.fill
-        , El.spacing 20
-        ]
-        (List.map (stackItem selected_ maybeOnClick) options_)
-
-
-stackItem : String -> Maybe (String -> msg) -> String -> Element msg
-stackItem selected_ maybeOnClick item =
+toInlineOption : String -> Maybe (String -> msg) -> String -> Element msg
+toInlineOption selected_ maybeOnClick option =
     El.el
         (List.append
-            (itemAttrs selected_ item maybeOnClick)
-            [ BorderWidth.bottom 4 ]
-        )
-        (El.text item)
-
-
-rowItem : String -> Maybe (String -> msg) -> String -> Element msg
-rowItem selected_ maybeOnClick item =
-    El.el
-        (List.append
-            (itemAttrs selected_ item maybeOnClick)
+            (optionAttrs selected_ option maybeOnClick)
             [ Border.widthXY 0 4
             , El.paddingXY 0 5
             ]
         )
-        (El.text item)
+        (El.text option)
+
+
+toStackedOption : String -> Maybe (String -> msg) -> String -> Element msg
+toStackedOption selected_ maybeOnClick option =
+    El.el
+        (List.append
+            (optionAttrs selected_ option maybeOnClick)
+            [ BorderWidth.bottom 4 ]
+        )
+        (El.text option)
+
+
+toStackedRow : String -> Maybe (String -> msg) -> List String -> Element msg
+toStackedRow selected_ maybeOnClick options_ =
+    El.row
+        [ El.width El.fill
+        , El.spacing 20
+        ]
+        (List.map (toStackedOption selected_ maybeOnClick) options_)
+
+
+
+{- Containers -}
+
+
+column : Device -> List (Element msg) -> Element msg
+column device =
+    El.column
+        (paddingEach device
+            :: containerAttrs device
+        )
+
+
+row : Device -> List (Element msg) -> Element msg
+row device =
+    El.row
+        (El.paddingXY 5 0
+            :: containerAttrs device
+        )
 
 
 
@@ -143,8 +150,17 @@ rowItem selected_ maybeOnClick item =
 
 
 containerAttrs : Device -> List (Attribute msg)
-containerAttrs device =
-    [ spacing device
+containerAttrs { class } =
+    [ El.spacing <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                10
+
+            _ ->
+                20
     , Border.widthXY 0 1
     , BorderColor.seperatorLight
     , El.width El.fill
@@ -153,9 +169,9 @@ containerAttrs device =
     ]
 
 
-itemAttrs : String -> String -> Maybe (String -> msg) -> List (Attribute msg)
-itemAttrs selected_ item maybeOnClick =
-    if selected_ == item then
+optionAttrs : String -> String -> Maybe (String -> msg) -> List (Attribute msg)
+optionAttrs selected_ option maybeOnClick =
+    if selected_ == option then
         [ BorderColor.seperatorLight
         , El.centerX
         ]
@@ -167,7 +183,7 @@ itemAttrs selected_ item maybeOnClick =
         , El.mouseOver
             [ BorderColor.mouseOverMenuItem ]
         ]
-            |> andMaybeEventWithArg maybeOnClick item Event.onClick
+            |> andMaybeEventWithArg maybeOnClick option Event.onClick
 
 
 paddingEach : Device -> Attribute msg
@@ -196,16 +212,3 @@ paddingEach { class, orientation } =
                 , right = 5
                 , bottom = 0
                 }
-
-
-spacing : Device -> Attribute msg
-spacing { class } =
-    case class of
-        Phone ->
-            El.spacing 10
-
-        Tablet ->
-            El.spacing 10
-
-        _ ->
-            El.spacing 20

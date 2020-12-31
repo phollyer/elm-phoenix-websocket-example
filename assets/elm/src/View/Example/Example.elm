@@ -1,4 +1,4 @@
-module View.Example exposing
+module View.Example.Example exposing
     ( Config
     , Control(..)
     , Response(..)
@@ -421,7 +421,7 @@ infoView device status_ responseList =
 
 
 
--- Statis View --
+-- Status View --
 
 
 statusView : Element msg -> Element msg
