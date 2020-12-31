@@ -7,10 +7,9 @@ module Example.PushWithTimeout exposing
     , view
     )
 
-import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PushConfig, RetryStrategy(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), PushConfig, RetryStrategy(..), pushConfig)
 import Type.Example exposing (Example(..))
 import Type.Group as Group
 import UI.FontColor as FontColor

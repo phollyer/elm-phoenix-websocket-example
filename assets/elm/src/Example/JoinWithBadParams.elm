@@ -7,11 +7,10 @@ module Example.JoinWithBadParams exposing
     , view
     )
 
-import Configs exposing (joinConfig)
 import Element as El exposing (Device, Element)
 import Extra.String as String
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig)
 import Type.Example exposing (Example(..))
 import UI.Link as Link
 import Utils exposing (batch, updatePhoenixWith)

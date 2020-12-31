@@ -7,10 +7,9 @@ module Example.PushMultipleEvents exposing
     , view
     )
 
-import Configs exposing (pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), pushConfig)
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example.Example as Example exposing (Control(..), Response(..))

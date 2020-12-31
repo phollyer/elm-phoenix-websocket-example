@@ -7,11 +7,10 @@ module Example.JoinWithGoodParams exposing
     , view
     )
 
-import Configs exposing (joinConfig)
 import Element as El exposing (Device, Element)
 import Extra.String as String
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), SocketMessage(..), joinConfig)
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example.Example as Example exposing (Control(..), Response(..))

@@ -7,10 +7,9 @@ module Example.ReceiveEvents exposing
     , view
     )
 
-import Configs exposing (joinConfig, pushConfig)
 import Element as El exposing (Device, DeviceClass(..), Element, Orientation(..))
 import Extra.String as String
-import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..))
+import Phoenix exposing (ChannelResponse(..), PhoenixMsg(..), joinConfig, pushConfig)
 import Type.Example exposing (Example(..))
 import Utils exposing (updatePhoenixWith)
 import View.Example.Example as Example exposing (Control(..), Response(..))

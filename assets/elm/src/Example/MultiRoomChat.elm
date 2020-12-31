@@ -11,11 +11,10 @@ module Example.MultiRoomChat exposing
 import Browser.Dom as Dom
 import Browser.Events exposing (onResize)
 import Browser.Navigation as Nav
-import Configs exposing (joinConfig)
 import Element exposing (Color, Device, DeviceClass(..), Element, Orientation(..))
 import Internal.Push exposing (Push)
 import Json.Encode as JE
-import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), PushConfig, pushConfig)
+import Phoenix exposing (ChannelResponse(..), JoinConfig, PhoenixMsg(..), PushConfig, joinConfig, pushConfig)
 import Route
 import Task
 import Type.ChatMessage as ChatMessage
