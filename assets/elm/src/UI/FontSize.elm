@@ -1,6 +1,7 @@
 module UI.FontSize exposing
     ( default
     , heading
+    , medium
     , pageNotFound
     , panelContent
     , panelHeader
@@ -43,10 +44,24 @@ small { class } =
                 10
 
             Tablet ->
-                14
+                15
 
             _ ->
                 20
+
+
+medium : Device -> Attribute msg
+medium { class } =
+    Font.size <|
+        case class of
+            Phone ->
+                15
+
+            Tablet ->
+                20
+
+            _ ->
+                25
 
 
 

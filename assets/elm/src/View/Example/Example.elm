@@ -32,6 +32,7 @@ import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
 import UI.Link as Link
 import UI.Padding as Padding
+import UI.Spacing as Spacing
 import View.Button as Button
 
 
@@ -169,13 +170,13 @@ usefulFunctions functions (Config config) =
 view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
-        [ El.spacing 10
-        , El.height El.fill
+        [ El.height El.fill
         , El.width El.fill
         , FontColor.default
         , FontFamily.default
         , FontSize.default device
-        , Padding.bottom 10
+        , Padding.bottomSmall device
+        , Spacing.small device
         ]
         [ descriptionView device config.example config.description
         , controlsView device (Config config)
@@ -192,7 +193,7 @@ descriptionView device example paragraphs =
     El.column
         [ El.width El.fill
         , Font.justify
-        , spacing device.class
+        , Spacing.medium device
         ]
     <|
         List.append
@@ -209,10 +210,9 @@ descriptionView device example paragraphs =
 
 
 toParagraph : List (Element msg) -> Element msg
-toParagraph paragraph =
+toParagraph =
     El.paragraph
         [ El.width El.fill ]
-        paragraph
 
 
 
@@ -227,33 +227,63 @@ controlsView device (Config config) =
     in
     case Group.layoutForDevice device config.controlsGroup of
         Nothing ->
-            column
-                [ El.column
-                    [ El.width El.fill
-                    , El.spacing 20
-                    ]
+            controlsColumn device
+                [ column device
                     [ config.subControls
-                    , toRow <|
+                    , toRow device <|
                         Group.orderForDevice device elements config.controlsGroup
                     ]
                 ]
 
         Just layout ->
-            column
-                [ El.column
-                    [ El.width El.fill
-                    , El.spacing 20
-                    ]
+            controlsColumn device
+                [ column device
                     [ config.subControls
-                    , El.column
-                        [ El.width El.fill
-                        , El.spacing 10
-                        ]
-                      <|
-                        toRows layout <|
+                    , column device <|
+                        toRows device layout <|
                             Group.orderForDevice device elements config.controlsGroup
                     ]
                 ]
+
+
+controlsColumn : Device -> List (Element msg) -> Element msg
+controlsColumn device =
+    El.column
+        [ Border.widthXY 0 1
+        , BorderColor.seperatorLight
+        , El.width El.fill
+        , Padding.yMedium device
+        , Spacing.medium device
+        ]
+
+
+column : Device -> List (Element msg) -> Element msg
+column device =
+    El.column
+        [ El.width El.fill
+        , Spacing.large device
+        ]
+
+
+toRows : Device -> List Int -> List (Element msg) -> List (Element msg)
+toRows device sizes elements_ =
+    List.groupsOfVarying sizes elements_
+        |> List.map
+            (\elements__ ->
+                El.wrappedRow
+                    [ El.centerX
+                    , Spacing.medium device
+                    ]
+                    [ toRow device elements__ ]
+            )
+
+
+toRow : Device -> List (Element msg) -> Element msg
+toRow device =
+    El.row
+        [ El.width El.fill
+        , Spacing.medium device
+        ]
 
 
 toButton : Device -> Control msg -> Element msg
@@ -302,39 +332,6 @@ toButton device control =
                 |> Button.view device
 
 
-column : List (Element msg) -> Element msg
-column =
-    El.column
-        [ Border.widthXY 0 1
-        , BorderColor.seperatorLight
-        , El.paddingXY 0 10
-        , El.spacing 10
-        , El.width El.fill
-        ]
-
-
-toRows : List Int -> List (Element msg) -> List (Element msg)
-toRows layout elements_ =
-    List.groupsOfVarying layout elements_
-        |> List.map
-            (\elements__ ->
-                El.wrappedRow
-                    [ El.spacing 10
-                    , El.centerX
-                    ]
-                    [ toRow elements__ ]
-            )
-
-
-toRow : List (Element msg) -> Element msg
-toRow elements_ =
-    El.row
-        [ El.width El.fill
-        , El.spacing 10
-        ]
-        elements_
-
-
 
 {- Feedback -}
 
@@ -344,9 +341,8 @@ feedbackView ({ class, orientation } as device) (Config config) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             El.column
-                [ El.height El.fill
-                , El.width El.fill
-                , El.spacing 20
+                [ El.width El.fill
+                , Spacing.large device
                 ]
                 [ infoView device config.status config.responses
                 , applicableFunctionsView device config.applicableFunctions
@@ -355,12 +351,13 @@ feedbackView ({ class, orientation } as device) (Config config) =
 
         ( Phone, Landscape ) ->
             El.column
-                [ El.height El.fill
-                , El.centerX
-                , El.spacing 10
+                [ El.centerX
+                , Spacing.medium device
                 ]
                 [ El.row
-                    [ El.spacing 10 ]
+                    [ El.width El.fill
+                    , Spacing.medium device
+                    ]
                     [ infoView device config.status config.responses
                     , applicableFunctionsView device config.applicableFunctions
                     ]
@@ -369,12 +366,13 @@ feedbackView ({ class, orientation } as device) (Config config) =
 
         ( Tablet, _ ) ->
             El.column
-                [ El.height El.fill
-                , El.centerX
-                , El.spacing 10
+                [ El.centerX
+                , Spacing.medium device
                 ]
                 [ El.row
-                    [ El.spacing 10 ]
+                    [ El.width El.fill
+                    , Spacing.medium device
+                    ]
                     [ infoView device config.status config.responses
                     , applicableFunctionsView device config.applicableFunctions
                     ]
@@ -383,28 +381,13 @@ feedbackView ({ class, orientation } as device) (Config config) =
 
         _ ->
             El.row
-                [ El.height El.fill
-                , El.centerX
-                , El.spacing 20
+                [ El.centerX
+                , Spacing.large device
                 ]
                 [ infoView device config.status config.responses
                 , applicableFunctionsView device config.applicableFunctions
                 , usefulFunctionsView device config.usefulFunctions
                 ]
-
-
-titleView : Device -> String -> Element msg
-titleView device title_ =
-    El.el
-        [ BorderWidth.bottom 1
-        , El.centerX
-        , El.width El.fill
-        , Font.bold
-        , Font.center
-        , FontColor.title
-        , FontSize.panelHeader device
-        ]
-        (El.text title_)
 
 
 
@@ -413,27 +396,32 @@ titleView device title_ =
 
 infoView : Device -> Element msg -> List Response -> Element msg
 infoView device status_ responseList =
-    panel device
-        [ titleView device "Info"
-        , statusView status_
-        , responsesView device responseList
-        ]
+    case ( status_ /= El.none, responseList ) of
+        ( False, [] ) ->
+            El.none
+
+        _ ->
+            panel device
+                [ titleView device "Info"
+                , statusView device status_
+                , responsesView device responseList
+                ]
 
 
 
 -- Status View --
 
 
-statusView : Element msg -> Element msg
-statusView status_ =
+statusView : Device -> Element msg -> Element msg
+statusView device status_ =
     if status_ == El.none then
         El.none
 
     else
         El.el
             [ BorderWidth.bottom 1
-            , El.paddingXY 0 5
             , El.width El.fill
+            , Padding.ySmall device
             ]
             status_
 
@@ -450,12 +438,12 @@ responsesView device responseList =
 
         _ ->
             El.column
-                [ El.paddingXY 0 10
-                , El.spacing 15
-                , El.clipY
+                [ El.clipY
                 , El.scrollbarY
                 , El.height El.fill
                 , El.width El.fill
+                , Padding.yMedium device
+                , Spacing.large device
                 ]
                 (List.map (toResponse device) responseList
                     |> List.filter (\r -> r /= El.none)
@@ -467,11 +455,11 @@ toResponse : Device -> Response -> Element msg
 toResponse device response =
     case response of
         Socket (StateChange state) ->
-            socketResponse "StateChange" <|
+            socketResponse device "StateChange" <|
                 socketStateToString state
 
         Socket (SocketError error) ->
-            socketResponse "SocketError" error
+            socketResponse device "SocketError" error
 
         Channel (JoinOk topic payload) ->
             channelResponse device "JoinOk" <|
@@ -520,11 +508,11 @@ toResponse device response =
 -- Socket Response --
 
 
-socketResponse : String -> String -> Element msg
-socketResponse title response =
+socketResponse : Device -> String -> String -> Element msg
+socketResponse device title response =
     El.column
-        [ El.spacing 10
-        , FontFamily.code
+        [ FontFamily.code
+        , Spacing.medium device
         ]
         [ El.el
             [ Font.color Color.darkslateblue
@@ -576,8 +564,8 @@ seperator =
 channelResponse : Device -> String -> ChannelInfo -> Element msg
 channelResponse device title info =
     El.column
-        [ El.spacing 10
-        , FontFamily.code
+        [ FontFamily.code
+        , Spacing.medium device
         ]
         [ El.el
             [ Font.color Color.darkslateblue
@@ -592,10 +580,10 @@ channelResponse device title info =
             (El.text title)
         , El.column
             [ El.alignLeft
-            , El.spacing 10
             , El.width El.fill
             , FontFamily.code
-            , Padding.bottom 10
+            , Padding.bottomSmall device
+            , Spacing.small device
             ]
             [ field device "Topic: " info.topic
             , maybe (field device) "Event: " info.event
@@ -609,9 +597,9 @@ channelResponse device title info =
 field : Device -> String -> String -> Element msg
 field device label value =
     El.wrappedRow
-        [ FontSize.panelContent device
-        , spacing device.class
-        , El.width El.fill
+        [ El.width El.fill
+        , FontSize.panelContent device
+        , Spacing.small device
         ]
         [ El.el
             [ El.alignTop
@@ -660,8 +648,8 @@ channelInfo =
 channelEvent : Device -> String -> { topic : String, event : String, payload : Value } -> Element msg
 channelEvent device title { topic, event, payload } =
     El.column
-        [ El.spacing 10
-        , FontFamily.code
+        [ FontFamily.code
+        , Spacing.medium device
         ]
         [ El.el
             [ Font.color Color.darkslateblue
@@ -676,10 +664,10 @@ channelEvent device title { topic, event, payload } =
             (El.text title)
         , El.column
             [ El.alignLeft
-            , El.spacing 10
             , El.width El.fill
             , FontFamily.code
-            , Padding.bottom 10
+            , Padding.bottomSmall device
+            , Spacing.small device
             ]
             [ field device "Topic: " topic
             , field device "Event: " event
@@ -697,9 +685,9 @@ applicableFunctionsView device functions =
     panel device
         [ titleView device "Applicable Functions"
         , El.column
-            [ spacing device.class
-            , El.width El.fill
-            , Padding.top 10
+            [ El.width El.fill
+            , Padding.ySmall device
+            , Spacing.small device
             ]
             (List.map Link.function functions)
         ]
@@ -714,9 +702,10 @@ usefulFunctionsView device functions =
     panel device
         [ titleView device "Useful Functions"
         , El.column
-            [ spacing device.class
-            , El.width El.fill
-            , Padding.top 10
+            [ El.width El.fill
+            , El.height El.fill
+            , Padding.ySmall device
+            , Spacing.small device
             ]
           <|
             El.wrappedRow
@@ -743,9 +732,9 @@ toFunctions ({ class } as device) functions =
 
         _ ->
             [ El.column
-                [ El.spacing 16
-                , El.width El.fill
+                [ El.width El.fill
                 , El.height El.fill
+                , Spacing.small device
                 ]
                 (List.map (toFunction device) functions)
             ]
@@ -754,11 +743,8 @@ toFunctions ({ class } as device) functions =
 toFunction : Device -> ( String, String ) -> Element msg
 toFunction device ( function, currentValue ) =
     El.wrappedRow
-        [ spacing device.class
-        , El.width El.fill
-        , El.height El.fill
-        , El.clipX
-        , El.scrollbarX
+        [ El.width El.fill
+        , Spacing.small device
         ]
         [ El.el
             [ El.alignTop ]
@@ -774,41 +760,28 @@ toFunction device ( function, currentValue ) =
 
 
 panel : Device -> List (Element msg) -> Element msg
-panel { class, orientation } =
+panel device =
     El.column
         [ BackgroundColor.examplePanel
         , Border.width 1
         , BorderColor.examplePanel
-
-        --, El.centerX
-        , El.padding 10
+        , Padding.xSmall device
         , El.height <|
             El.maximum 350 El.fill
-        , El.width <|
-            case ( class, orientation ) of
-                ( Phone, _ ) ->
-                    El.maximum 500 El.fill
-
-                ( Tablet, _ ) ->
-                    El.maximum 700 El.fill
-
-                ( Desktop, _ ) ->
-                    El.maximum 600 El.fill
-
-                ( BigDesktop, _ ) ->
-                    El.maximum 700 El.fill
+        , El.width El.fill
         ]
 
 
-
-{- Attributes -}
-
-
-spacing : DeviceClass -> Attribute msg
-spacing class =
-    case class of
-        Phone ->
-            El.spacing 5
-
-        _ ->
-            El.spacing 10
+titleView : Device -> String -> Element msg
+titleView device title_ =
+    El.el
+        [ BorderWidth.bottom 1
+        , El.centerX
+        , El.width El.fill
+        , Font.bold
+        , Font.center
+        , FontColor.title
+        , FontSize.medium device
+        , Padding.ySmall device
+        ]
+        (El.text title_)

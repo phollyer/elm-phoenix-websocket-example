@@ -13,6 +13,7 @@ import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
 import UI.Padding as Padding
+import UI.Spacing as Spacing
 
 
 
@@ -64,30 +65,24 @@ view ({ class } as device) (Config config) =
     El.column
         [ El.height El.fill
         , El.width El.fill
-        , El.spacing 10
         , FontColor.default
         , FontSize.default device
         , Padding.bottom 10
+        , Spacing.medium device
         ]
         [ El.column
-            [ El.spacing <|
-                case class of
-                    Phone ->
-                        18
-
-                    _ ->
-                        22
-            , Font.justify
+            [ Font.justify
             , FontFamily.exampleIntro
+            , Spacing.large device
             ]
           <|
-            List.map
-                (\paragraph ->
-                    El.paragraph
-                        [ El.width El.fill ]
-                        paragraph
-                )
-                config.introduction
+            List.map toParagraph config.introduction
         , config.menu
         , config.example
         ]
+
+
+toParagraph : List (Element msg) -> Element msg
+toParagraph =
+    El.paragraph
+        [ El.width El.fill ]

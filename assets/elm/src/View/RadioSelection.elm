@@ -12,6 +12,7 @@ import Element as El exposing (Attribute, Device, DeviceClass(..), Element, Orie
 import Element.Font as Font
 import Element.Input as Input
 import UI.Padding as Padding
+import UI.Spacing as Spacing
 
 
 
@@ -88,22 +89,22 @@ type alias RadioConfig value msg =
 
 
 radio : Device -> (RadioConfig value msg -> Element msg)
-radio { class, orientation } =
+radio ({ class, orientation } as device) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             Input.radio
-                [ El.spacing 10 ]
+                [ Spacing.small device ]
 
         _ ->
             Input.radioRow
-                [ El.spacing 20 ]
+                [ Spacing.large device ]
 
 
 toLabel : Device -> String -> Input.Label msg
 toLabel device text =
     Input.labelAbove
-        [ paddingBottom device
-        , El.centerX
+        [ El.centerX
+        , Padding.bottomSmall device
         ]
         (El.text text)
 
@@ -124,18 +125,3 @@ toOption { class, orientation } ( value, text ) =
                 El.el
                     [ El.width El.fill ]
                     (El.text text)
-
-
-
-{- Attributes -}
-
-
-paddingBottom : Device -> Attribute msg
-paddingBottom { class, orientation } =
-    Padding.bottom <|
-        case ( class, orientation ) of
-            ( Phone, Portrait ) ->
-                5
-
-            _ ->
-                10

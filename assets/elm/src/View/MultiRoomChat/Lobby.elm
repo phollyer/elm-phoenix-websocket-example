@@ -23,7 +23,9 @@ import Type.User as User exposing (InviteState(..), RegisteredUser, RoomInvite, 
 import UI.Align as Align
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
+import UI.Padding as Padding
 import UI.RoundedBorder as RoundedBorder
+import UI.Spacing as Spacing
 import Utils exposing (andMaybeEventWith, andMaybeEventWithArg)
 import View.Button as Button
 import View.Tag as Tag
@@ -116,25 +118,26 @@ view : Device -> Config msg -> Element msg
 view device (Config config) =
     El.column
         [ El.width El.fill
-        , El.spacing 15
         , El.inFront <|
             if User.hasInvites config.user then
                 roomInvite device (Config config)
 
             else
                 El.none
+        , Spacing.large device
         ]
         [ container device
             [ El.width El.fill
-            , El.spacing 15
+            , Spacing.large device
             ]
             [ El.column
                 [ BackgroundColor.panel
-                , Border.rounded 10
-                , El.padding 20
-                , El.spacing 20
+                , El.height El.fill
                 , El.width El.fill
                 , FontColor.panel
+                , Padding.xLarge device
+                , RoundedBorder.large device
+                , Spacing.large device
                 ]
                 [ userView device config.user
                 , createRoomBtn device config.onCreateRoom
@@ -177,21 +180,21 @@ inviteView device state invite (Config config) =
     case ( config.onAcceptRoomInvite, config.onDeclineRoomInvite ) of
         ( Just onAccept, Just onDecline ) ->
             El.el
-                [ roundedBorder device
-                , El.height El.fill
+                [ El.height El.fill
                 , El.width El.fill
                 , Background.color (Color.white 0.5)
+                , RoundedBorder.large device
                 ]
                 (El.column
-                    [ padding device
-                    , spacing device
-                    , roundedBorder device
-                    , Background.color (User.bgColor invite.from)
+                    [ Background.color (User.bgColor invite.from)
                     , Border.color (User.fgColor invite.from)
                     , Border.width 1
                     , El.centerX
                     , El.centerY
                     , Font.color (User.fgColor invite.from)
+                    , Padding.medium device
+                    , RoundedBorder.medium device
+                    , Spacing.medium device
                     ]
                     [ El.el
                         [ El.centerX ]
@@ -203,8 +206,8 @@ inviteView device state invite (Config config) =
                         , El.text " to join them in their room."
                         ]
                     , El.row
-                        [ spacing device
-                        , El.centerX
+                        [ El.centerX
+                        , Spacing.large device
                         ]
                         [ case state of
                             Declining ->
@@ -239,21 +242,21 @@ inviteErrorView device maybeMsg invite user =
     case maybeMsg of
         Just toMsg ->
             El.el
-                [ roundedBorder device
-                , El.height El.fill
+                [ El.height El.fill
                 , El.width El.fill
                 , Background.color (Color.white 0.5)
+                , RoundedBorder.large device
                 ]
                 (El.column
-                    [ padding device
-                    , spacing device
-                    , roundedBorder device
-                    , Background.color (User.bgColor user)
+                    [ Background.color (User.bgColor user)
                     , Border.color (User.fgColor user)
                     , Border.width 1
                     , El.centerX
                     , El.centerY
                     , Font.color (User.fgColor user)
+                    , Padding.medium device
+                    , RoundedBorder.medium device
+                    , Spacing.medium device
                     ]
                     [ El.el
                         [ El.centerX ]
@@ -278,7 +281,7 @@ inviteErrorView device maybeMsg invite user =
 
 
 userView : Device -> RegisteredUser -> Element msg
-userView { class, orientation } currentUser =
+userView ({ class, orientation } as device) currentUser =
     El.column
         [ case ( class, orientation ) of
             ( Phone, Portrait ) ->
@@ -287,11 +290,12 @@ userView { class, orientation } currentUser =
             _ ->
                 Font.alignLeft
         , El.alignTop
-        , El.spacing 20
         , El.width El.fill
+        , Padding.topLarge device
+        , Spacing.large device
         ]
         [ El.paragraph
-            [ El.spacing 10 ]
+            [ Spacing.medium device ]
             [ El.el
                 [ Font.bold
                 , FontColor.label
@@ -302,8 +306,8 @@ userView { class, orientation } currentUser =
                 (El.text (User.username currentUser))
             ]
         , El.column
-            [ El.spacing 10
-            , El.width El.fill
+            [ El.width El.fill
+            , Spacing.large device
             ]
             [ El.el
                 [ El.width El.fill
@@ -328,9 +332,7 @@ userView { class, orientation } currentUser =
 paragraph : List (Element msg) -> Element msg
 paragraph text =
     El.paragraph
-        [ El.spacing 5
-        , El.width El.fill
-        ]
+        [ El.width El.fill ]
         text
 
 
@@ -345,13 +347,13 @@ createRoomBtn ({ class, orientation } as device) maybeMsg =
             El.px <|
                 case class of
                     Phone ->
-                        20
+                        50
 
                     Tablet ->
-                        30
+                        60
 
                     _ ->
-                        40
+                        70
         , El.width El.fill
         ]
     <|
@@ -380,6 +382,7 @@ createRoomBtn ({ class, orientation } as device) maybeMsg =
                             _ ->
                                 Align.Center
                         )
+                    |> Button.setAlignY Align.Middle
                     |> Button.view device
 
 
@@ -391,11 +394,11 @@ occupantsView : Device -> RegisteredUser -> List RegisteredUser -> Element msg
 occupantsView device currentUser occupants =
     El.column
         [ BackgroundColor.panel
-        , Border.rounded 10
-        , El.padding 10
-        , El.spacing 10
         , El.width El.fill
         , FontColor.panel
+        , Padding.large device
+        , RoundedBorder.large device
+        , Spacing.large device
         ]
         [ El.el
             [ El.centerX
@@ -403,7 +406,7 @@ occupantsView device currentUser occupants =
             ]
             (El.text "Occupants")
         , El.wrappedRow
-            [ El.spacing 10 ]
+            [ Spacing.small device ]
             (List.map (Tag.view device currentUser) occupants)
         ]
 
@@ -419,32 +422,32 @@ roomsView device ((Config c) as config) =
             El.none
 
         ( currentUserRooms, [] ) ->
-            roomsContainer
+            roomsContainer device
                 [ toRoomList device config ( c.user, currentUserRooms ) ]
 
         ( [], othersRooms ) ->
-            roomsContainer <|
+            roomsContainer device <|
                 List.map (toRoomList device config) othersRooms
 
         ( currentUserRooms, othersRooms ) ->
-            roomsContainer <|
+            roomsContainer device <|
                 toRoomList device config ( c.user, currentUserRooms )
                     :: List.map (toRoomList device config) othersRooms
 
 
-roomsContainer : List (Element msg) -> Element msg
-roomsContainer rooms_ =
+roomsContainer : Device -> List (Element msg) -> Element msg
+roomsContainer device rooms_ =
     El.el
         [ El.alignTop
         , El.width El.fill
         ]
         (El.column
             [ BackgroundColor.panel
-            , Border.rounded 10
-            , El.padding 10
-            , El.spacing 10
             , El.width El.fill
             , FontColor.panel
+            , Padding.large device
+            , RoundedBorder.large device
+            , Spacing.large device
             ]
             [ El.el
                 [ El.centerX
@@ -453,7 +456,7 @@ roomsContainer rooms_ =
                 (El.text "Room List")
             , El.column
                 [ El.width El.fill
-                , El.spacing 10
+                , Spacing.medium device
                 ]
                 rooms_
             ]
@@ -463,14 +466,14 @@ roomsContainer rooms_ =
 toRoomList : Device -> Config msg -> ( RegisteredUser, List Room ) -> Element msg
 toRoomList device ((Config { user }) as config) ( owner, rooms_ ) =
     El.column
-        [ El.spacing 10
-        , El.width El.fill
+        [ El.width El.fill
+        , Spacing.large device
         ]
         [ El.el [] (Tag.view device user owner)
         , List.map (toRoom device config) rooms_
             |> El.wrappedRow
-                [ El.spacing 10
-                , El.width El.fill
+                [ El.width El.fill
+                , Spacing.small device
                 ]
         ]
 
@@ -480,7 +483,6 @@ toRoom device (Config config) room =
     El.row
         ([ Background.color (User.bgColor room.owner)
          , Border.color (User.fgColor room.owner)
-         , Border.rounded 10
          , Border.width 1
          , El.mouseOver
             [ Border.color (User.bgColor room.owner)
@@ -491,8 +493,6 @@ toRoom device (Config config) room =
                 , offset = ( 0, 0 )
                 }
             ]
-         , El.padding 10
-         , El.spacing 10
          , El.width El.fill
          , Font.color (User.fgColor room.owner)
          , El.inFront <|
@@ -506,6 +506,9 @@ toRoom device (Config config) room =
 
             else
                 El.none
+         , Padding.medium device
+         , RoundedBorder.medium device
+         , Spacing.medium device
          ]
             |> andMaybeEventWithArg config.onMouseEnterRoom room Event.onMouseEnter
             |> andMaybeEventWithArg config.onMouseLeaveRoom room Event.onMouseLeave
@@ -517,7 +520,7 @@ toRoom device (Config config) room =
                    )
         , El.row
             [ El.alignRight
-            , El.spacing 10
+            , Spacing.medium device
             ]
             [ if Lobby.isEnteringRoom room config.lobby then
                 El.text "Entering..."
@@ -541,13 +544,13 @@ occupantsList device currentUser room =
 
         _ ->
             El.column
-                [ padding device
-                , spacing device
-                , Background.color (User.bgColor room.owner)
+                [ Background.color (User.bgColor room.owner)
                 , Border.color (User.fgColor room.owner)
                 , Border.width 1
                 , Font.color (User.fgColor room.owner)
+                , Padding.small device
                 , RoundedBorder.small device
+                , Spacing.small device
                 ]
                 [ El.el
                     []
@@ -556,8 +559,8 @@ occupantsList device currentUser room =
                     []
                     [ List.map (Tag.view device currentUser) room.members
                         |> El.wrappedRow
-                            [ El.spacing 10
-                            , El.width El.fill
+                            [ El.width El.fill
+                            , Spacing.small device
                             ]
                     ]
                 ]
@@ -597,49 +600,3 @@ maybeEnterBtn device room (Config config) =
 
     else
         El.none
-
-
-
-{- Attributes -}
-
-
-padding : Device -> Attribute msg
-padding { class } =
-    El.padding <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
-
-
-roundedBorder : Device -> Attribute msg
-roundedBorder { class } =
-    Border.rounded <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
-
-
-spacing : Device -> Attribute msg
-spacing { class } =
-    El.spacing <|
-        case class of
-            Phone ->
-                10
-
-            Tablet ->
-                15
-
-            _ ->
-                20

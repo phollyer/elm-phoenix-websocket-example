@@ -13,6 +13,8 @@ import Element as El exposing (Attribute, Device, Element)
 import Element.Border as Border
 import Element.Events as Event
 import Element.Input as Input
+import UI.Padding as Padding
+import UI.RoundedBorder as RoundedBorder
 import Utils exposing (andMaybeEventWith)
 
 
@@ -78,27 +80,27 @@ onLoseFocus maybeMsg (Config config) =
 
 
 view : Device -> Config msg -> Element msg
-view _ (Config config) =
+view device (Config config) =
     case config.onChange of
         Nothing ->
             El.text config.text
 
         Just onChange_ ->
             if config.multiline then
-                multi onChange_ (Config config)
+                multi device onChange_ (Config config)
 
             else
-                single onChange_ (Config config)
+                single device onChange_ (Config config)
 
 
 
 {- Multiline -}
 
 
-multi : (String -> msg) -> Config msg -> Element msg
-multi onChange_ (Config config) =
+multi : Device -> (String -> msg) -> Config msg -> Element msg
+multi device onChange_ (Config config) =
     Input.multiline
-        (multilineAttrs
+        (multilineAttrs device
             |> andMaybeEventWith config.onFocus Event.onFocus
             |> andMaybeEventWith config.onLoseFocus Event.onLoseFocus
         )
@@ -110,12 +112,13 @@ multi onChange_ (Config config) =
         }
 
 
-multilineAttrs : List (Attribute msg)
-multilineAttrs =
-    [ Border.rounded 5
-    , El.height <|
+multilineAttrs : Device -> List (Attribute msg)
+multilineAttrs device =
+    [ El.height <|
         El.maximum 150 El.fill
     , El.width El.fill
+    , Padding.small device
+    , RoundedBorder.small device
     ]
 
 
@@ -123,10 +126,10 @@ multilineAttrs =
 {- Single Line -}
 
 
-single : (String -> msg) -> Config msg -> Element msg
-single onChange_ (Config config) =
+single : Device -> (String -> msg) -> Config msg -> Element msg
+single device onChange_ (Config config) =
     Input.text
-        (singleLineAttrs
+        (singleLineAttrs device
             |> andMaybeEventWith config.onFocus Event.onFocus
             |> andMaybeEventWith config.onLoseFocus Event.onLoseFocus
         )
@@ -137,10 +140,11 @@ single onChange_ (Config config) =
         }
 
 
-singleLineAttrs : List (Attribute msg)
-singleLineAttrs =
-    [ Border.rounded 5
-    , El.width El.fill
+singleLineAttrs : Device -> List (Attribute msg)
+singleLineAttrs device =
+    [ El.width El.fill
+    , Padding.small device
+    , RoundedBorder.small device
     ]
 
 

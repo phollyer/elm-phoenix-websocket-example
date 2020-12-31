@@ -20,6 +20,8 @@ import Type.User as User exposing (RegisteredUser, User)
 import UI.Align as Align exposing (X(..), Y(..))
 import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
+import UI.Padding as Padding
+import UI.RoundedBorder as RoundedBorder
 import UI.Shadow as Shadow
 
 
@@ -90,14 +92,14 @@ setType type_ (Config config) =
 
 
 view : Device -> Config msg -> Element msg
-view _ (Config config) =
+view device (Config config) =
     Input.button
         (List.append
             (attrs config.type_ config.enabled)
             [ Align.x config.alignX
             , Align.y config.alignY
-            , Border.rounded 10
-            , El.padding 10
+            , Padding.small device
+            , RoundedBorder.small device
             ]
         )
         { label = El.text config.label

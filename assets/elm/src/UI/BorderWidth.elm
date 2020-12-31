@@ -1,7 +1,5 @@
 module UI.BorderWidth exposing
     ( bottom
-    , left
-    , right
     , top
     )
 
@@ -42,18 +40,6 @@ bottom : Int -> Attribute msg
 bottom amount =
     Border.widthEach
         { borderEach | bottom = amount }
-
-
-left : Int -> Attribute msg
-left amount =
-    Border.widthEach
-        { borderEach | left = amount }
-
-
-right : Int -> Attribute msg
-right amount =
-    Border.widthEach
-        { borderEach | right = amount }
 
 
 top : Int -> Attribute msg

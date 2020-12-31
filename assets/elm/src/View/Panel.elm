@@ -18,7 +18,10 @@ import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
 import UI.FontSize as FontSize
+import UI.Padding as Padding
+import UI.RoundedBorder as RoundedBorder
 import UI.Shadow as Shadow
+import UI.Spacing as Spacing
 import Utils exposing (andMaybeEventWith)
 
 
@@ -110,10 +113,10 @@ panel device maybeMsg =
 header : Device -> String -> Element msg
 header device text =
     El.el
-        [ El.paddingXY 5 10
-        , El.width El.fill
+        [ El.width El.fill
         , FontColor.panelHeader
         , FontSize.panelHeader device
+        , Padding.small device
         ]
         (El.paragraph
             [ El.width El.fill
@@ -136,12 +139,12 @@ descriptionView device paragraphs =
         _ ->
             El.column
                 [ BackgroundColor.panelContent
-                , El.padding 10
-                , El.spacing 10
                 , El.width El.fill
                 , Font.justify
                 , FontFamily.default
                 , FontSize.panelContent device
+                , Padding.small device
+                , Spacing.small device
                 ]
                 (List.map toParagraph paragraphs)
 
@@ -185,8 +188,7 @@ panelAttrs device maybeMsg =
             Just _ ->
                 [ El.pointer ]
         )
-        [ roundedBorder device
-        , BackgroundColor.panel
+        [ BackgroundColor.panel
         , Border.width 1
         , BorderColor.panel
         , El.centerX
@@ -197,18 +199,5 @@ panelAttrs device maybeMsg =
             [ Shadow.panel device ]
         , El.height El.fill
         , El.width El.fill
+        , RoundedBorder.medium device
         ]
-
-
-roundedBorder : Device -> Attribute msg
-roundedBorder { class } =
-    Border.rounded <|
-        case class of
-            Phone ->
-                10
-
-            Tablet ->
-                14
-
-            _ ->
-                20

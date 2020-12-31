@@ -84,11 +84,11 @@ header device text =
         , El.width El.fill
         , Font.bold
         , Font.underline
-        , Padding.bottom 10
+        , Padding.bottomSmall device
         ]
         [ El.paragraph
-            [ paddingY device
-            , Font.center
+            [ Font.center
+            , Padding.yMedium device
             ]
             [ El.text text ]
         ]
@@ -102,8 +102,8 @@ homeButton device maybeMsg =
 
         Just msg ->
             El.el
-                [ paddingY device
-                , FontFamily.backButton
+                [ FontFamily.backButton
+                , Padding.ySmall device
                 ]
             <|
                 Input.button
@@ -113,18 +113,3 @@ homeButton device maybeMsg =
                     { label = El.text "<="
                     , onPress = Just msg
                     }
-
-
-
-{- Attributes -}
-
-
-paddingY : Device -> Attribute msg
-paddingY { class } =
-    Padding.y <|
-        case class of
-            Phone ->
-                5
-
-            _ ->
-                10

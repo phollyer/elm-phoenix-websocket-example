@@ -17,6 +17,8 @@ import UI.BorderColor as BorderColor
 import UI.BorderWidth as BorderWidth
 import UI.FontColor as FontColor
 import UI.FontFamily as FontFamily
+import UI.Padding as Padding
+import UI.Spacing as Spacing
 import Utils exposing (andMaybeEventWithArg)
 
 
@@ -90,7 +92,7 @@ view ({ class, orientation } as device) (Config config) =
                     column device
                         (Group.orderForDevice device config.options config.group
                             |> List.groupsOfVarying sizes
-                            |> List.map (toStackedRow config.selected config.onClick)
+                            |> List.map (toStackedRow device config.selected config.onClick)
                         )
 
 
@@ -116,11 +118,11 @@ toStackedOption selected_ maybeOnClick option =
         (El.text option)
 
 
-toStackedRow : String -> Maybe (String -> msg) -> List String -> Element msg
-toStackedRow selected_ maybeOnClick options_ =
+toStackedRow : Device -> String -> Maybe (String -> msg) -> List String -> Element msg
+toStackedRow device selected_ maybeOnClick options_ =
     El.row
         [ El.width El.fill
-        , El.spacing 20
+        , Spacing.large device
         ]
         (List.map (toStackedOption selected_ maybeOnClick) options_)
 
@@ -140,7 +142,7 @@ column device =
 row : Device -> List (Element msg) -> Element msg
 row device =
     El.row
-        (El.paddingXY 5 0
+        (Padding.xSmall device
             :: containerAttrs device
         )
 
@@ -150,22 +152,13 @@ row device =
 
 
 containerAttrs : Device -> List (Attribute msg)
-containerAttrs { class } =
-    [ El.spacing <|
-        case class of
-            Phone ->
-                10
-
-            Tablet ->
-                10
-
-            _ ->
-                20
-    , Border.widthXY 0 1
+containerAttrs device =
+    [ Border.widthXY 0 1
     , BorderColor.seperatorLight
     , El.width El.fill
     , FontColor.default
     , FontFamily.default
+    , Spacing.large device
     ]
 
 

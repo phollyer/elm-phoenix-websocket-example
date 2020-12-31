@@ -4,6 +4,7 @@ module UI.Shadow exposing
     , panel
     )
 
+import Colors.Alpha as Alpha
 import Colors.Opaque as Color
 import Element exposing (Attribute, Decoration, Device, DeviceClass(..), Orientation(..))
 import Element.Border as Border
@@ -77,7 +78,7 @@ button : Decoration
 button =
     Border.shadow
         { size = 1
-        , blur = 2
-        , color = Color.seagreen
+        , blur = 5
+        , color = Alpha.darkslateblue 0.9
         , offset = ( 0, 0 )
         }

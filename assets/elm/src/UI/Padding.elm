@@ -1,13 +1,21 @@
 module UI.Padding exposing
     ( bottom
-    , left
-    , right
+    , bottomSmall
+    , large
+    , medium
+    , small
     , top
+    , topLarge
+    , topSmall
     , x
+    , xLarge
+    , xSmall
     , y
+    , yMedium
+    , ySmall
     )
 
-import Element as El exposing (Attribute)
+import Element as El exposing (Attribute, Device, DeviceClass(..))
 
 
 
@@ -39,16 +47,66 @@ paddingEach =
 {- Build -}
 
 
+small : Device -> Attribute msg
+small { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+medium : Device -> Attribute msg
+medium { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                7
+
+            Tablet ->
+                10
+
+            _ ->
+                15
+
+
+large : Device -> Attribute msg
+large { class } =
+    El.padding <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                15
+
+            _ ->
+                20
+
+
 bottom : Int -> Attribute msg
 bottom amount =
     El.paddingEach
         { paddingEach | bottom = amount }
 
 
-left : Int -> Attribute msg
-left amount =
-    El.paddingEach
-        { paddingEach | left = amount }
+bottomSmall : Device -> Attribute msg
+bottomSmall { class } =
+    bottom <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
 
 
 top : Int -> Attribute msg
@@ -57,10 +115,32 @@ top amount =
         { paddingEach | top = amount }
 
 
-right : Int -> Attribute msg
-right amount =
-    El.paddingEach
-        { paddingEach | right = amount }
+topSmall : Device -> Attribute msg
+topSmall { class } =
+    top <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+topLarge : Device -> Attribute msg
+topLarge { class } =
+    top <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                15
+
+            _ ->
+                20
 
 
 x : Int -> Attribute msg
@@ -68,6 +148,62 @@ x amount =
     El.paddingXY amount 0
 
 
+xSmall : Device -> Attribute msg
+xSmall { class } =
+    x <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+xLarge : Device -> Attribute msg
+xLarge { class } =
+    x <|
+        case class of
+            Phone ->
+                10
+
+            Tablet ->
+                15
+
+            _ ->
+                20
+
+
 y : Int -> Attribute msg
 y amount =
     El.paddingXY 0 amount
+
+
+ySmall : Device -> Attribute msg
+ySmall { class } =
+    y <|
+        case class of
+            Phone ->
+                5
+
+            Tablet ->
+                7
+
+            _ ->
+                10
+
+
+yMedium : Device -> Attribute msg
+yMedium { class } =
+    y <|
+        case class of
+            Phone ->
+                7
+
+            Tablet ->
+                10
+
+            _ ->
+                15

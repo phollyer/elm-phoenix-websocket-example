@@ -23,6 +23,7 @@ import UI.BackgroundColor as BackgroundColor
 import UI.FontColor as FontColor
 import UI.Padding as Padding
 import UI.RoundedBorder as RoundedBorder
+import UI.Spacing as Spacing
 import View.Button as Button
 import View.InputField as InputField
 import View.Panel as Panel
@@ -118,42 +119,42 @@ view device (Config config) =
 
 
 container : Device -> List (Element msg) -> Element msg
-container { class, orientation } =
+container ({ class, orientation } as device) =
     case ( class, orientation ) of
         ( Phone, _ ) ->
             El.column
                 [ El.width El.fill
-                , El.spacing 10
+                , Spacing.medium device
                 ]
 
         ( Tablet, Portrait ) ->
             El.column
                 [ El.width El.fill
-                , El.spacing 10
+                , Spacing.medium device
                 ]
 
         _ ->
             El.row
                 [ El.height El.fill
                 , El.width El.fill
-                , El.spacing 10
-                , El.paddingXY 5 0
+                , Padding.xSmall device
+                , Spacing.medium device
                 ]
 
 
 occupantsContainer : Device -> List (Element msg) -> Element msg
-occupantsContainer { class, orientation } =
+occupantsContainer ({ class, orientation } as device) =
     case ( class, orientation ) of
         ( Phone, Portrait ) ->
             El.column
                 [ El.width El.fill
-                , El.spacing 10
+                , Spacing.large device
                 ]
 
         ( Phone, Landscape ) ->
             El.row
                 [ El.width El.fill
-                , El.spacing 10
+                , Spacing.medium device
                 ]
 
         _ ->
@@ -161,7 +162,7 @@ occupantsContainer { class, orientation } =
                 [ El.height El.fill
                 , El.width <|
                     El.fillPortion 2
-                , El.spacing 10
+                , Spacing.large device
                 ]
 
 
@@ -182,10 +183,10 @@ messagesView device (Config config) =
         , RoundedBorder.large device
         ]
         (El.column
-            [ padding device
-            , spacing device
-            , El.height El.fill
+            [ El.height El.fill
             , El.width El.fill
+            , Padding.medium device
+            , Spacing.medium device
             ]
          <|
             List.map (toMessage device config.currentUser) config.room.messages
@@ -205,7 +206,7 @@ userMessage : Device -> RegisteredUser -> ChatMessage -> Element msg
 userMessage device currentUser { text } =
     row
         [ emptySpace
-        , column
+        , column device
             [ El.el
                 [ El.alignRight ]
                 (Tag.view device currentUser currentUser)
@@ -217,7 +218,7 @@ userMessage device currentUser { text } =
 othersMessage : Device -> RegisteredUser -> ChatMessage -> Element msg
 othersMessage device currentUser { owner, text } =
     row
-        [ column
+        [ column device
             [ El.el [] <|
                 Tag.view device currentUser owner
             , messageContent device El.alignLeft owner text
@@ -230,13 +231,13 @@ messageContent : Device -> Attribute msg -> RegisteredUser -> String -> Element 
 messageContent device alignment owner text =
     El.column
         [ alignment
-        , padding device
-        , spacing device
         , Background.color (User.bgColor owner)
         , Border.color (User.fgColor owner)
         , Border.width 1
         , Font.color (User.fgColor owner)
-        , RoundedBorder.medium device
+        , Padding.small device
+        , RoundedBorder.small device
+        , Spacing.small device
         ]
         (toParagraphs text)
 
@@ -261,12 +262,12 @@ row =
         [ El.width El.fill ]
 
 
-column : List (Element msg) -> Element msg
-column =
+column : Device -> List (Element msg) -> Element msg
+column device =
     El.column
-        [ El.spacing 5
-        , El.width <|
+        [ El.width <|
             El.fillPortion 5
+        , Spacing.small device
         ]
 
 
@@ -291,7 +292,7 @@ occupantsTypingView device (Config { currentUser, room }) =
     else
         El.wrappedRow
             [ El.width El.fill
-            , Padding.top 10
+            , Padding.topSmall device
             ]
         <|
             El.el
@@ -318,9 +319,9 @@ form ({ class, orientation } as device) config =
                     El.row
     in
     container_
-        [ El.spacing 10
-        , El.width El.fill
-        , Padding.top 10
+        [ El.width El.fill
+        , Padding.topSmall device
+        , Spacing.small device
         ]
         [ inputField device config
         , submitButton device config
@@ -368,9 +369,9 @@ roomOccupants device currentUser occupants =
         |> Panel.title "Room Occupants"
         |> Panel.element
             (El.column
-                [ padding device
-                , spacing device
-                , El.width El.fill
+                [ El.width El.fill
+                , Padding.medium device
+                , Spacing.medium device
                 ]
                 (List.map (Tag.view device currentUser) occupants)
             )
@@ -396,9 +397,9 @@ lobbyOccupants device (Config config) =
                 ]
             |> Panel.element
                 (El.column
-                    [ padding device
-                    , spacing device
-                    , El.width El.fill
+                    [ El.width El.fill
+                    , Padding.medium device
+                    , Spacing.medium device
                     ]
                     (List.map (occupantView device (Config config)) config.inviteableUsers)
                 )
@@ -419,8 +420,7 @@ occupantView device (Config { maybeOnClick, currentUser, room }) user =
     in
     El.paragraph
         (List.append onClickEvent
-            [ padding device
-            , Background.color (User.bgColor user)
+            [ Background.color (User.bgColor user)
             , Border.color (User.fgColor user)
             , Border.width 1
             , El.mouseOver
@@ -435,6 +435,7 @@ occupantView device (Config { maybeOnClick, currentUser, room }) user =
             , El.pointer
             , El.width El.fill
             , Font.color (User.fgColor user)
+            , Padding.small device
             , RoundedBorder.small device
             ]
         )
@@ -452,35 +453,3 @@ occupantView device (Config { maybeOnClick, currentUser, room }) user =
                 _ ->
                     User.username user
         ]
-
-
-
-{- Attributes -}
-
-
-padding : Device -> Attribute msg
-padding { class } =
-    El.padding <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
-
-
-spacing : Device -> Attribute msg
-spacing { class } =
-    El.spacing <|
-        case class of
-            Phone ->
-                5
-
-            Tablet ->
-                7
-
-            _ ->
-                10
