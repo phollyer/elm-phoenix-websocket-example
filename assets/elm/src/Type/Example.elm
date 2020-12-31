@@ -3,6 +3,8 @@ module Type.Example exposing
     , toSrc
     )
 
+{- Types -}
+
 
 type Example
     = ConnectWithBadParams
@@ -17,6 +19,10 @@ type Example
     | ReceiveEvents
     | SimpleConnect
     | SimpleJoinAndLeave
+
+
+
+{- Transform -}
 
 
 toSrc : Example -> String

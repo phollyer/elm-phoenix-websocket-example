@@ -6,9 +6,17 @@ module Type.TwoTrack exposing
 import Type.ErrorMessage exposing (ErrorMessage)
 
 
+
+{- Types -}
+
+
 type TwoTrack entity
     = Success (List entity)
     | Failure (List ErrorMessage)
+
+
+
+{- Build -}
 
 
 bind : (result -> TwoTrack entity) -> (a -> result) -> a -> TwoTrack entity -> TwoTrack entity

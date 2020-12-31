@@ -1,13 +1,8 @@
 module UI.BorderColor exposing
-    ( closedRoom
-    , examplePanel
+    ( examplePanel
     , link
     , mouseOverMenuItem
-    , mouseOverOpenRoom
-    , mouseOverOwnRoom
     , none
-    , openRoom
-    , ownRoom
     , panel
     , seperatorDark
     , seperatorLight
@@ -25,28 +20,22 @@ none =
         Alpha.white 0
 
 
+
+{- Link -}
+
+
 link : Attribute msg
 link =
     Border.color Color.darkgray
 
 
-seperatorLight : Attribute msg
-seperatorLight =
-    Border.color Color.aliceblue
 
-
-seperatorDark : Attribute msg
-seperatorDark =
-    Border.color Color.lightsteelblue
+{- Panels -}
 
 
 panel : Attribute msg
 panel =
     Border.color Color.steelblue
-
-
-
-{- Examples -}
 
 
 examplePanel : Attribute msg
@@ -64,29 +53,14 @@ mouseOverMenuItem =
 
 
 
-{- Lobby Room Listing -}
+{- Seperators -}
 
 
-ownRoom : Attribute msg
-ownRoom =
-    Border.color Color.darkblue
+seperatorLight : Attribute msg
+seperatorLight =
+    Border.color Color.aliceblue
 
 
-mouseOverOwnRoom : Decoration
-mouseOverOwnRoom =
-    Border.color Color.darkslateblue
-
-
-mouseOverOpenRoom : Decoration
-mouseOverOpenRoom =
-    Border.color Color.darkgreen
-
-
-openRoom : Attribute msg
-openRoom =
-    Border.color Color.green
-
-
-closedRoom : Attribute msg
-closedRoom =
-    Border.color Color.firebrick
+seperatorDark : Attribute msg
+seperatorDark =
+    Border.color Color.lightsteelblue

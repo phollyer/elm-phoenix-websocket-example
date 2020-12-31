@@ -10,12 +10,20 @@ module UI.Padding exposing
 import Element as El exposing (Attribute)
 
 
+
+{- Types -}
+
+
 type alias PaddingEach =
     { left : Int
     , top : Int
     , right : Int
     , bottom : Int
     }
+
+
+
+{- Helpers -}
 
 
 paddingEach : PaddingEach
@@ -25,6 +33,10 @@ paddingEach =
     , right = 0
     , bottom = 0
     }
+
+
+
+{- Build -}
 
 
 bottom : Int -> Attribute msg

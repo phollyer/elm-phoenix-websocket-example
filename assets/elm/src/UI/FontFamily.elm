@@ -10,36 +10,48 @@ import Element exposing (Attribute)
 import Element.Font as Font
 
 
-{-| General text, paragraphs etc.
--}
+
+{- Default -}
+
+
 default : Attribute msg
 default =
     Font.family
         [ Font.typeface "Varela Round" ]
 
 
-{-| Page headings.
--}
+
+{- Headers -}
+
+
 heading : Attribute msg
 heading =
     Font.family
         [ Font.typeface "Oswald" ]
 
 
-{-| The back button (<=)
--}
+
+{- Buttons -}
+
+
 backButton : Attribute msg
 backButton =
     Font.family
         [ Font.typeface "Piedra" ]
 
 
-{-| The back button (<=)
--}
+
+{- Example Intro -}
+
+
 exampleIntro : Attribute msg
 exampleIntro =
     Font.family
         [ Font.typeface "Piedra" ]
+
+
+
+{- Code -}
 
 
 code : Attribute msg

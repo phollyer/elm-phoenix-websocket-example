@@ -173,8 +173,8 @@ toSession model =
         NotFound session ->
             session
 
-        Home subModel ->
-            Home.toSession subModel
+        Home session ->
+            session
 
         ChatRooms subModel ->
             ChatRooms.toSession subModel
@@ -199,8 +199,7 @@ updateSession session model =
             NotFound session
 
         Home _ ->
-            Home <|
-                Home.updateSession session
+            Home session
 
         ChatRooms subModel ->
             ChatRooms <|

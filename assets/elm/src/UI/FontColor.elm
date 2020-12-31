@@ -1,7 +1,6 @@
 module UI.FontColor exposing
     ( button
     , buttonDisabled
-    , closedRoom
     , default
     , error
     , function
@@ -10,8 +9,6 @@ module UI.FontColor exposing
     , link
     , moduleName
     , mouseOverBackButton
-    , openRoom
-    , ownRoom
     , panel
     , panelHeader
     , subTitle
@@ -25,18 +22,31 @@ import Element exposing (Attribute, Decoration)
 import Element.Font as Font
 
 
-{-| General text
--}
+
+{- Default -}
+
+
 default : Attribute msg
 default =
     Font.color Color.darkslateblue
 
 
-{-| Page headings
--}
+
+{- Headers -}
+
+
 heading : Attribute msg
 heading =
     Font.color Color.darkslateblue
+
+
+panelHeader : Attribute msg
+panelHeader =
+    Font.color Color.aliceblue
+
+
+
+{- Titles -}
 
 
 title : Attribute msg
@@ -47,44 +57,6 @@ title =
 subTitle : Attribute msg
 subTitle =
     Font.color Color.lavender
-
-
-vsn : Attribute msg
-vsn =
-    Font.color Color.deepskyblue
-
-
-panelHeader : Attribute msg
-panelHeader =
-    Font.color Color.aliceblue
-
-
-link : Attribute msg
-link =
-    Font.color Color.dodgerblue
-
-
-
-{- Error -}
-
-
-error : Attribute msg
-error =
-    Font.color Color.pink
-
-
-
-{- Button -}
-
-
-button : Attribute msg
-button =
-    Font.color Color.darkolivegreen
-
-
-buttonDisabled : Attribute msg
-buttonDisabled =
-    Font.color Color.darkgrey
 
 
 
@@ -112,6 +84,38 @@ value =
 
 
 
+{- Link -}
+
+
+link : Attribute msg
+link =
+    Font.color Color.dodgerblue
+
+
+
+{- Error -}
+
+
+error : Attribute msg
+error =
+    Font.color Color.pink
+
+
+
+{- Buttons -}
+
+
+button : Attribute msg
+button =
+    Font.color Color.darkolivegreen
+
+
+buttonDisabled : Attribute msg
+buttonDisabled =
+    Font.color Color.darkgrey
+
+
+
 {- Code -}
 
 
@@ -126,19 +130,9 @@ function =
 
 
 
-{- Lobby Room Listing -}
+{- Version -}
 
 
-ownRoom : Attribute msg
-ownRoom =
-    Font.color Color.darkblue
-
-
-openRoom : Attribute msg
-openRoom =
-    Font.color Color.green
-
-
-closedRoom : Attribute msg
-closedRoom =
-    Font.color Color.firebrick
+vsn : Attribute msg
+vsn =
+    Font.color Color.deepskyblue

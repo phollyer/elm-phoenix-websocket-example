@@ -490,7 +490,7 @@ byUsername (RegisteredUser user1) (RegisteredUser user2) =
 
 
 
-{- Encode -}
+{- Encoders -}
 
 
 encode : RegisteredUser -> Value
@@ -533,7 +533,7 @@ encodeField field =
 
 
 
-{- Decode -}
+{- Decoders -}
 
 
 type alias TempUser =

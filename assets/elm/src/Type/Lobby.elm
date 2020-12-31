@@ -17,7 +17,7 @@ import Type.User as User exposing (RegisteredUser)
 
 
 
-{- Type -}
+{- Types -}
 
 
 type alias Lobby =

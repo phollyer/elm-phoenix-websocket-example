@@ -18,8 +18,10 @@ base =
     "https://package.elm-lang.org/packages/phollyer/elm-phoenix-websocket/latest/Phoenix#"
 
 
-{-| A fomratted link to a functions docs.
--}
+
+{- Function -}
+
+
 function : String -> Element msg
 function func =
     El.newTabLink
@@ -39,15 +41,22 @@ function func =
         }
 
 
+
+{- Type -}
+
+
 type_ : ( String, String ) -> Element msg
 type_ ( actual, text ) =
     El.newTabLink
         [ FontFamily.code ]
-        { url =
-            base ++ actual
+        { url = base ++ actual
         , label =
             El.paragraph [] (format text)
         }
+
+
+
+{- Source Code -}
 
 
 srcLink : Example -> Element msg
@@ -64,6 +73,10 @@ srcLink example =
                 ]
                 (El.text "here")
         }
+
+
+
+{- Transform -}
 
 
 format : String -> List (Element msg)

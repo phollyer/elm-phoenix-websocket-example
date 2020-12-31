@@ -12,6 +12,10 @@ import Json.Encode as JE
 import Type.User as User exposing (RegisteredUser)
 
 
+
+{- Types -}
+
+
 type alias ChatMessage =
     { text : String
     , owner : RegisteredUser
@@ -19,10 +23,18 @@ type alias ChatMessage =
     }
 
 
+
+{- Ecnoder -}
+
+
 encode : String -> Value
 encode text =
     JE.object
         [ ( "message", JE.string text ) ]
+
+
+
+{- Decoder -}
 
 
 decode : Value -> Result JD.Error ChatMessage

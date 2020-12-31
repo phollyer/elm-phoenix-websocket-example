@@ -8,6 +8,10 @@ module UI.Align exposing
 import Element as El exposing (Attribute)
 
 
+
+{- Types -}
+
+
 type X
     = Center
     | Left
@@ -18,6 +22,10 @@ type Y
     = Middle
     | Top
     | Bottom
+
+
+
+{- Build -}
 
 
 x : X -> Attribute msg

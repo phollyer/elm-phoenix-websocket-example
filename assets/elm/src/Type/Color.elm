@@ -9,12 +9,20 @@ import Json.Decode.Extra exposing (andMap)
 import Json.Encode as JE
 
 
+
+{- Types -}
+
+
 type alias RGBA =
     { red : Float
     , green : Float
     , blue : Float
     , alpha : Float
     }
+
+
+
+{- Encoder -}
 
 
 encode : Color -> Value
@@ -29,6 +37,10 @@ encode color =
         , ( "blue", JE.float rgba.blue )
         , ( "alpha", JE.float rgba.alpha )
         ]
+
+
+
+{- Decoder -}
 
 
 decoder : JD.Decoder Color

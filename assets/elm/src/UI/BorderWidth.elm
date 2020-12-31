@@ -9,12 +9,20 @@ import Element exposing (Attribute)
 import Element.Border as Border
 
 
+
+{- Types -}
+
+
 type alias BorderEach =
     { left : Int
     , top : Int
     , right : Int
     , bottom : Int
     }
+
+
+
+{- Helper -}
 
 
 borderEach : BorderEach
@@ -24,6 +32,10 @@ borderEach =
     , right = 0
     , bottom = 0
     }
+
+
+
+{- Build -}
 
 
 bottom : Int -> Attribute msg

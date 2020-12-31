@@ -3,6 +3,8 @@ module Type.ErrorMessage exposing
     , toString
     )
 
+{- Types -}
+
 
 type ErrorMessage
     = UsernameCannotBeBlank
@@ -11,6 +13,10 @@ type ErrorMessage
     | BackgroundColorNotSelected
     | ForegroundColorNotSelected
     | RoomClosed
+
+
+
+{- Transform -}
 
 
 toString : ErrorMessage -> String

@@ -3,9 +3,7 @@ module Page.Home exposing
     , Msg
     , init
     , subscriptions
-    , toSession
     , update
-    , updateSession
     , view
     )
 
@@ -46,11 +44,6 @@ init session =
     )
 
 
-updateSession : Session -> Model
-updateSession session =
-    session
-
-
 
 {- Update -}
 
@@ -77,11 +70,6 @@ update msg model =
             ( model
             , Route.pushUrl (Session.navKey model) route
             )
-
-
-toSession : Model -> Session
-toSession model =
-    model
 
 
 

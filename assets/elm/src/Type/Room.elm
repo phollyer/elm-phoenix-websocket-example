@@ -26,7 +26,7 @@ import Type.User as User exposing (RegisteredUser)
 
 
 
-{- Type -}
+{- Types -}
 
 
 type alias Room =
@@ -52,10 +52,6 @@ init owner =
     , messages = []
     , occupantsTyping = []
     }
-
-
-
-{- Transform -}
 
 
 updateMembers : List RegisteredUser -> Room -> Room
@@ -90,6 +86,10 @@ addOccupantTyping currentUser user room =
 dropOccupantTyping : RegisteredUser -> Room -> Room
 dropOccupantTyping user room =
     { room | occupantsTyping = User.drop user room.occupantsTyping }
+
+
+
+{- Transform -}
 
 
 partition : RegisteredUser -> List Room -> ( List Room, List Room )
@@ -168,7 +168,7 @@ matchOwner roomA roomB =
 
 
 
-{- Encode -}
+{- Encoder -}
 
 
 encode : Room -> Value
@@ -178,7 +178,7 @@ encode room =
 
 
 
-{- Decode -}
+{- Decoder -}
 
 
 decode : Value -> Result JD.Error Room

@@ -1,12 +1,9 @@
 module UI.BackgroundColor exposing
     ( button
     , buttonDisabled
-    , closedRoom
     , content
     , examplePanel
     , messages
-    , openRoom
-    , ownRoom
     , page
     , panel
     , panelContent
@@ -28,6 +25,15 @@ content =
     Background.color Color.skyblue
 
 
+messages : Attribute msg
+messages =
+    Background.color Color.white
+
+
+
+{- Buttons -}
+
+
 button : Attribute msg
 button =
     Background.color Color.darkseagreen
@@ -38,9 +44,8 @@ buttonDisabled =
     Background.color Color.grey
 
 
-messages : Attribute msg
-messages =
-    Background.color Color.white
+
+{- Panels -}
 
 
 panel : Attribute msg
@@ -53,29 +58,6 @@ panelContent =
     Background.color Color.lightskyblue
 
 
-
-{- Examples -}
-
-
 examplePanel : Attribute msg
 examplePanel =
     Background.color Color.white
-
-
-
-{- Lobby Room Listing -}
-
-
-ownRoom : Attribute msg
-ownRoom =
-    Background.color Color.skyblue
-
-
-openRoom : Attribute msg
-openRoom =
-    Background.color (Alpha.lightgreen 0.5)
-
-
-closedRoom : Attribute msg
-closedRoom =
-    Background.color Color.lightcoral
