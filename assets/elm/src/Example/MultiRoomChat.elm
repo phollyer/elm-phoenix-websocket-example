@@ -606,12 +606,9 @@ update msg model =
 
                 ChannelResponse (LeaveOk _) ->
                     case newModel.state of
-                        InRoom room currentUser ->
+                        InLobby currentUser ->
                             ( { newModel
-                                | lobby = Lobby.resetRoomAction room newModel.lobby
-                                , state =
-                                    InLobby <|
-                                        User.roomClosed room.id currentUser
+                                | lobby = Lobby.resetAllRoomActions newModel.lobby
                               }
                             , cmd
                             )

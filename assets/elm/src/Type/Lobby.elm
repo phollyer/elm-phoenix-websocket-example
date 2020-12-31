@@ -7,7 +7,7 @@ module Type.Lobby exposing
     , isEnteringRoom
     , occupants
     , occupantsState
-    , resetRoomAction
+    , resetAllRoomActions
     , roomAction
     , roomList
     , showRoomOccupants
@@ -72,9 +72,13 @@ updateRoomAction roomAction_ room lobby =
             { lobby | roomActions = Dict.insert room.id (roomAction_ room) lobby.roomActions }
 
 
-resetRoomAction : Room -> Lobby -> Lobby
-resetRoomAction room lobby =
-    { lobby | roomActions = Dict.insert room.id (NoAction room) lobby.roomActions }
+resetAllRoomActions : Lobby -> Lobby
+resetAllRoomActions lobby =
+    let
+        _ =
+            Debug.log "Reset room action" {}
+    in
+    { lobby | roomActions = Dict.empty }
 
 
 occupantsState : RegisteredUser -> List RegisteredUser -> Lobby -> Lobby
