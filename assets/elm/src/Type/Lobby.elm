@@ -74,10 +74,6 @@ updateRoomAction roomAction_ room lobby =
 
 resetAllRoomActions : Lobby -> Lobby
 resetAllRoomActions lobby =
-    let
-        _ =
-            Debug.log "Reset room action" {}
-    in
     { lobby | roomActions = Dict.empty }
 
 
